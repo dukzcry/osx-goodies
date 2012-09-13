@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>OSBundleCompatibleVersion</key>
+	<string>1.0.0b1</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>English</string>
+	<key>CFBundleDisplayName</key>
+	<string></string>
+	<key>CFBundleExecutable</key>
+	<string>${EXECUTABLE_NAME}</string>
+	<key>CFBundleIconFile</key>
+	<string></string>
+	<key>CFBundleIdentifier</key>
+	<string>com.dukzcry.I2CFamily</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>${PRODUCT_NAME}</string>
+	<key>CFBundlePackageType</key>
+	<string>KEXT</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.1</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>1.1</string>
+	<key>IOKitPersonalities</key>
+	<dict>
+		<key>ICHSMBus</key>
+		<dict>
+			<key>IOPCIMatch</key>
+			<string>0x29308086</string>
+			<key>IOPCIMatchComment</key>
+			<string>Intel 82801I SMBus Controller</string>
+			<key>IOClass</key>
+			<string>I2CDevice</string>
+			<key>IOResourceMatch</key>
+			<string>IOKit</string>
+			<key>IOProviderClass</key>
+			<string>IOPCIDevice</string>
+			<key>CFBundleIdentifier</key>
+			<string>com.dukzcry.I2CFamily</string>
+		</dict>
+	</dict>
+	<key>OSBundleLibraries</key>
+	<dict>
+		<key>com.apple.kpi.mach</key>
+		<string>8.0.0b2</string>
+		<key>com.apple.kernel.iokit</key>
+		<string>7.9.9</string>
+		<key>com.apple.iokit.IOPCIFamily</key>
+		<string>2.6</string>
+		<key>com.apple.kpi.iokit</key>
+		<string>11.3.0</string>
+		<key>com.apple.kpi.libkern</key>
+		<string>11.3.0</string>
+	</dict>
+</dict>
+</plist>
