@@ -48,8 +48,6 @@
 	<dict>
 		<key>com.apple.kpi.mach</key>
 		<string>8.0.0b2</string>
-		<key>com.apple.kernel.iokit</key>
-		<string>7.9.9</string>
 		<key>com.apple.iokit.IOPCIFamily</key>
 		<string>2.6</string>
 		<key>com.apple.kpi.iokit</key>
