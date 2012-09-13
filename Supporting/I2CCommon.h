@@ -1,3 +1,6 @@
+#ifndef _I2CCommon_
+#define _I2CCommon_
+
 #include <IOKit/pci/IOPCIDevice.h>
 #include <IOKit/IOFilterInterruptEventSource.h>
 
@@ -54,3 +57,5 @@ public:
     int ReadI2CBus(UInt16, void *, size_t, void *, size_t);
     int WriteI2CBus(UInt16, void *, size_t, void *, size_t);
 };
+
+#endif
