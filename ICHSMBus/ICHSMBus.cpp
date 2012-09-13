@@ -184,7 +184,7 @@ void I2CDevice::stop(IOService *provider)
     super::stop(provider);
 }
 
-/* I2CController required methods */
+/* Export methods */
 void I2CDevice::LockI2CBus()
 {
     IORWLockWrite(I2C_Lock);
@@ -279,7 +279,4 @@ int I2CDevice::WriteI2CBus(UInt16 addr, void *cmdbuf, size_t cmdlen, void *buf, 
 {
     return I2CExec(I2CWriteOp, addr, cmdbuf, cmdlen, buf, len);
 }
-/* */
-
-/* Handling bus consumers */
 /* */
