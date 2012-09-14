@@ -4,11 +4,13 @@
 #include <IOKit/pci/IOPCIDevice.h>
 #include <IOKit/IOFilterInterruptEventSource.h>
 
+namespace I2COperations {
 typedef enum {
     I2CReadOp = 1,
     I2CWriteOp,
     //I2CStopOp
 } I2COp;
+}
 
 class I2CDevice: public IOService
 {
@@ -40,7 +42,7 @@ private:
     IOInterruptEventSource *CreateDeviceInterrupt(IOInterruptEventSource::Action,
                                                   IOFilterInterruptEventSource::Filter,
                                                   IOService *);
-    int I2CExec(I2COp, UInt16, void *, size_t, void *, size_t);
+    int I2CExec(I2COperations::I2COp, UInt16, void *, size_t, void *, size_t);
 protected:
     virtual bool    init (OSDictionary* dictionary = NULL);
     virtual void    free (void);

@@ -6,6 +6,7 @@
 
 #define DEBUG 1
 
+using namespace I2COperations;
 OSDefineMetaClassAndStructors(I2CDevice, IOService)
 
 bool I2CDevice::init (OSDictionary* dict)
