@@ -87,14 +87,13 @@ void I2CDevice::interruptHandler(OSObject *owner, IOInterruptEventSource *src, i
 {
     I2CDevice *obj = (I2CDevice *) owner;
     UInt8 *Bp; size_t len;
-    
-    /* Ignore pre-I2CExec()'ed interrupts */
-    if (obj->I2C_Transfer.op == I2CNoOp)
-        return;
 
     PrintBitFieldExpanded(obj->fSt);
     
     obj->fPCIDevice->ioWrite8(obj->fBase + ICH_SMB_HS, obj->fSt);
+    /* Catch <DEVERR,INUSE> for cold start */
+    if (obj->I2C_Transfer.op == I2CNoOp)
+        return;
     
     if (obj->fSt & (ICH_SMB_HS_DEVERR | ICH_SMB_HS_BUSERR | ICH_SMB_HS_FAILED)) {
         obj->I2C_Transfer.error_marker = 1;
@@ -213,8 +212,6 @@ int I2CDevice::I2CExec(I2COp op, UInt16 addr, void *cmdbuf, size_t cmdlen, void 
     DbgPrint("exec: St 0x%x\n", St & ICH_SMB_HS_BUSY);
     if (St & ICH_SMB_HS_BUSY)
         return 1;
-    
-    /* Re-check: interrupt mode may not work at cold boot */
     
     if (/* Limited to 2-byte data */
         cmdlen > 1 || len > 2)
