@@ -1,0 +1,300 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		21A6E23315F0D01300701B2B /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 21A6E23115F0D01300701B2B /* InfoPlist.strings */; };
+		21A6E23615F0D01300701B2B /* Andigilog.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 21A6E23515F0D01300701B2B /* Andigilog.cpp */; };
+		21E4E75416059D95002137D5 /* I2CCommon.h in Headers */ = {isa = PBXBuildFile; fileRef = 21E4E75316059D95002137D5 /* I2CCommon.h */; };
+		21E4E75716059DFA002137D5 /* FakeSMCPlugin.h in Headers */ = {isa = PBXBuildFile; fileRef = 21E4E75616059DFA002137D5 /* FakeSMCPlugin.h */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		21A6E22915F0D01300701B2B /* Andigilog.kext */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Andigilog.kext; sourceTree = BUILT_PRODUCTS_DIR; };
+		21A6E22D15F0D01300701B2B /* Kernel.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Kernel.framework; path = System/Library/Frameworks/Kernel.framework; sourceTree = SDKROOT; };
+		21A6E23015F0D01300701B2B /* Andigilog-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Andigilog-Info.plist"; sourceTree = "<group>"; };
+		21A6E23215F0D01300701B2B /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		21A6E23415F0D01300701B2B /* Andigilog.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Andigilog.h; sourceTree = "<group>"; };
+		21A6E23515F0D01300701B2B /* Andigilog.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Andigilog.cpp; sourceTree = "<group>"; };
+		21A6E23715F0D01300701B2B /* Andigilog-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Andigilog-Prefix.pch"; sourceTree = "<group>"; };
+		21E4E75316059D95002137D5 /* I2CCommon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = I2CCommon.h; path = Supporting/I2CCommon.h; sourceTree = SOURCE_ROOT; };
+		21E4E75616059DFA002137D5 /* FakeSMCPlugin.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FakeSMCPlugin.h; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		21A6E22415F0D01300701B2B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		21A6E21C15F0D01300701B2B = {
+			isa = PBXGroup;
+			children = (
+				21A6E22E15F0D01300701B2B /* Andigilog */,
+				21A6E22B15F0D01300701B2B /* Frameworks */,
+				21A6E22A15F0D01300701B2B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		21A6E22A15F0D01300701B2B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				21A6E22915F0D01300701B2B /* Andigilog.kext */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		21A6E22B15F0D01300701B2B /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				21A6E22C15F0D01300701B2B /* Other Frameworks */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		21A6E22C15F0D01300701B2B /* Other Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				21A6E22D15F0D01300701B2B /* Kernel.framework */,
+			);
+			name = "Other Frameworks";
+			sourceTree = "<group>";
+		};
+		21A6E22E15F0D01300701B2B /* Andigilog */ = {
+			isa = PBXGroup;
+			children = (
+				21E4E75316059D95002137D5 /* I2CCommon.h */,
+				21E4E75616059DFA002137D5 /* FakeSMCPlugin.h */,
+				21A6E23415F0D01300701B2B /* Andigilog.h */,
+				21A6E23515F0D01300701B2B /* Andigilog.cpp */,
+				21A6E22F15F0D01300701B2B /* Supporting Files */,
+			);
+			path = Andigilog;
+			sourceTree = "<group>";
+		};
+		21A6E22F15F0D01300701B2B /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				21A6E23015F0D01300701B2B /* Andigilog-Info.plist */,
+				21A6E23115F0D01300701B2B /* InfoPlist.strings */,
+				21A6E23715F0D01300701B2B /* Andigilog-Prefix.pch */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		21A6E22515F0D01300701B2B /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				21E4E75416059D95002137D5 /* I2CCommon.h in Headers */,
+				21E4E75716059DFA002137D5 /* FakeSMCPlugin.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		21A6E22815F0D01300701B2B /* Andigilog */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 21A6E23A15F0D01300701B2B /* Build configuration list for PBXNativeTarget "Andigilog" */;
+			buildPhases = (
+				21A6E22315F0D01300701B2B /* Sources */,
+				21A6E22415F0D01300701B2B /* Frameworks */,
+				21A6E22515F0D01300701B2B /* Headers */,
+				21A6E22615F0D01300701B2B /* Resources */,
+				21A6E22715F0D01300701B2B /* Rez */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Andigilog;
+			productName = Andigilog;
+			productReference = 21A6E22915F0D01300701B2B /* Andigilog.kext */;
+			productType = "com.apple.product-type.kernel-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		21A6E21E15F0D01300701B2B /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0440;
+			};
+			buildConfigurationList = 21A6E22115F0D01300701B2B /* Build configuration list for PBXProject "Andigilog" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 21A6E21C15F0D01300701B2B;
+			productRefGroup = 21A6E22A15F0D01300701B2B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				21A6E22815F0D01300701B2B /* Andigilog */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		21A6E22615F0D01300701B2B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				21A6E23315F0D01300701B2B /* InfoPlist.strings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXRezBuildPhase section */
+		21A6E22715F0D01300701B2B /* Rez */ = {
+			isa = PBXRezBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXRezBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		21A6E22315F0D01300701B2B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				21A6E23615F0D01300701B2B /* Andigilog.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		21A6E23115F0D01300701B2B /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				21A6E23215F0D01300701B2B /* en */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		21A6E23815F0D01300701B2B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		21A6E23915F0D01300701B2B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		21A6E23B15F0D01300701B2B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1.0.0d1;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "Andigilog/Andigilog-Prefix.pch";
+				GCC_VERSION = com.apple.compilers.llvmgcc42;
+				INFOPLIST_FILE = "Andigilog/Andigilog-Info.plist";
+				MODULE_NAME = com.dukzcry.I2CFamily;
+				MODULE_VERSION = 1.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Debug;
+		};
+		21A6E23C15F0D01300701B2B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1.0.0d1;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "Andigilog/Andigilog-Prefix.pch";
+				GCC_VERSION = com.apple.compilers.llvmgcc42;
+				INFOPLIST_FILE = "Andigilog/Andigilog-Info.plist";
+				MODULE_NAME = com.dukzcry.I2CFamily;
+				MODULE_VERSION = 1.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		21A6E22115F0D01300701B2B /* Build configuration list for PBXProject "Andigilog" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				21A6E23815F0D01300701B2B /* Debug */,
+				21A6E23915F0D01300701B2B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		21A6E23A15F0D01300701B2B /* Build configuration list for PBXNativeTarget "Andigilog" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				21A6E23B15F0D01300701B2B /* Debug */,
+				21A6E23C15F0D01300701B2B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 21A6E21E15F0D01300701B2B /* Project object */;
+}
