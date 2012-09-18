@@ -4,7 +4,7 @@
 
 #include "ICHSMBus.h"
 
-#define DEBUG 1
+//#define ICH_DEBUG 1
 
 using namespace I2COperations;
 OSDefineMetaClassAndStructors(I2CDevice, IOService)

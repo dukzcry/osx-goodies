@@ -4,7 +4,7 @@
 #define I2CNoOp 0
 #define super IOService
 
-#if defined(DEBUG)
+#ifdef ICH_DEBUG
 #define DbgPrint(arg...) IOLog(drvid arg)
 #define PrintBitFieldExpanded(val) IOPrint("Register decoded: 0x%x<BUSY=%d,INTR=%d," \
     "DEVERR=%d,BUSERR=%d,FAILED=%d,SMBAL=%d,INUSE=%d,BDONE=%d>\n", val, \
