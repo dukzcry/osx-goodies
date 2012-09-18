@@ -4,7 +4,7 @@
 #define drvid "[Andigilog] "
 #define super FakeSMCPlugin
 
-#if defined(DEBUG)
+#ifdef ASC_DEBUG
 #define DbgPrint(arg...) IOLog(drvid arg)
 #else
 #define DbgPrint(arg...) ;

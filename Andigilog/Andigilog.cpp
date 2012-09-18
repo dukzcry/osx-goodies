@@ -4,7 +4,7 @@
 
 #include "Andigilog.h"
 
-#define DEBUG 1
+#define ASC_DEBUG 1
 
 OSDefineMetaClassAndStructors(Andigilog, FakeSMCPlugin)
 
@@ -135,7 +135,7 @@ void Andigilog::updateSensors()
             if (data == 0 || data == 0xffff)
                 Measures[i].value = 0;
             else
-                Measures[i].value = encode_fpe2(5400000 / data);
+                Measures[i].value = 5400000 / data;
         }
     }
     
@@ -230,6 +230,8 @@ IOReturn Andigilog::callPlatformFunction(const OSSymbol *functionName, bool wait
                         
                         if (idx > -1) {
                             readSensor(idx);
+                            if (fan >= 0 && (*((uint32_t*)&Measures[idx].hwsensor.type) == *((uint32_t*)TYPE_FPE2)))
+                                Measures[idx].value = encode_fpe2(Measures[idx].value);
                             memcpy(data, &Measures[idx].value, Measures[idx].hwsensor.size);
                         }
                     }
