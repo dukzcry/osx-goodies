@@ -9,7 +9,7 @@
 	<key>CFBundleIconFile</key>
 	<string></string>
 	<key>CFBundleIdentifier</key>
-	<string>com.dukzcry.sensor.Andigilog</string>
+	<string>org.dukzcry.sensor.Andigilog</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -35,14 +35,14 @@
 			<key>IOProviderClass</key>
 			<string>I2CDevice</string>
 			<key>CFBundleIdentifier</key>
-			<string>com.dukzcry.sensor.Andigilog</string>
+			<string>org.dukzcry.sensor.Andigilog</string>
 		</dict>
 	</dict>
 	<key>OSBundleLibraries</key>
 	<dict>
 		<key>org.netkas.FakeSMC</key>
 		<string>4.2.0</string>
-		<key>com.dukzcry.I2CFamily</key>
+		<key>org.dukzcry.I2CFamily</key>
 		<string>1.1</string>
 		<key>com.apple.kpi.iokit</key>
 		<string>11.3.0</string>

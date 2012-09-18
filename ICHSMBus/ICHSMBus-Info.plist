@@ -13,7 +13,7 @@
 	<key>CFBundleIconFile</key>
 	<string></string>
 	<key>CFBundleIdentifier</key>
-	<string>com.dukzcry.I2CFamily</string>
+	<string>org.dukzcry.I2CFamily</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -41,7 +41,7 @@
 			<key>IOProviderClass</key>
 			<string>IOPCIDevice</string>
 			<key>CFBundleIdentifier</key>
-			<string>com.dukzcry.I2CFamily</string>
+			<string>org.dukzcry.I2CFamily</string>
 		</dict>
 	</dict>
 	<key>OSBundleLibraries</key>
