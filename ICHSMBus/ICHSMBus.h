@@ -1,5 +1,7 @@
 #include "I2CCommon.h"
 
+//#define ICH_DEBUG 1
+
 #define drvid "[ICHSMBus] "
 #define I2CNoOp 0
 #define super IOService
