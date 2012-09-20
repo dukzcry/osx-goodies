@@ -1,8 +1,8 @@
 #Integrated circuits support
 
-##Parents:
+##Parents
 - ICHSMBus - Intel ICH SMBus controller
 
-##Limitations:
+##Limitations
 
 ICHSMBus: Bus scanning is not implemented. Only chipsets starting from ICH5 are supported. You're likely need to add PCI ID of your host to Info.plist's IOPCIMatch.
