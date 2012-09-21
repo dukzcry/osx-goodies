@@ -5,7 +5,7 @@
 
 ###Notes
 
-ICHSMBus: You're likely need to add PCI ID of your host to Info.plist's IOPCIMatch.
+ICHSMBus: You're likely need to add PCI ID of your host to Info.plist's IOPCIMatch property.
 
 ###Limitations
 

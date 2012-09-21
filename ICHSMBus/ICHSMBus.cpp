@@ -89,7 +89,7 @@ void I2CDevice::interruptHandler(OSObject *owner, IOInterruptEventSource *src, i
     PrintBitFieldExpanded(obj->fSt);
     
     obj->fPCIDevice->ioWrite8(obj->fBase + ICH_SMB_HS, obj->fSt);
-    /* Catch <DEVERR,INUSE> for cold start */
+    /* Catch <DEVERR,INUSE> when cold start */
     if (obj->I2C_Transfer.op == I2CNoOp)
         return;
     
