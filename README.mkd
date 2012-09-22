@@ -2,11 +2,15 @@
 
 ##Parents
 - ICHSMBus - Intel ICH SMBus controller
+##Childs
+- Andigilog - Andigilog ASC7621(a) temperature, voltage, and fan sensor
 
 ###Notes
 
 ICHSMBus: You're likely need to add PCI ID of your host to Info.plist's IOPCIMatch property.
+Andigilog: Driver exchanges data with help of FakeSMC's HWSensors4. You don't need FakeSMC's source tree to build this driver, but you need FakeSMC.kext in your S/L/E to get driver work.
 
 ###Limitations
 
 ICHSMBus: Bus scanning is not implemented. Only chipsets starting from ICH5 are supported.
+Andigilog: Voltage control is not currently implemented. 
