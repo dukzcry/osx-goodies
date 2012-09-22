@@ -10,7 +10,7 @@
 
 ICHSMBus: You're likely need to add PCI ID of your host to Info.plist's IOPCIMatch property.
 
-Andigilog: Driver exchanges data with help of FakeSMC's HWSensors4. You don't need FakeSMC's source tree to build this driver, but you need FakeSMC.kext in your S/L/E to get driver work.
+Andigilog: Driver exchanges data with monitoring soft with help of FakeSMC's HWSensors4. You don't need FakeSMC's source tree to build this driver, but you need FakeSMC.kext in your S/L/E to get driver work.
 
 ###Limitations
 
