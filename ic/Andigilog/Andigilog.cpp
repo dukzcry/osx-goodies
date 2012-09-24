@@ -176,7 +176,6 @@ void Andigilog::GetConf()
             conf = ASC7621_FANCM(conf);
             
             //(offmin >> Pwm[i].shift) & 0x01);
-            DbgPrint("conf %d altbit %d\n", conf, ASC7621_ALTB(conf));
             if (!ASC7621_ALTB(conf) && (conf == 7 ||
                 conf == 3 /* fan on full, when manual mode selected - doesn't match datasheet, but seen on some boards */
                 ))
