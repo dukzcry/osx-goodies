@@ -1,8 +1,12 @@
 #include "I2CCommon.h"
 #include "FakeSMCPlugin.h"
 
+#define ASC_DEBUG 1
+#define ASC7621_ADDRS {0x2c,0x2d,0x2e}
+
 #define drvid "[Andigilog] "
 #define super FakeSMCPlugin
+#define addSensor addKey
 
 #ifdef ASC_DEBUG
 #define DbgPrint(arg...) IOLog(drvid arg)
@@ -11,14 +15,15 @@
 #endif
 #define IOPrint(arg...) IOLog(drvid arg)
 
-#define ASC7621A_ADDR 0x2e /* Ugly, binded to absolute address for now */
-
 #define ASC7621_VID_REG 0x3e
 #define ASC7621_PID_REG 0x3f
 #define ASC7621_VID     0x61
+#define ASC7621_PID     0x6c
 #define ASC7621A_PID    0x6d
 
 #define NUM_SENSORS	8
+#define NUM_PWM     3
+
 #define ASC7621_TEMP1H		0x25
 #define ASC7621_TEMP1L		0x10
 #define ASC7621_TEMP2H		0x26
@@ -37,11 +42,22 @@
 #define ASC7621_TACH4H		0x2f
 #define ASC7621_TACH4L		0x2e
 
+#define ASC7621_FANCM(x)    (x >> 5)
+#define ASC7621_ALTB(x)     (x >> 3) & 0x01
+//#define ASC7621_OFFMINR     0x62
+#define ASC7621_PWM1R       0x5c
+#define ASC7621_PWM2R       0x5d
+#define ASC7621_PWM3R       0x5e
+/*#define ASC7621_PWM1S       5
+#define ASC7621_PWM2S       6
+#define ASC7621_PWM3S       7*/
+
 class Andigilog: public FakeSMCPlugin
 {
     OSDeclareDefaultStructors(Andigilog)
 private:
     I2CDevice *i2cNub;
+    UInt8 Asc7621_addr;
     struct MList {
         UInt8	hreg;			/* MS-byte */
         UInt8	lreg;			/* LS-byte */
@@ -55,14 +71,25 @@ private:
         SInt64 value;
         bool obsoleted;
     } Measures[NUM_SENSORS];
+    struct PList {
+        UInt8 reg;
+        //UInt8 shift;
+    } Pwm[NUM_PWM];
+    struct {
+        SInt16 pwm_mode;
+    } config;
     
     OSDictionary *	sensors;
     
     
     void updateSensors();
     void readSensor(int);
+    /* Fan control */
+    void   GetConf();
+    UInt16 GetPwmMode();
+    /* */
     
-    bool addSensor(const char* key, const char* type, unsigned char size, int index);
+    bool addKey(const char* key, const char* type, unsigned char size, int index);
     void addTachometer(struct MList *, int);
 protected:
     virtual bool    init (OSDictionary* dictionary = NULL);
