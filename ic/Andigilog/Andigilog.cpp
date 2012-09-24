@@ -103,7 +103,7 @@ bool Andigilog::start(IOService *provider)
         }
     addKey(KEY_FAN_FORCE, TYPE_UI16, 2, 0);
     
-    config.pwm_mode = -1;
+    GetConf();
         
     return res;
 }
@@ -160,7 +160,7 @@ void Andigilog::updateSensors()
 
 void Andigilog::GetConf()
 {
-	UInt8 conf /*,offmin*/;
+	UInt8 conf, val /*,offmin*/;
     
     config.pwm_mode = 0;
 
@@ -173,28 +173,26 @@ void Andigilog::GetConf()
          i < NUM_PWM /* separate tachs and pwms, helps for mobos, where wireout is messed */
         ; i++) {
         if (!i2cNub->ReadI2CBus(Asc7621_addr, &Pwm[i].reg, sizeof Pwm[i].reg, &conf, sizeof conf)) {
-            conf = ASC7621_FANCM(conf);
+            val = ASC7621_FANCM(conf);
             
             //(offmin >> Pwm[i].shift) & 0x01);
-            if (!ASC7621_ALTB(conf) && (conf == 7 ||
-                conf == 3 /* fan on full, when manual mode selected - doesn't match datasheet, but seen on some boards */
-                ))
+            if (!ASC7621_ALTB(val) && (val == 7 || (val == 3 &&
+                /* be quiet: PWM = 0 for boards which set PWM = 255 for manual mode */
+                (conf |= 1 << 7) && ((conf &= ~(1 << 6)) != -1) && ((conf &= ~(1 << 5)) != -1) &&
+                (i2cNub->WriteI2CBus(Asc7621_addr, &Pwm[i].reg, sizeof Pwm[i].reg, &conf, sizeof conf) != -1)
+                )))
                 config.pwm_mode |= 1 << i;
-            /*else config.pwm_mode &= ~(1 << i);*/
         }
     }
     
     i2cNub->UnlockI2CBus();
 }
 
-UInt16 Andigilog::GetPwmMode()
+void Andigilog::SetPwmMode(UInt16 val)
 {
-    if (config.pwm_mode > -1)
-        return config.pwm_mode;
-    
-    GetConf();
-    
-    return config.pwm_mode;
+    for (int i = 0; i < NUM_PWM; i++)
+        if (!(val & (1 << i)) != !(config.pwm_mode & (1 << i)))
+            ;
 }
 
 void Andigilog::readSensor(int idx)
@@ -293,7 +291,25 @@ IOReturn Andigilog::callPlatformFunction(const OSSymbol *functionName, bool wait
                         }
                     }
                     else if (key[0] == KEY_FAN_FORCE[0] && key[1] == KEY_FAN_FORCE[1])
-                        memcpy(data, &(index = swap_value(GetPwmMode())), 2);
+                        memcpy(data, &(index = swap_value(config.pwm_mode)), 2);
+                    return kIOReturnSuccess;
+                }
+            }
+            return kIOReturnBadArgument;
+        }
+        return kIOReturnBadArgument;
+    }
+    if (functionName->isEqualTo(kFakeSMCSetValueCallback)) {
+        const char* key = (const char*)param1;
+		char * data = (char*)param2;
+        
+        if (key && data) {
+            if (OSNumber *number = OSDynamicCast(OSNumber, sensors->getObject(key))) {
+                UInt32 index = number->unsigned16BitValue();
+                
+                if (index < NUM_SENSORS) {
+                    if (key[0] == KEY_FAN_FORCE[0] && key[1] == KEY_FAN_FORCE[1])
+                        SetPwmMode(swap_value(*((UInt16 *) data)));
                     return kIOReturnSuccess;
                 }
             }

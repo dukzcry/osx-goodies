@@ -76,7 +76,7 @@ private:
         //UInt8 shift;
     } Pwm[NUM_PWM];
     struct {
-        SInt16 pwm_mode;
+        UInt16 pwm_mode;
     } config;
     
     OSDictionary *	sensors;
@@ -86,7 +86,7 @@ private:
     void readSensor(int);
     /* Fan control */
     void   GetConf();
-    UInt16 GetPwmMode();
+    void   SetPwmMode(UInt16);
     /* */
     
     bool addKey(const char* key, const char* type, unsigned char size, int index);
