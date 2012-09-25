@@ -11,6 +11,8 @@
 ICHSMBus: You're likely need to add PCI ID of your host to Info.plist's IOPCIMatch property.
 
 Andigilog: Driver exchanges data with monitoring soft with help of FakeSMC's HWSensors4. You don't need FakeSMC's source tree to build this driver, but you need FakeSMC.kext in your S/L/E to get driver work.
+PWMs are separated from fans in order to deal with motherboards, where wiring layout is messed.
+On systems, where firmware sets fans on full speed when forced mode is chosen, this driver will set them off after loading. It's your own task to add fan control program of choice into autoload, to safely live with such setting.
 
 ###Limitations
 

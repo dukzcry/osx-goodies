@@ -169,15 +169,13 @@ void Andigilog::GetConf()
     /* Ask for PWM mode statuses */
     /*if (i2cNub->ReadI2CBus(Asc7621_addr, &(conf = ASC7621_OFFMINR), sizeof conf, &offmin, sizeof offmin))
         return;*/
-    for (int i = 0;
-         i < NUM_PWM /* separate tachs and pwms, helps for mobos, where wireout is messed */
-        ; i++) {
+    for (int i = 0; i < NUM_PWM; i++) {
         i2cNub->ReadI2CBus(Asc7621_addr, &Pwm[i].reg, sizeof Pwm[i].reg, &conf, sizeof conf);
         val = ASC7621_FANCM(conf);
             
         //(offmin >> Pwm[i].shift) & 0x01);
         if (!ASC7621_ALTBG(val) && (val == 7 || (val == 3 &&
-            /* be quiet: PWM = 0 for boards which set PWM = 255 for manual mode */
+            /* PWM: 255 -> 0 */
             (conf |= 1 << ASC7621_PWM3B) && ((conf &= ~(1 << ASC7621_PWM2B) & ~(1 << ASC7621_PWM1B)) != -1) &&
             (i2cNub->WriteI2CBus(Asc7621_addr, &Pwm[i].reg, sizeof Pwm[i].reg, &conf, sizeof conf) != -1)
             /* */
