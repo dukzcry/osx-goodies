@@ -43,14 +43,15 @@
 #define ASC7621_TACH4L		0x2e
 
 #define ASC7621_FANCM(x)    (x >> 5)
-#define ASC7621_ALTB(x)     (x >> 3) & 0x01
+#define ASC7621_ALTBG(x)     (x >> 3) & 0x01
+#define ASC7621_ALTBS(x)    x |= 1 << 3
 //#define ASC7621_OFFMINR     0x62
 #define ASC7621_PWM1R       0x5c
 #define ASC7621_PWM2R       0x5d
 #define ASC7621_PWM3R       0x5e
-/*#define ASC7621_PWM1S       5
-#define ASC7621_PWM2S       6
-#define ASC7621_PWM3S       7*/
+#define ASC7621_PWM1B       5
+#define ASC7621_PWM2B       6
+#define ASC7621_PWM3B       7
 
 class Andigilog: public FakeSMCPlugin
 {

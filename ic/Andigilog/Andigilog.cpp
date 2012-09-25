@@ -56,9 +56,9 @@ bool Andigilog::start(IOService *provider)
         { ASC7621_TACH4L, ASC7621_TACH4H, {"CPU, 2x",TYPE_FPE2,2}, true, 0, true }
     };
     struct PList pwm[] = {
-        { ASC7621_PWM1R /*,ASC7621_PWM1S*/ },
-        { ASC7621_PWM2R /*,ASC7621_PWM2S*/ },
-        { ASC7621_PWM3R /*,ASC7621_PWM3S*/ },
+        { ASC7621_PWM1R /*,ASC7621_PWM1B*/ },
+        { ASC7621_PWM2R /*,ASC7621_PWM2B*/ },
+        { ASC7621_PWM3R /*,ASC7621_PWM3B*/ },
     };
     
     res = super::start(provider);
@@ -172,17 +172,19 @@ void Andigilog::GetConf()
     for (int i = 0;
          i < NUM_PWM /* separate tachs and pwms, helps for mobos, where wireout is messed */
         ; i++) {
-        if (!i2cNub->ReadI2CBus(Asc7621_addr, &Pwm[i].reg, sizeof Pwm[i].reg, &conf, sizeof conf)) {
-            val = ASC7621_FANCM(conf);
+        i2cNub->ReadI2CBus(Asc7621_addr, &Pwm[i].reg, sizeof Pwm[i].reg, &conf, sizeof conf);
+        val = ASC7621_FANCM(conf);
             
-            //(offmin >> Pwm[i].shift) & 0x01);
-            if (!ASC7621_ALTB(val) && (val == 7 || (val == 3 &&
-                /* be quiet: PWM = 0 for boards which set PWM = 255 for manual mode */
-                (conf |= 1 << 7) && ((conf &= ~(1 << 6)) != -1) && ((conf &= ~(1 << 5)) != -1) &&
-                (i2cNub->WriteI2CBus(Asc7621_addr, &Pwm[i].reg, sizeof Pwm[i].reg, &conf, sizeof conf) != -1)
-                )))
+        //(offmin >> Pwm[i].shift) & 0x01);
+        if (!ASC7621_ALTBG(val) && (val == 7 || (val == 3 &&
+            /* be quiet: PWM = 0 for boards which set PWM = 255 for manual mode */
+            (conf |= 1 << ASC7621_PWM3B) && ((conf &= ~(1 << ASC7621_PWM2B) & ~(1 << ASC7621_PWM1B)) != -1) &&
+            (i2cNub->WriteI2CBus(Asc7621_addr, &Pwm[i].reg, sizeof Pwm[i].reg, &conf, sizeof conf) != -1)
+            /* */
+            )))
                 config.pwm_mode |= 1 << i;
-        }
+            
+        Pwm[i].reg = conf; /* store original conf */
     }
     
     i2cNub->UnlockI2CBus();
@@ -190,9 +192,29 @@ void Andigilog::GetConf()
 
 void Andigilog::SetPwmMode(UInt16 val)
 {
+    bool is_auto;
+    UInt8 conf, zon;
+    
     for (int i = 0; i < NUM_PWM; i++)
-        if (!(val & (1 << i)) != !(config.pwm_mode & (1 << i)))
-            ;
+        if ((is_auto = !(val & (1 << i))) != !(config.pwm_mode & (1 << i))) {
+            conf = Pwm[i].reg;
+            if (is_auto) {
+                zon = ASC7621_FANCM(conf);
+                /* No auto mode info was obtained */
+                if (!ASC7621_ALTBG(zon) && (zon == 4 || zon == 7)) {
+                    /* Thermal cruise mode */
+                    ASC7621_ALTBS(conf);
+                    conf &= ~(1 << ASC7621_PWM3B) & ~(1 << ASC7621_PWM2B);
+                    conf |= (1 << ASC7621_PWM1B);
+                }
+                config.pwm_mode &= ~(1 << i);
+            }
+            else {
+                conf |= 1 << ASC7621_PWM3B | 1 << ASC7621_PWM2B | 1 << ASC7621_PWM1B;
+                config.pwm_mode |= 1 << i;
+            }
+            i2cNub->WriteI2CBus(Asc7621_addr, &Pwm[i].reg, sizeof Pwm[i].reg, &conf, sizeof conf);
+        }
 }
 
 void Andigilog::readSensor(int idx)
