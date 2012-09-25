@@ -165,6 +165,7 @@ bool I2CDevice::start(IOService *provider)
     /* Avoid masking interrupts for other devices that are sharing the interrupt line
      * by immediate enabling of the event source */
     fInterruptSrc->enable();
+    IOPrint("IRQ: %d\n", (UInt8) fPCIDevice->configRead32(kIOPCIConfigInterruptLine));
     
     Lock.holder = IOLockAlloc();
     Lock.event = false;
