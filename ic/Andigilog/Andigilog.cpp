@@ -164,8 +164,6 @@ void Andigilog::GetConf()
     
     config.pwm_mode = 0;
 
-    i2cNub->LockI2CBus();
-    
     /* Ask for PWM mode statuses */
     /*if (i2cNub->ReadI2CBus(Asc7621_addr, &(conf = ASC7621_OFFMINR), sizeof conf, &offmin, sizeof offmin))
         return;*/
@@ -184,15 +182,15 @@ void Andigilog::GetConf()
             
         Pwm[i].reg = conf; /* store original conf */
     }
-    
-    i2cNub->UnlockI2CBus();
 }
 
 void Andigilog::SetPwmMode(UInt16 val)
 {
     bool is_auto;
     UInt8 conf, zon;
-    
+
+	i2cNub->LockI2CBus();   
+ 
     for (int i = 0; i < NUM_PWM; i++)
         if ((is_auto = !(val & (1 << i))) != !(config.pwm_mode & (1 << i))) {
             conf = Pwm[i].reg;
@@ -213,6 +211,9 @@ void Andigilog::SetPwmMode(UInt16 val)
             }
             i2cNub->WriteI2CBus(Asc7621_addr, &Pwm[i].reg, sizeof Pwm[i].reg, &conf, sizeof conf);
         }
+
+	i2cNub->UnlockI2CBus();
+
 }
 
 void Andigilog::readSensor(int idx)
