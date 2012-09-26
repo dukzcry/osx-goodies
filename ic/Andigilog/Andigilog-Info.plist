@@ -9,7 +9,7 @@
 	<key>CFBundleIconFile</key>
 	<string></string>
 	<key>CFBundleIdentifier</key>
-	<string>org.dukzcry.sensor.Andigilog</string>
+	<string>org.dukzcry.Andigilog</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -35,7 +35,7 @@
 			<key>IOProviderClass</key>
 			<string>I2CDevice</string>
 			<key>CFBundleIdentifier</key>
-			<string>org.dukzcry.sensor.Andigilog</string>
+			<string>org.dukzcry.Andigilog</string>
 		</dict>
 	</dict>
 	<key>OSBundleLibraries</key>
