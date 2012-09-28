@@ -67,7 +67,7 @@ private:
             char    type[5];
             unsigned char size;
         } hwsensor;
-        int	fan;
+        char fan;
         
         SInt64 value;
         bool obsoleted;
@@ -78,6 +78,8 @@ private:
     } Pwm[NUM_PWM];
     struct {
         UInt16 pwm_mode;
+        char num_fan;
+        char start_fan;
     } config;
     
     OSDictionary *	sensors;
@@ -88,6 +90,7 @@ private:
     /* Fan control */
     void   GetConf();
     void   SetPwmMode(UInt16);
+    //void   SetFanSpeed(char, UInt16);
     /* */
     
     bool addKey(const char* key, const char* type, unsigned char size, int index);

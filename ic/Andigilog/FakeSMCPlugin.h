@@ -22,6 +22,10 @@ inline UInt16 encode_fpe2(UInt16 value)
 {
 	return swap_value(value << 2);
 }
+inline UInt16 decode_fpe2(UInt16 value)
+{
+    return (swap_value(value) >> 2);
+}
 
 class FakeSMCPlugin : public IOService {
     OSDeclareAbstractStructors(FakeSMCPlugin)
