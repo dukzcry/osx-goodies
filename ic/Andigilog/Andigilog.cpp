@@ -1,6 +1,6 @@
 /* Written by Artem Falcon <lomka@gero.in> */
 
-/* Andigilog ASC7621(a) sensor driver */
+/* Andigilog aSC7621(A) sensor driver */
 
 #include "Andigilog.h"
 
@@ -56,9 +56,9 @@ bool Andigilog::start(IOService *provider)
         { ASC7621_TACH4L, ASC7621_TACH4H, {"CPU, 2x",TYPE_FPE2,2}, true, 0, true }
     };
     struct PList pwm[] = {
-        { ASC7621_PWM1R, /*,ASC7621_PWM1B*/ },
-        { ASC7621_PWM2R, /*,ASC7621_PWM2B*/ },
-        { ASC7621_PWM3R, /*,ASC7621_PWM3B*/ },
+        { ASC7621_PWM1R, 0, -2 /*,ASC7621_PWM1B*/ },
+        { ASC7621_PWM2R, 0, -2 /*,ASC7621_PWM2B*/ },
+        { ASC7621_PWM3R, 0, -2 /*,ASC7621_PWM3B*/ },
     };
     
     res = super::start(provider);
@@ -79,7 +79,7 @@ bool Andigilog::start(IOService *provider)
             !i2cNub->ReadI2CBus(addrs[i], &(cmd = ASC7621_PID_REG), sizeof(cmd), &data,
                             sizeof(data)) && (data == ASC7621_PID || data == ASC7621A_PID)) {
                 Asc7621_addr = addrs[i];
-                IOPrint("ASC7621 attached at 0x%x.\n", Asc7621_addr);
+                IOPrint("aSC7621 attached at 0x%x.\n", Asc7621_addr);
                 break;
             }
     if (!Asc7621_addr) {
@@ -89,7 +89,7 @@ bool Andigilog::start(IOService *provider)
     
     memcpy(&Measures, &list, sizeof(Measures));
     memcpy(&Pwm, &pwm, sizeof(Pwm));
-    i = 0, f = 0; config.start_fan = 0;
+    i = 0, f = 0;
     for (int s = 0; i < NUM_SENSORS; i++)
         if (Measures[i].hwsensor.key[0]) {
             if (Measures[i].fan < 0) {
@@ -98,13 +98,10 @@ bool Andigilog::start(IOService *provider)
                 s++;
             } else {
                 addTachometer(&Measures[i], Measures[i].fan = f);
-                if (!config.start_fan)
-                    config.start_fan = i;
                 f++;
             }
         }
-    config.num_fan = f + 1;
-    addKey(KEY_FAN_FORCE, TYPE_FPE2, 2, 0);
+    addKey(KEY_FAN_FORCE, TYPE_UI16, 2, 0);
     
     GetConf();
         
@@ -114,8 +111,6 @@ bool Andigilog::start(IOService *provider)
 void Andigilog::stop(IOService *provider)
 {
     DbgPrint("stop\n");
-    
-    //fakeSMC->callPlatformFunction(kFakeSMCRemoveHandler, true, this, NULL, NULL, NULL);
     
     sensors->flushCollection();
     
@@ -173,19 +168,19 @@ void Andigilog::GetConf()
     /*if (i2cNub->ReadI2CBus(Asc7621_addr, &(conf = ASC7621_OFFMINR), sizeof conf, &offmin, sizeof offmin))
         return;*/
     for (int i = 0; i < NUM_PWM; i++) {
-        i2cNub->ReadI2CBus(Asc7621_addr, &Pwm[i].reg, sizeof Pwm[i].reg, &conf, sizeof conf);
+        i2cNub->ReadI2CBus(Asc7621_addr, &Pwm[i].reg[0], sizeof Pwm[i].reg[0], &conf, sizeof conf);
         val = ASC7621_FANCM(conf);
             
         //(offmin >> Pwm[i].shift) & 0x01);
         if (!ASC7621_ALTBG(val) && (val == 7 || (val == 3 &&
             /* PWM: 255 -> 0 */
             (conf |= 1 << ASC7621_PWM3B) && ((conf &= ~(1 << ASC7621_PWM2B) & ~(1 << ASC7621_PWM1B)) != -1) &&
-            (i2cNub->WriteI2CBus(Asc7621_addr, &Pwm[i].reg, sizeof Pwm[i].reg, &conf, sizeof conf) != -1)
+            (i2cNub->WriteI2CBus(Asc7621_addr, &Pwm[i].reg[0], sizeof Pwm[i].reg[0], &conf, sizeof conf) != -1)
             /* */
             )))
                 config.pwm_mode |= 1 << i;
             
-        Pwm[i].reg = conf; /* store original conf */
+        Pwm[i].value = conf; /* store original conf */
     }
 }
 
@@ -193,15 +188,12 @@ void Andigilog::SetPwmMode(UInt16 val)
 {
     bool is_auto;
     UInt8 conf, zon;
-    bool pwm_assoc[NUM_PWM];
-    
-    memset(&pwm_assoc, 0, sizeof(pwm_assoc));
 
 	i2cNub->LockI2CBus();   
  
     for (int i = 0; i < NUM_PWM; i++)
         if ((is_auto = !(val & (1 << i))) != !(config.pwm_mode & (1 << i))) {
-            conf = Pwm[i].reg;
+            conf = Pwm[i].value;
             if (is_auto) {
                 zon = ASC7621_FANCM(conf);
                 /* No auto mode info was obtained */
@@ -213,40 +205,41 @@ void Andigilog::SetPwmMode(UInt16 val)
                 }
                 config.pwm_mode &= ~(1 << i);
             } else {
+                ASC7621_ALTBC(conf);
                 conf |= 1 << ASC7621_PWM3B | 1 << ASC7621_PWM2B | 1 << ASC7621_PWM1B;
                 config.pwm_mode |= 1 << i;
             }
-            i2cNub->WriteI2CBus(Asc7621_addr, &Pwm[i].reg, sizeof Pwm[i].reg, &conf, sizeof conf);
+            i2cNub->WriteI2CBus(Asc7621_addr, &Pwm[i].reg[0], sizeof Pwm[i].reg[0], &conf, sizeof conf);
         }
 
-        i2cNub->UnlockI2CBus();
-}
-#if 0
-void Andigilog::SetFanSpeed(char idx, UInt16 val)
-{
-	UInt8 hdata, ldata;
-    UInt16 value;
-    
-    if (!val)
-        value = 0xffff;
-    else if (val < 0)
-        value = 0;
-    else if (val > 0xfffe)
-        value = 0xfffe;
-    else
-        value = 5400000 / val;
-
-    hdata = (value >> 8) & 0xff;
-    ldata = value & 0xff;
-    
-    i2cNub->LockI2CBus();
-    
-    i2cNub->WriteI2CBus(Asc7621_addr, &Measures[idx].hreg, sizeof Measures[idx].hreg, &hdata, sizeof hdata);
-    i2cNub->WriteI2CBus(Asc7621_addr, &Measures[idx].lreg, sizeof Measures[idx].lreg, &ldata, sizeof ldata);
-    
     i2cNub->UnlockI2CBus();
 }
-#endif
+
+void Andigilog::SetPwmDuty(char idx, UInt16 val)
+{
+	UInt8 data;
+    
+    if (Pwm[idx].duty == val);
+        return;
+    
+    if (val <= 25)
+        data = 0;
+    else if (val <= 50)
+        data = 0x40;
+    else if (val <= 75)
+        data = 0x80;
+    else if (val <= 90)
+        data = 0xc0;
+    else
+        data = 0xff;
+    
+    i2cNub->LockI2CBus();
+    i2cNub->WriteI2CBus(Asc7621_addr, &Pwm[idx].reg[1], sizeof Pwm[idx].reg[1], &data, sizeof data);
+    i2cNub->UnlockI2CBus();
+    
+    Pwm[idx].duty = data;
+}
+
 void Andigilog::readSensor(int idx)
 {
     if (Measures[idx].obsoleted)
@@ -327,15 +320,11 @@ IOReturn Andigilog::callPlatformFunction(const OSSymbol *functionName, bool wait
 		char * data = (char*)param2;
         
         if (key && data) {
-            if (OSNumber *number = OSDynamicCast(OSNumber, sensors->getObject(key))) {
-                UInt32 index = number->unsigned16BitValue();
-                
-                if (index < NUM_SENSORS) {
+            int idx = -1;
                     if (key[0] == 'T' || (key[0] == KEY_FORMAT_FAN_SPEED[0] &&
                                           key[2] == KEY_FORMAT_FAN_SPEED[3] &&
                                           (fan = strtol(&key[1], NULL, 10)) != -1)) {
-                        int idx = -1;
-                        for (int i = config.start_fan; i < NUM_SENSORS; i++)
+                        for (int i = 0; i < NUM_SENSORS; i++)
                             if (Measures[i].fan == fan && Measures[i].hwsensor.key[0])
                                     if (fan >= 0 || (Measures[i].hwsensor.key[1] == key[1] &&
                                         Measures[i].hwsensor.key[2] == key[2] &&
@@ -353,18 +342,15 @@ IOReturn Andigilog::callPlatformFunction(const OSSymbol *functionName, bool wait
                     }
                     else if (key[0] == 'F') {
                         if (key[1] == KEY_FAN_FORCE[1])
-                            memcpy(data, &(index = swap_value(config.pwm_mode)), 2);
-                        else if (key[2] == 'M' && (fan = strtol(&key[1], NULL, 10)) > -1 && fan < config.num_fan) {
+                            memcpy(data, &(idx = swap_value(config.pwm_mode)), 2);
+                        else if (key[2] == 'M' &&
                             /* PWM % */
-                            if (key[3] == KEY_FORMAT_FAN_MAX_SPEED[4]) {
-                                memcpy(data, &(index = 0x9001), 2);
+                            key[3] == KEY_FORMAT_FAN_MAX_SPEED[4]) {
+                                memcpy(data, &(idx = 0x9001), 2);
                                 return kIOReturnSuccess;
-                            }
-                            /* */
                         }
+                            /* */
                     }
-                }
-            }
         }
         return kIOReturnBadArgument;
     }
@@ -373,18 +359,14 @@ IOReturn Andigilog::callPlatformFunction(const OSSymbol *functionName, bool wait
 		char * data = (char*)param2;
         
         if (key && data) {
-            if (OSNumber *number = OSDynamicCast(OSNumber, sensors->getObject(key))) {
-                UInt32 index = number->unsigned16BitValue();
-                
-                if (index < NUM_SENSORS && key[0] == 'F') {
-                    if (key[2] == KEY_FORMAT_FAN_TARGET_SPEED[3]) {
-                        //SetFanSpeed(fan, decode_fpe2(*((UInt16 *) data)));
-                        return kIOReturnSuccess;
-                    }
-                    else if(key[1] == KEY_FAN_FORCE[1]) {
-                        SetPwmMode(swap_value(*((UInt16 *) data)));
-                        return kIOReturnSuccess;
-                    }
+            if (key[0] == 'F') {
+                if (key[2] == KEY_FORMAT_FAN_TARGET_SPEED[3]) {
+                    SetPwmDuty(strtol(&key[1], NULL, 10), decode_fpe2(*((UInt16 *) data)));
+                    return kIOReturnSuccess;
+                }
+                else if(key[1] == KEY_FAN_FORCE[1]) {
+                    SetPwmMode(swap_value(*((UInt16 *) data)));
+                    return kIOReturnSuccess;
                 }
             }
         }

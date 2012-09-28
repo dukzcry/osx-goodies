@@ -45,10 +45,11 @@
 #define ASC7621_FANCM(x)    (x >> 5)
 #define ASC7621_ALTBG(x)     (x >> 3) & 0x01
 #define ASC7621_ALTBS(x)    x |= 1 << 3
+#define ASC7621_ALTBC(x)    x &= ~(1 << 3)
 //#define ASC7621_OFFMINR     0x62
-#define ASC7621_PWM1R       0x5c
-#define ASC7621_PWM2R       0x5d
-#define ASC7621_PWM3R       0x5e
+#define ASC7621_PWM1R       { 0x5c, 0x30 }
+#define ASC7621_PWM2R       { 0x5d, 0x31 }
+#define ASC7621_PWM3R       { 0x5e, 0x32 }
 #define ASC7621_PWM1B       5
 #define ASC7621_PWM2B       6
 #define ASC7621_PWM3B       7
@@ -73,13 +74,13 @@ private:
         bool obsoleted;
     } Measures[NUM_SENSORS];
     struct PList {
-        UInt8 reg;
+        UInt8 reg[2];
         //UInt8 shift;
+        UInt8 value;
+        SInt8 duty;
     } Pwm[NUM_PWM];
     struct {
         UInt16 pwm_mode;
-        char num_fan;
-        char start_fan;
     } config;
     
     OSDictionary *	sensors;
@@ -90,7 +91,7 @@ private:
     /* Fan control */
     void   GetConf();
     void   SetPwmMode(UInt16);
-    //void   SetFanSpeed(char, UInt16);
+    void   SetPwmDuty(char, UInt16);
     /* */
     
     bool addKey(const char* key, const char* type, unsigned char size, int index);
