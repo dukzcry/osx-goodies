@@ -14,6 +14,8 @@ bool Andigilog::init (OSDictionary* dict)
 	if (!(sensors = OSDictionary::withCapacity(0)))
 		return false;
     
+    Asc7621_addr = 0;
+    
     return res;
 }
 
@@ -39,27 +41,30 @@ IOService *Andigilog::probe (IOService* provider, SInt32* score)
 
 bool Andigilog::start(IOService *provider)
 {
-    int i, f;
+    int i;
     bool res;
-    UInt8 cmd, data;
-    UInt8 addrs[] = ASC7621_ADDRS;
+    UInt8 cmd, data, addrs[] = ASC7621_ADDRS;
     /* Point keys for me, me, me, me */
     struct MList list[] = {
-        { ASC7621_TEMP1H, ASC7621_TEMP1L, {"",0,0}, -1, 0, true },
-        { ASC7621_TEMP2H, ASC7621_TEMP2L, {"",0,0}, -1, 0, true },
-        { ASC7621_TEMP3H, ASC7621_TEMP3L, {KEY_DIMM_TEMPERATURE,TYPE_SP78,2}, -1, 0, true },
-        { ASC7621_TEMP4H, ASC7621_TEMP4L, {KEY_CPU_HEATSINK_TEMPERATURE,TYPE_SP78,2}, -1, 0, true },
+        { ASC7621_TEMP1H, ASC7621_TEMP1L, {"TC0D",TYPE_SP78,2,-1}, -1, 0, true },
+        { ASC7621_TEMP2H, ASC7621_TEMP2L, {KEY_AMBIENT_TEMPERATURE,TYPE_SP78,2,-1}, -1, 0, true },
+        { ASC7621_TEMP3H, ASC7621_TEMP3L, {KEY_DIMM_TEMPERATURE,TYPE_SP78,2,-1}, -1, 0, true },
+        { ASC7621_TEMP4H, ASC7621_TEMP4L, {KEY_CPU_HEATSINK_TEMPERATURE,TYPE_SP78,2,-1}, -1, 0, true },
         
-        { ASC7621_TACH1L, ASC7621_TACH1H, {"",0,0}, true, 0, true },
-        { ASC7621_TACH2L, ASC7621_TACH2H, {"PCI cage",TYPE_FPE2,2}, true, 0, true },
-        { ASC7621_TACH3L, ASC7621_TACH3H, {"Memory",TYPE_FPE2,2}, true, 0, true },
-        { ASC7621_TACH4L, ASC7621_TACH4H, {"CPU, 2x",TYPE_FPE2,2}, true, 0, true }
+        { ASC7621_TACH1L, ASC7621_TACH1H, {"Fan 1",TYPE_FPE2,2,0}, true, 0, true },
+        { ASC7621_TACH2L, ASC7621_TACH2H, {"Fan 2",TYPE_FPE2,2,1}, true, 0, true },
+        { ASC7621_TACH3L, ASC7621_TACH3H, {"Fan 3",TYPE_FPE2,2,2}, true, 0, true },
+        { ASC7621_TACH4L, ASC7621_TACH4H, {"Fan 4",TYPE_FPE2,2,2}, true, 0, true }
     };
     struct PList pwm[] = {
-        { ASC7621_PWM1R, 0, -2 /*,ASC7621_PWM1B*/ },
-        { ASC7621_PWM2R, 0, -2 /*,ASC7621_PWM2B*/ },
-        { ASC7621_PWM3R, 0, -2 /*,ASC7621_PWM3B*/ },
+        { ASC7621_PWM1R, 0, -2 },
+        { ASC7621_PWM2R, 0, -2 },
+        { ASC7621_PWM3R, 0, -2 },
     };
+
+    OSDictionary *conf = NULL, *sconf = OSDynamicCast(OSDictionary, getProperty("Sensors Configuration")), *dict;
+    OSString *str;
+    char *key; char tempkey[] = "temp ", fankey[] = "tach ";
     
     res = super::start(provider);
     DbgPrint("start\n");
@@ -72,7 +77,6 @@ bool Andigilog::start(IOService *provider)
     i2cNub->retain();
     i2cNub->open(this);
     
-    Asc7621_addr = 0;
     for (i = 0; i < sizeof(addrs) / sizeof(addrs[0]); i++)
         if (!i2cNub->ReadI2CBus(addrs[i], &(cmd = ASC7621_VID_REG), sizeof(cmd), &data,
                             sizeof(data)) && data == ASC7621_VID &&
@@ -89,18 +93,42 @@ bool Andigilog::start(IOService *provider)
     
     memcpy(&Measures, &list, sizeof(Measures));
     memcpy(&Pwm, &pwm, sizeof(Pwm));
-    i = 0, f = 0;
-    for (int s = 0; i < NUM_SENSORS; i++)
+    
+    if (sconf)
+        conf = OSDynamicCast(OSDictionary, sconf->getObject("Default"));
+    i = 0;
+    for (int s = 0, f = 0, j = 0, k = 0; i < NUM_SENSORS; i++) {
+        if (conf) {
+                if (Measures[i].fan < 0) {
+                    snprintf(&tempkey[4], 2, "%d", j++);
+                    key = tempkey;
+                } else {
+                    snprintf(&fankey[4], 2, "%d", k++);
+                    key = fankey;
+                }
+                if ((dict = OSDynamicCast(OSDictionary, conf->getObject(key)))) {
+                    str = OSDynamicCast(OSString, dict->getObject("id"));
+                    memcpy(Measures[i].hwsensor.key, str->getCStringNoCopy(), str->getLength()+1);
+                    str = OSDynamicCast(OSString, dict->getObject("type"));
+                    memcpy(Measures[i].hwsensor.type, str->getCStringNoCopy(), str->getLength()+1);
+                    Measures[i].hwsensor.size = ((OSNumber *)OSDynamicCast(OSNumber, dict->getObject("size")))->
+                        unsigned8BitValue();
+                }
+        }
         if (Measures[i].hwsensor.key[0]) {
             if (Measures[i].fan < 0) {
                 addSensor(Measures[i].hwsensor.key, Measures[i].hwsensor.type,
                           Measures[i].hwsensor.size, s);
                 s++;
             } else {
+                if (conf)
+                    Measures[i].hwsensor.pwm = ((OSNumber *)OSDynamicCast(OSNumber, dict->getObject("pwm")))->
+                        unsigned8BitValue();
                 addTachometer(&Measures[i], Measures[i].fan = f);
                 f++;
             }
         }
+    }
     addKey(KEY_FAN_FORCE, TYPE_UI16, 2, 0);
     
     GetConf();
@@ -160,18 +188,15 @@ void Andigilog::updateSensors()
 
 void Andigilog::GetConf()
 {
-	UInt8 conf, val /*,offmin*/;
+	UInt8 conf, val;
     
     config.pwm_mode = 0;
 
     /* Ask for PWM mode statuses */
-    /*if (i2cNub->ReadI2CBus(Asc7621_addr, &(conf = ASC7621_OFFMINR), sizeof conf, &offmin, sizeof offmin))
-        return;*/
     for (int i = 0; i < NUM_PWM; i++) {
         i2cNub->ReadI2CBus(Asc7621_addr, &Pwm[i].reg[0], sizeof Pwm[i].reg[0], &conf, sizeof conf);
         val = ASC7621_FANCM(conf);
             
-        //(offmin >> Pwm[i].shift) & 0x01);
         if (!ASC7621_ALTBG(val) && (val == 7 || (val == 3 &&
             /* PWM: 255 -> 0 */
             (conf |= 1 << ASC7621_PWM3B) && ((conf &= ~(1 << ASC7621_PWM2B) & ~(1 << ASC7621_PWM1B)) != -1) &&
@@ -298,12 +323,10 @@ void Andigilog::addTachometer(struct MList *sensor, int index)
                 IOPrint("ERROR updating FNum value!\n");
         }
         
-        if (index < NUM_PWM) {
-            snprintf(name, 5, KEY_FORMAT_FAN_TARGET_SPEED, index);
-            addKey(name, TYPE_FPE2, 2, index);
-            snprintf(name, 5, KEY_FORMAT_FAN_MAX_SPEED, index);
-            addKey(name, TYPE_FPE2, 2, index);
-        }
+        snprintf(name, 5, KEY_FORMAT_FAN_TARGET_SPEED, index);
+        addKey(name, TYPE_FPE2, 2, index);
+        snprintf(name, 5, KEY_FORMAT_FAN_MAX_SPEED, index);
+        addKey(name, TYPE_FPE2, 2, index);
     }
     else IOPrint("ERROR reading FNum value!\n");
 }
@@ -343,13 +366,10 @@ IOReturn Andigilog::callPlatformFunction(const OSSymbol *functionName, bool wait
                     else if (key[0] == 'F') {
                         if (key[1] == KEY_FAN_FORCE[1])
                             memcpy(data, &(idx = swap_value(config.pwm_mode)), 2);
-                        else if (key[2] == 'M' &&
-                            /* PWM % */
-                            key[3] == KEY_FORMAT_FAN_MAX_SPEED[4]) {
-                                memcpy(data, &(idx = 0x9001), 2);
+                        else if (key[2] == KEY_FORMAT_FAN_MAX_SPEED[3] && key[3] == KEY_FORMAT_FAN_MAX_SPEED[4]) {
+                                memcpy(data, &(idx = 0x9001), 2); /* PWM % */
                                 return kIOReturnSuccess;
                         }
-                            /* */
                     }
         }
         return kIOReturnBadArgument;
@@ -358,8 +378,7 @@ IOReturn Andigilog::callPlatformFunction(const OSSymbol *functionName, bool wait
         const char* key = (const char*)param1;
 		char * data = (char*)param2;
         
-        if (key && data) {
-            if (key[0] == 'F') {
+        if (key[0] == 'F' && data) {
                 if (key[2] == KEY_FORMAT_FAN_TARGET_SPEED[3]) {
                     SetPwmDuty(strtol(&key[1], NULL, 10), decode_fpe2(*((UInt16 *) data)));
                     return kIOReturnSuccess;
@@ -368,7 +387,6 @@ IOReturn Andigilog::callPlatformFunction(const OSSymbol *functionName, bool wait
                     SetPwmMode(swap_value(*((UInt16 *) data)));
                     return kIOReturnSuccess;
                 }
-            }
         }
         return kIOReturnBadArgument;
     }

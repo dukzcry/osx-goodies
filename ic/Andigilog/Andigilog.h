@@ -43,10 +43,9 @@
 #define ASC7621_TACH4L		0x2e
 
 #define ASC7621_FANCM(x)    (x >> 5)
-#define ASC7621_ALTBG(x)     (x >> 3) & 0x01
+#define ASC7621_ALTBG(x)    (x >> 3) & 0x01
 #define ASC7621_ALTBS(x)    x |= 1 << 3
 #define ASC7621_ALTBC(x)    x &= ~(1 << 3)
-//#define ASC7621_OFFMINR     0x62
 #define ASC7621_PWM1R       { 0x5c, 0x30 }
 #define ASC7621_PWM2R       { 0x5d, 0x31 }
 #define ASC7621_PWM3R       { 0x5e, 0x32 }
@@ -67,6 +66,7 @@ private:
             char	key[16];
             char    type[5];
             unsigned char size;
+            char pwm;
         } hwsensor;
         char fan;
         
@@ -75,7 +75,6 @@ private:
     } Measures[NUM_SENSORS];
     struct PList {
         UInt8 reg[2];
-        //UInt8 shift;
         UInt8 value;
         SInt8 duty;
     } Pwm[NUM_PWM];
