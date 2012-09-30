@@ -18,4 +18,4 @@ On systems, where firmware sets fans on full speed when forced mode is chosen, t
 
 ICHSMBus: Bus scanning is not implemented. Only chipsets starting from ICH5 are supported.
 
-Andigilog: Voltage control is not currently implemented. RPM measuring is not implemented, instead percents upto 100 are expected for speed adjustment.
+Andigilog: Voltage control is not currently implemented. Measuring of max speed per fan is not implemented, instead percents upto 100 are expected for speed adjustment.
