@@ -1,7 +1,7 @@
 #include "I2CCommon.h"
 #include "FakeSMCPlugin.h"
 
-#define ASC_DEBUG 1
+//#define ASC_DEBUG 1
 #define ASC7621_ADDRS {0x2c,0x2d,0x2e}
 
 #define drvid "[Andigilog] "
@@ -80,6 +80,8 @@ private:
     } Pwm[NUM_PWM];
     struct {
         UInt16 pwm_mode;
+        char start_fan;
+        char num_fan;
     } config;
     
     OSDictionary *	sensors;
