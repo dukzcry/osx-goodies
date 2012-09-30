@@ -413,7 +413,8 @@ IOReturn Andigilog::callPlatformFunction(const OSSymbol *functionName, bool wait
 		char * data = (char*)param2;
         
         if (key[0] == 'F' && data) {
-                if (key[2] == KEY_FORMAT_FAN_TARGET_SPEED[3] && (fan = strtol(&key[1], NULL, 10)) != -1) {
+                if (key[2] == KEY_FORMAT_FAN_TARGET_SPEED[3] &&
+                    config.pwm_mode & (1 << (fan = strtol(&key[1], NULL, 10)))) {
                     for (i = config.start_fan; i < NUM_SENSORS; i++) {
                         if (Measures[i].fan == fan && Measures[i].hwsensor.key[0]) {
                             idx = i; break;
