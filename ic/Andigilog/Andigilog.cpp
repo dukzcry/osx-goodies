@@ -261,13 +261,13 @@ void Andigilog::SetPwmDuty(char idx, UInt16 val)
 {
 	UInt8 data;
     
-    if (val <= 25)
+    if (val < 25)
         data = 0;
-    else if (val <= 50)
+    else if (val < 50)
         data = 0x40;
-    else if (val <= 75)
+    else if (val < 75)
         data = 0x80;
-    else if (val <= 90)
+    else if (val < 100)
         data = 0xc0;
     else
         data = 0xff;
