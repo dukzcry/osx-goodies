@@ -1,0 +1,498 @@
+At first, please download sources from here: http://www.derman.com/MacBook-Pro-Fan-Control
+--- Копия MFProtocol.h	2008-07-06 04:17:30.000000000 +0400
++++ MFProtocol.h	2012-10-02 13:11:16.000000000 +0400
+@@ -27,6 +27,10 @@
+ - (float)upperTempThreshold;
+ - (void)setLowerTempThreshold:(float)newLowerTempThreshold;
+ - (void)setUpperTempThreshold:(float)newUpperTempThreshold;
++- (float)lowerTempThreshold2;
++- (float)upperTempThreshold2;
++- (void)setLowerTempThreshold2:(float)newLowerTempThreshold2;
++- (void)setUpperTempThreshold2:(float)newUpperTempThreshold2;
+ //
+ - (BOOL)showTempsAsFahrenheit;
+ - (void)setShowTempsAsFahrenheit:(BOOL)newShowTempsAsFahrenheit;
+--- Копия MFDaemon.h	2008-07-06 04:17:38.000000000 +0400
++++ MFDaemon.h	2012-10-02 13:11:24.000000000 +0400
+@@ -26,6 +26,8 @@
+     // the temperature threshold settings used to compute the desired/target fan RPMs
+     float lowerTempThreshold;
+     float upperTempThreshold;
++    float lowerTempThreshold2;
++    float upperTempThreshold2;
+     //
+     BOOL showTempsAsFahrenheit;
+ 
+--- Копия MFDaemon.m	2008-07-06 05:04:04.000000000 +0400
++++ MFDaemon.m	2012-10-02 13:59:00.000000000 +0400
+@@ -33,8 +33,8 @@
+         mustSavePrefs = NO;
+ 
+         // set some sane defaults
+-        lowerTempThreshold = MFLowerTempThresholdBottom;
+-        upperTempThreshold = MFUpperTempThresholdTop;
++        lowerTempThreshold = lowerTempThreshold2 = MFLowerTempThresholdBottom;
++        upperTempThreshold = upperTempThreshold2 = MFUpperTempThresholdTop;
+         //
+         leftFanBaseRPM = MFMinLeftFanRPM;
+         rightFanBaseRPM = MFMinRightFanRPM;
+@@ -59,6 +59,10 @@
+                           CFSTR(MFApplicationIdentifier), kCFPreferencesAnyUser, kCFPreferencesCurrentHost);
+     CFPreferencesSetValue(CFSTR("upperTempThreshold"), (CFPropertyListRef)[NSNumber numberWithFloat:upperTempThreshold],
+                           CFSTR(MFApplicationIdentifier), kCFPreferencesAnyUser, kCFPreferencesCurrentHost);
++    CFPreferencesSetValue(CFSTR("lowerTempThreshold2"), (CFPropertyListRef)[NSNumber numberWithFloat:lowerTempThreshold2],
++                          CFSTR(MFApplicationIdentifier), kCFPreferencesAnyUser, kCFPreferencesCurrentHost);
++    CFPreferencesSetValue(CFSTR("upperTempThreshold2"), (CFPropertyListRef)[NSNumber numberWithFloat:upperTempThreshold2],
++                          CFSTR(MFApplicationIdentifier), kCFPreferencesAnyUser, kCFPreferencesCurrentHost);
+ 
+     CFPreferencesSetValue(CFSTR("sensorControlMode"), (CFPropertyListRef)[NSNumber numberWithInt:sensorControlMode],
+                           CFSTR(MFApplicationIdentifier), kCFPreferencesAnyUser, kCFPreferencesCurrentHost);
+@@ -81,6 +85,13 @@
+     property = CFPreferencesCopyValue(CFSTR("upperTempThreshold"), CFSTR(MFApplicationIdentifier),
+                kCFPreferencesAnyUser, kCFPreferencesCurrentHost);
+     if (property) upperTempThreshold = [(NSNumber *)property floatValue];
++    property = CFPreferencesCopyValue(CFSTR("lowerTempThreshold2"), CFSTR(MFApplicationIdentifier),
++                                      kCFPreferencesAnyUser, kCFPreferencesCurrentHost);
++    if (property) lowerTempThreshold2 = [(NSNumber *)property floatValue];
++    
++    property = CFPreferencesCopyValue(CFSTR("upperTempThreshold2"), CFSTR(MFApplicationIdentifier),
++                                      kCFPreferencesAnyUser, kCFPreferencesCurrentHost);
++    if (property) upperTempThreshold2 = [(NSNumber *)property floatValue];
+ 
+     property = CFPreferencesCopyValue(CFSTR("leftFanBaseRPM"), CFSTR(MFApplicationIdentifier),
+                kCFPreferencesAnyUser, kCFPreferencesCurrentHost);
+@@ -104,6 +115,11 @@
+     //
+     if (lowerTempThreshold > MFLowerTempThresholdTop) lowerTempThreshold = MFLowerTempThresholdBottom + ((MFLowerTempThresholdTop - MFLowerTempThresholdBottom) / 2);
+     if (upperTempThreshold > MFUpperTempThresholdTop) upperTempThreshold = MFUpperTempThresholdBottom + ((MFUpperTempThresholdTop - MFUpperTempThresholdBottom) / 2);
++    if (lowerTempThreshold2 < MFLowerTempThresholdBottom) lowerTempThreshold2 = MFLowerTempThresholdBottom;
++    if (upperTempThreshold2 < MFUpperTempThresholdBottom) upperTempThreshold2 = MFUpperTempThresholdBottom;
++    //
++    if (lowerTempThreshold2 > MFLowerTempThresholdTop) lowerTempThreshold2 = MFLowerTempThresholdBottom + ((MFLowerTempThresholdTop - MFLowerTempThresholdBottom) / 2);
++    if (upperTempThreshold2 > MFUpperTempThresholdTop) upperTempThreshold2 = MFUpperTempThresholdBottom + ((MFUpperTempThresholdTop - MFUpperTempThresholdBottom) / 2);
+     //
+     if (leftFanBaseRPM < MFMinLeftFanRPM) leftFanBaseRPM = MFMinLeftFanRPM;
+     if (rightFanBaseRPM < MFMinRightFanRPM) rightFanBaseRPM = MFMinRightFanRPM;
+@@ -124,6 +140,7 @@
+ - (void)start
+ {
+     [self readPreferences];
++    SMCSetFanMode(6);
+     [NSTimer scheduledTimerWithTimeInterval:MFUpdateInterval target:self selector:@selector(timer:) userInfo:nil repeats:YES];
+ }
+ 
+@@ -139,7 +156,7 @@
+     int leftFanRPM;
+     int rightFanRPM;
+ 
+-    int adjustmentRPM;
++    //int adjustmentRPM;
+     int alignmentRPM;
+ 
+     SMCOpen();
+@@ -191,7 +208,7 @@
+     } */
+ 
+     // determine difference between fan's desired/target RPM and the current RPM
+-    adjustmentRPM = (leftFanTargetRPM - leftFanRPM);
++    /*adjustmentRPM = (leftFanTargetRPM - leftFanRPM);
+     if (abs(adjustmentRPM) < (MFRPMspeedStep / 2)) {
+         adjustmentRPM = 0; // current speed's within 1/2 of an RPM step, leave it
+     } else { // ensure the +/- difference is not greater than the maximum allowed
+@@ -202,7 +219,7 @@
+ 
+     // compute the new desired/target RPM
+     leftFanTargetRPM = leftFanRPM + adjustmentRPM;
+-    if (MFDebugLeft) NSLog (@"next leftFanTargetRPM = %d\n", leftFanTargetRPM);
++    if (MFDebugLeft) NSLog (@"next leftFanTargetRPM = %d\n", leftFanTargetRPM);*/
+ 
+     // set the desired/target RPM to the nearest MFRPMspeedStep-RPM boundary
+     alignmentRPM = (leftFanTargetRPM % MFRPMspeedStep);
+@@ -213,7 +230,7 @@
+     // when decreasing speed, don't target below the set "slowest fan speed" and
+     // when increasing speeds, don't target above the maximum safe fan speed
+     if (MFDebugLeft) NSLog (@"leftFanBaseRPM = %d\n", leftFanBaseRPM);
+-    if ((adjustmentRPM < 1) && (leftFanTargetRPM < leftFanBaseRPM)) leftFanTargetRPM = leftFanBaseRPM;
++    //if ((adjustmentRPM < 1) && (leftFanTargetRPM < leftFanBaseRPM)) leftFanTargetRPM = leftFanBaseRPM;
+     if (leftFanTargetRPM > MFMaxLeftFanRPM) leftFanTargetRPM = MFMaxLeftFanRPM;
+     if (MFDebugLeft) NSLog (@"final next leftFanTargetRPM = %d\n\n", leftFanTargetRPM);
+ 
+@@ -221,14 +238,14 @@
+     // ----- compute the desired/target right fan speed
+ 
+     // determine the desired/target RPM indicated by the preference settings
+-    if (rightControlTemp < lowerTempThreshold) {
++    if (rightControlTemp < lowerTempThreshold2) {
+         rightFanTargetRPM = rightFanBaseRPM;
+-    } else if (rightControlTemp > upperTempThreshold) {
++    } else if (rightControlTemp > upperTempThreshold2) {
+         rightFanTargetRPM = MFMaxRightFanRPM;
+     } else {
+         rightFanTargetRPM = rightFanBaseRPM +
+-                           ((floor(rightControlTemp + 0.5) - lowerTempThreshold) /
+-                           (upperTempThreshold - lowerTempThreshold) *
++                           ((floor(rightControlTemp + 0.5) - lowerTempThreshold2) /
++                           (upperTempThreshold2 - lowerTempThreshold2) *
+                            (MFMaxRightFanRPM - rightFanBaseRPM));
+     }
+     if (MFDebugRight) NSLog (@"rightControlTemp = %f\n", rightControlTemp);
+@@ -248,7 +265,7 @@
+     } */
+ 
+     // determine difference between fan's desired/target RPM and the current RPM
+-    adjustmentRPM = (rightFanTargetRPM - rightFanRPM);
++    /*adjustmentRPM = (rightFanTargetRPM - rightFanRPM);
+     if (abs(adjustmentRPM) < (MFRPMspeedStep / 2)) {
+         adjustmentRPM = 0; // current speed's within 1/2 of an RPM step, leave it
+     } else { // ensure the +/- difference is not greater than the maximum
+@@ -259,7 +276,7 @@
+ 
+     // compute the new desired/target RPM
+     rightFanTargetRPM = rightFanRPM + adjustmentRPM;
+-    if (MFDebugRight) NSLog (@"next rightFanTargetRPM = %d\n", rightFanTargetRPM);
++    if (MFDebugRight) NSLog (@"next rightFanTargetRPM = %d\n", rightFanTargetRPM);*/
+ 
+     // set the desired/target RPM to the nearest MFRPMspeedStep-RPM boundary
+     alignmentRPM = (rightFanTargetRPM % MFRPMspeedStep);
+@@ -270,7 +287,7 @@
+     // when decreasing speed, don't target below the set "slowest fan speed" and
+     // when increasing speeds, don't target above the maximum safe fan speed
+     if (MFDebugRight) NSLog (@"rightFanBaseRPM = %d\n", rightFanBaseRPM);
+-    if ((adjustmentRPM < 1) && (rightFanTargetRPM < rightFanBaseRPM)) rightFanTargetRPM = rightFanBaseRPM;
++    //if ((adjustmentRPM < 1) && (rightFanTargetRPM < rightFanBaseRPM)) rightFanTargetRPM = rightFanBaseRPM;
+     if (rightFanTargetRPM > MFMaxRightFanRPM) rightFanTargetRPM = MFMaxRightFanRPM;
+     if (MFDebugRight) NSLog (@"final next rightFanTargetRPM = %d\n\n", rightFanTargetRPM);
+ 
+@@ -298,6 +315,14 @@
+ {
+     return upperTempThreshold;
+ }
++- (float)lowerTempThreshold2
++{
++    return lowerTempThreshold2;
++}
++- (float)upperTempThreshold2
++{
++    return upperTempThreshold2;
++}
+ //
+ - (void)setLowerTempThreshold:(float)newLowerTempThreshold
+ {
+@@ -309,6 +334,16 @@
+     upperTempThreshold = newUpperTempThreshold;
+     mustSavePrefs = YES;
+ }
++- (void)setLowerTempThreshold2:(float)newLowerTempThreshold2
++{
++    lowerTempThreshold2 = newLowerTempThreshold2;
++    mustSavePrefs = YES;
++}
++- (void)setUpperTempThreshold2:(float)newUpperTempThreshold2
++{
++    upperTempThreshold2 = newUpperTempThreshold2;
++    mustSavePrefs = YES;
++}
+ // -------------------------------------
+ - (BOOL)showTempsAsFahrenheit
+ {
+--- Копия MFPreferencePane.h	2008-07-06 06:00:40.000000000 +0400
++++ MFPreferencePane.h	2012-10-02 13:13:09.000000000 +0400
+@@ -93,6 +93,10 @@
+ - (float)upperTempThreshold;
+ - (void)setUpperTempThreshold:(float)newUpperTempThreshold;
+ - (void)setLowerTempThreshold:(float)newLowerTempThreshold;
++- (float)lowerTempThreshold2;
++- (float)upperTempThreshold2;
++- (void)setUpperTempThreshold2:(float)newUpperTempThreshold2;
++- (void)setLowerTempThreshold2:(float)newLowerTempThreshold2;
+ 
+ - (BOOL)showTempsAsFahrenheit;
+ - (void)setShowTempsAsFahrenheit:(BOOL)newShowTempsAsFahrenheit;
+--- Копия MFPreferencePane.m	2008-07-06 09:32:11.000000000 +0400
++++ MFPreferencePane.m	2012-10-02 13:23:55.000000000 +0400
+@@ -84,6 +84,8 @@
+     // update the graph/chart
+     [chartView setLowerTempThreshold:[daemon lowerTempThreshold]];
+     [chartView setUpperTempThreshold:[daemon upperTempThreshold]];
++    [chartView setLowerTempThreshold2:[daemon lowerTempThreshold2]];
++    [chartView setUpperTempThreshold2:[daemon upperTempThreshold2]];
+     //
+     [chartView setLeftFanBaseRPM:[daemon leftFanBaseRPM]];
+     [chartView setRightFanBaseRPM:[daemon rightFanBaseRPM]];
+@@ -220,6 +222,25 @@
+     [daemon setUpperTempThreshold:newUpperTempThreshold];
+     [chartView setUpperTempThreshold:newUpperTempThreshold];
+ }
++- (float)lowerTempThreshold2
++{
++    return [daemon lowerTempThreshold2];
++}
++- (float)upperTempThreshold2
++{
++    return [daemon upperTempThreshold2];
++}
++//
++- (void)setLowerTempThreshold2:(float)newLowerTempThreshold2
++{
++    [daemon setLowerTempThreshold2:newLowerTempThreshold2];
++    [chartView setLowerTempThreshold2:newLowerTempThreshold2];
++}
++- (void)setUpperTempThreshold2:(float)newUpperTempThreshold2
++{
++    [daemon setUpperTempThreshold2:newUpperTempThreshold2];
++    [chartView setUpperTempThreshold2:newUpperTempThreshold2];
++}
+ // -----------------------------------------------------------------------------
+ - (BOOL)showTempsAsFahrenheit
+ {
+--- Копия MFChartView.h	2008-07-06 04:31:00.000000000 +0400
++++ MFChartView.h	2012-10-02 13:24:30.000000000 +0400
+@@ -25,6 +25,8 @@
+     // the temperature threshold settings used to compute the desired/target fan RPMs
+     float lowerTempThreshold;
+     float upperTempThreshold;
++    float lowerTempThreshold2;
++    float upperTempThreshold2;
+ 
+     // the "base"/slowest/lower-limit fan RPMs
+     int leftFanBaseRPM;
+@@ -47,6 +49,8 @@
+ 
+ - (void)setLowerTempThreshold:(float)newLowerTempThreshold;
+ - (void)setUpperTempThreshold:(float)newUpperTempThreshold;
++- (void)setLowerTempThreshold2:(float)newLowerTempThreshold2;
++- (void)setUpperTempThreshold2:(float)newUpperTempThreshold2;
+ 
+ - (void)setLeftFanBaseRPM:(int)newLeftFanBaseRPM;
+ - (void)setRightFanBaseRPM:(int)newRightFanBaseRPM;
+--- Копия MFChartView.m	2008-07-06 04:39:40.000000000 +0400
++++ MFChartView.m	2012-10-02 14:07:32.000000000 +0400
+@@ -22,11 +22,11 @@
+ 
+ // definitions depending on view size and labels - adjust when changing graph view
+ #define MFPixelPerDegree  2.4857 // <width in pixels (174)> / (MFGraphMaxTemp - MFGraphMinTemp)
+-#define MFPixelPerRPM     0.028846 // <height in pixels (150)> / (MFGraphMaxRPM - MFGraphMinRPM)
++#define MFPixelPerRPM     1.363636 // <height in pixels (150)> / (MFGraphMaxRPM - MFGraphMinRPM)
+ #define MFGraphMinTemp    25.0
+ #define MFGraphMaxTemp    95.0
+-#define MFGraphMinRPM     900
+-#define MFGraphMaxRPM     6100
++#define MFGraphMinRPM     -5
++#define MFGraphMaxRPM     105
+ 
+ 
+ @implementation MFChartView
+@@ -70,8 +70,8 @@
+     [[NSColor colorWithDeviceRed:0.0 green:0.0 blue:0.625 alpha:1.0] set];
+     path = [NSBezierPath bezierPath];
+     [path moveToPoint:[self pointOnGraphWithTemp:MFGraphMinTemp andRPM:rightFanBaseRPM]];
+-    [path lineToPoint:[self pointOnGraphWithTemp:lowerTempThreshold andRPM:rightFanBaseRPM]];
+-    [path lineToPoint:[self pointOnGraphWithTemp:upperTempThreshold andRPM:MFMaxRightFanRPM]];
++    [path lineToPoint:[self pointOnGraphWithTemp:lowerTempThreshold2 andRPM:rightFanBaseRPM]];
++    [path lineToPoint:[self pointOnGraphWithTemp:upperTempThreshold2 andRPM:MFMaxRightFanRPM]];
+     [path lineToPoint:[self pointOnGraphWithTemp:MFGraphMaxTemp andRPM:MFMaxRightFanRPM]];
+     [path setLineWidth:2.0];
+     [path stroke];
+@@ -135,6 +135,16 @@
+     upperTempThreshold = newUpperTempThreshold;
+     [self setNeedsDisplay:YES];
+ }
++- (void)setLowerTempThreshold2:(float)newLowerTempThreshold2
++{
++    lowerTempThreshold2 = newLowerTempThreshold2;
++    [self setNeedsDisplay:YES];
++}
++- (void)setUpperTempThreshold2:(float)newUpperTempThreshold2
++{
++    upperTempThreshold2 = newUpperTempThreshold2;
++    [self setNeedsDisplay:YES];
++}
+ // -----------------------------------------------------------------------------
+ - (void)setLeftFanBaseRPM:(int)newLeftFanBaseRPM
+ {
+--- Копия MFDefinitions.h	2008-07-10 13:19:50.000000000 +0400
++++ MFDefinitions.h	2012-10-02 13:27:15.000000000 +0400
+@@ -26,7 +26,7 @@
+ // Value that determines the interval between Fan Control updates
+ // - use a shorter interval when using faster-responding sensors
+ // - too long an interval will lead to a oscillating fans
+-#define MFUpdateInterval  3.5
++#define MFUpdateInterval  10
+ 
+ // Values that specify the range of temperatures (in degrees Celcius) for which
+ // Fan Control will compute and set a fans RPM versus it's sensor's temperature
+@@ -34,16 +34,16 @@
+ // NOTE: these values should correspond to the range of values available via the
+ //       UI's "Lower Temp Threshold" and "Upper Temp Threshold" settings
+ #define MFLowerTempThresholdBottom  30.0
+-#define MFLowerTempThresholdTop     55.0
+-#define MFUpperTempThresholdBottom  65.0
++#define MFLowerTempThresholdTop     59.0
++#define MFUpperTempThresholdBottom  55.0
+ #define MFUpperTempThresholdTop     90.0
+ 
+ // Values that determine the "safe" min/max fan speeds
+-#define MFMinLeftFanRPM   1200
+-#define MFMaxLeftFanRPM   6000
++#define MFMinLeftFanRPM   0
++#define MFMaxLeftFanRPM   100
+ //
+-#define MFMinRightFanRPM  1200
+-#define MFMaxRightFanRPM  6000
++#define MFMinRightFanRPM  MFMinLeftFanRPM
++#define MFMaxRightFanRPM  MFMaxLeftFanRPM
+ 
+ // Values that control the speed-stepping of the fans:
+ // - fans are adjusted in increments of MFRPMspeedStep
+@@ -53,8 +53,8 @@
+ // NOTEs
+ // - the UI/slider increments should be set to ensure that the fan settings are
+ //   are in MFRPMspeedStep increments
+-#define MFRPMspeedStep     100
+-#define MFMaxRPMspeedStep  500
++#define MFRPMspeedStep     25
++#define MFMaxRPMspeedStep  MFRPMspeedStep
+ 
+ // Values that define the meaning of the radio-button selections
+ #define CPU_TEMP_CONTROLS_BOTH_FANS                                 0
+--- Копия smc.h	2008-07-03 09:14:13.000000000 +0400
++++ smc.h	2012-10-02 14:14:34.000000000 +0400
+@@ -47,16 +47,16 @@
+ // key values
+ //
+ // temperature sensors
+-#define SMC_KEY_CPU_TEMP  "TC0D" // CPU diode temp
+-#define SMC_KEY_GPU_TEMP  "TG0P" // GPU processor temp
++#define SMC_KEY_CPU_TEMP  "Th0H" // CPU diode temp
++#define SMC_KEY_GPU_TEMP  "Tm0P" // GPU processor temp
+ //
+ // current RPM for fans
+-#define SMC_KEY_LEFT_FAN_RPM   "F0Ac" // left fan
++#define SMC_KEY_LEFT_FAN_RPM   "F2Ac" // left fan
+ #define SMC_KEY_RIGHT_FAN_RPM  "F1Ac" // right fan
+ //
+ // safe minimum RPM for fans (also see MFDefinitions.h)
+-#define SMC_KEY_LEFT_FAN_RPM_MIN   "F0Mn" // safe minimum RPM: 1200
+-#define SMC_KEY_RIGHT_FAN_RPM_MIN  "F1Mn" // safe minimum RPM: 1200
++#define SMC_KEY_LEFT_FAN_RPM_MIN   "F2Tg" // safe minimum RPM: 1200
++#define SMC_KEY_RIGHT_FAN_RPM_MIN  "F1Tg" // safe minimum RPM: 1200
+ //
+ /* safe maximum RPM for fans (not used, but also see MFDefinitions.h)
+ #define SMC_KEY_LEFT_FAN_RPM_MAX   "F2Mx" // safe maximum RPM: 6000
+@@ -113,4 +113,4 @@ typedef struct {
+ double SMCGetTemperature(char *key);
+ kern_return_t SMCSetFanRPM(char *key, int RPM);
+ int SMCGetFanRPM(char *key);
+-
++void SMCSetFanMode(char byte);
+--- Копия smc.c	2008-07-03 23:15:04.000000000 +0400
++++ smc.c	2012-10-01 20:13:04.000000000 +0400
+@@ -154,20 +154,13 @@ kern_return_t SMCClose()
+ 
+ kern_return_t SMCCall(int index, SMCKeyData_t *inputStructure, SMCKeyData_t *outputStructure)
+ {
+-    IOItemCount   structureInputSize;
+-    IOByteCount   structureOutputSize;
++    size_t   structureInputSize;
++    size_t   structureOutputSize;
+ 
+     structureInputSize = sizeof(SMCKeyData_t);
+     structureOutputSize = sizeof(SMCKeyData_t);
+ 
+-    return IOConnectMethodStructureIStructureO(
+-               conn,
+-               index,
+-               structureInputSize,
+-               &structureOutputSize,
+-               inputStructure,
+-               outputStructure
+-             );
++    return IOConnectCallStructMethod(conn, index, inputStructure, structureInputSize, outputStructure, &structureOutputSize);
+ }
+ 
+ kern_return_t SMCReadKey(UInt32Char_t key, SMCVal_t *val)
+@@ -381,6 +374,19 @@ int SMCGetFanRPM(char *key)
+     return -1;
+ }
+ 
++void SMCSetFanMode(char byte)
++{
++    SMCVal_t val;
++    
++    strcpy(val.key, "FS! ");
++    val.bytes[0] = 0;
++    val.bytes[1] = byte;
++    val.dataSize = 2;
++    SMCOpen();
++    SMCWriteKey(val);
++    SMCClose();
++}
++
+ #if USE_SMC_MAIN // this stuff has not been properly updated for the iMac
+ int main(int argc, char *argv[])
+ {
+--- Копия Fan Control.xcodeproj/project.pbxproj	2008-07-10 13:20:11.000000000 +0400
++++ Fan Control.xcodeproj/project.pbxproj	2012-10-02 14:49:04.000000000 +0400
+@@ -241,7 +241,11 @@
+ 			isa = PBXProject;
+ 			buildConfigurationList = C01FCF4E08A954540054247B /* Build configuration list for PBXProject "Fan Control" */;
+ 			compatibilityVersion = "Xcode 2.4";
++			developmentRegion = English;
+ 			hasScannedForEncodings = 1;
++			knownRegions = (
++				en,
++			);
+ 			mainGroup = 29B97314FDCFA39411CA2CEA /* MacProFan */;
+ 			projectDirPath = "";
+ 			projectRoot = "";
+@@ -423,21 +427,25 @@
+ 		65C120910ADD28B10005FBFF /* Debug */ = {
+ 			isa = XCBuildConfiguration;
+ 			buildSettings = {
++				ARCHS = "$(NATIVE_ARCH_ACTUAL)";
+ 				COPY_PHASE_STRIP = NO;
+ 				GCC_DYNAMIC_NO_PIC = NO;
+ 				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+ 				GCC_OPTIMIZATION_LEVEL = 0;
+ 				PRODUCT_NAME = "Make All";
++				SDKROOT = "";
+ 			};
+ 			name = Debug;
+ 		};
+ 		65C120920ADD28B10005FBFF /* Release */ = {
+ 			isa = XCBuildConfiguration;
+ 			buildSettings = {
++				ARCHS = "$(NATIVE_ARCH_ACTUAL)";
+ 				COPY_PHASE_STRIP = YES;
+ 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+ 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
+ 				PRODUCT_NAME = "Make All";
++				SDKROOT = "";
+ 				ZERO_LINK = NO;
+ 			};
+ 			name = Release;
+@@ -445,20 +453,22 @@
+ 		C01FCF4F08A954540054247B /* Debug */ = {
+ 			isa = XCBuildConfiguration;
+ 			buildSettings = {
++				ARCHS = "$(NATIVE_ARCH_ACTUAL)";
+ 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+ 				GCC_WARN_UNUSED_VARIABLE = YES;
+ 				PREBINDING = NO;
+-				SDKROOT = /Developer/SDKs/MacOSX10.4u.sdk;
++				SDKROOT = "";
+ 			};
+ 			name = Debug;
+ 		};
+ 		C01FCF5008A954540054247B /* Release */ = {
+ 			isa = XCBuildConfiguration;
+ 			buildSettings = {
++				ARCHS = "$(NATIVE_ARCH_ACTUAL)";
+ 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+ 				GCC_WARN_UNUSED_VARIABLE = YES;
+ 				PREBINDING = NO;
+-				SDKROOT = /Developer/SDKs/MacOSX10.4u.sdk;
++				SDKROOT = "";
+ 			};
+ 			name = Release;
+ 		};
