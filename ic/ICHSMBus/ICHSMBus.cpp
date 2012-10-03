@@ -55,9 +55,10 @@ IOWorkLoop *I2CDevice::getWorkLoop(void) const
 
 IOService *I2CDevice::probe (IOService* provider, SInt32* score)
 {
-    IOService *res = super::probe(provider, score);
     DbgPrint("probe\n");
-    return res;
+    
+    *score = 5000;
+    return this;
 }
 
 IOInterruptEventSource *I2CDevice::CreateDeviceInterrupt(IOInterruptEventSource::Action action,

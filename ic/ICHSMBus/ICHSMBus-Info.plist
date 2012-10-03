@@ -30,6 +30,8 @@
 	<dict>
 		<key>ICHSMBus</key>
 		<dict>
+			<key>IOProbeScore</key>
+			<string>2000</string>
 			<key>IOPCIMatch</key>
 			<string>0x29308086</string>
 			<key>IOPCIMatchComment</key>
