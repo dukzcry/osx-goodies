@@ -214,9 +214,9 @@
 		<key>org.dukzcry.I2CFamily</key>
 		<string>1.1</string>
 		<key>com.apple.kpi.iokit</key>
-		<string>11.3.0</string>
+		<string>10.0.0</string>
 		<key>com.apple.kpi.libkern</key>
-		<string>11.3.0</string>
+		<string>10.0.0</string>
 	</dict>
 </dict>
 </plist>

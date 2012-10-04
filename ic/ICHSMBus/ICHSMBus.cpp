@@ -245,7 +245,7 @@ int I2CDevice::I2CExec(I2COp op, UInt16 addr, void *cmdbuf, size_t cmdlen, void 
     ctl |= ICH_SMB_HC_INTREN | ICH_SMB_HC_START;
     fPCIDevice->ioWrite8(fBase + ICH_SMB_HC, ctl);
 
-    clock_interval_to_deadline(ICHIIC_TIMEOUT, kSecondScale, &deadline);
+    clock_interval_to_deadline(ICHIIC_TIMEOUT, kSecondScale, (UInt64 *) &deadline);
     IOLockLock(Lock.holder);
     if (Lock.event) {
         Lock.event = false;

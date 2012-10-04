@@ -44,7 +44,7 @@ bool Andigilog::start(IOService *provider)
     int i;
     bool res;
     UInt8 cmd, data, addrs[] = ASC7621_ADDRS;
-    /* Point keys for me, me, me, me */
+    /* Mapping common for Intel boards */
     struct MList list[] = {
         { ASC7621_TEMP1H, ASC7621_TEMP1L, {"TC0D",TYPE_SP78,2,-1}, -1, 0, true },
         { ASC7621_TEMP2H, ASC7621_TEMP2L, {KEY_AMBIENT_TEMPERATURE,TYPE_SP78,2,-1}, -1, 0, true },

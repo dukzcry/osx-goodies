@@ -33,9 +33,9 @@
 			<key>IOProbeScore</key>
 			<string>2000</string>
 			<key>IOPCIMatch</key>
-			<string>0x29308086</string>
+			<string>0x24d38086 0x266a8086 0x27da8086 0x283e8086 0x29308086 0x3a208086&amp;0xff2fffff 0x269b8086 0x3b308086 0x1c228086 0x1e228086 0x1d228086</string>
 			<key>IOPCIMatchComment</key>
-			<string>Intel 82801I SMBus Controller</string>
+			<string>Intel ICH5(R), ICH6(R/-M), ICH7, ICH8, ICH9, ICH10, 6321ESB, PCH: BD3400, CP, PP, C600 SMBus Controllers</string>
 			<key>IOClass</key>
 			<string>I2CDevice</string>
 			<key>IOResourceMatch</key>
@@ -53,9 +53,9 @@
 		<key>com.apple.iokit.IOPCIFamily</key>
 		<string>2.6</string>
 		<key>com.apple.kpi.iokit</key>
-		<string>11.3.0</string>
+		<string>10.0.0</string>
 		<key>com.apple.kpi.libkern</key>
-		<string>11.3.0</string>
+		<string>10.0.0</string>
 	</dict>
 </dict>
 </plist>
