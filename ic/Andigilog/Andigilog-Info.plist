@@ -121,18 +121,18 @@
 						<integer>2</integer>
 					</dict>
 				</dict>
-				<key>bonetrail / bonetrail 2</key>
+				<key>DX38BT</key>
 				<dict>
-					<key>temp0</key>
+					<key>_temp0</key>
 					<dict>
 						<key>id</key>
-						<string>TC0D</string>
+						<string></string>
 						<key>type</key>
-						<string>sp78</string>
+						<string></string>
 						<key>size</key>
-						<integer>2</integer>
+						<integer>0</integer>
 					</dict>
-					<key>temp1</key>
+					<key>_temp1</key>
 					<dict>
 						<key>id</key>
 						<string>TA0P</string>
@@ -141,7 +141,7 @@
 						<key>size</key>
 						<integer>2</integer>
 					</dict>
-					<key>temp2</key>
+					<key>_temp2</key>
 					<dict>
 						<key>id</key>
 						<string>Tm0P</string>
@@ -150,7 +150,7 @@
 						<key>size</key>
 						<integer>2</integer>
 					</dict>
-					<key>temp3</key>
+					<key>_temp3</key>
 					<dict>
 						<key>id</key>
 						<string>Th0H</string>
