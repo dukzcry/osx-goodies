@@ -355,9 +355,9 @@ void Andigilog::addTachometer(struct MList *sensor, int index)
                 IOPrint("ERROR updating FNum value!\n");
         }
         
-        snprintf(name, 5, KEY_FORMAT_FAN_MIN_SPEED, index);
+        snprintf(name, 5, KEY_FORMAT_FAN_MIN_SPEED, length);
         addKey(name, TYPE_FPE2, 2, index);
-        snprintf(name, 5, KEY_FORMAT_FAN_MAX_SPEED, index);
+        snprintf(name, 5, KEY_FORMAT_FAN_MAX_SPEED, length);
         addKey(name, TYPE_FPE2, 2, index);
     }
     else IOPrint("ERROR reading FNum value!\n");
