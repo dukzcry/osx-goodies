@@ -18,4 +18,4 @@ ICHSMBus: Bus scanning is not implemented. Only chipsets starting from ICH5 are 
 
 Andigilog: Voltage control is not currently implemented. 
 Measuring of max speed per fan is not implemented, instead percents upto 100 are expected for speed adjustment.
-Existing fan control solutions need to be modified to work with this driver. Please see patches/
+Some of existing fan control solutions need to be modified to work with this driver. Please see patches/
