@@ -374,8 +374,8 @@ At first, please download sources from here: http://www.derman.com/MacBook-Pro-F
  // safe minimum RPM for fans (also see MFDefinitions.h)
 -#define SMC_KEY_LEFT_FAN_RPM_MIN   "F0Mn" // safe minimum RPM: 1200
 -#define SMC_KEY_RIGHT_FAN_RPM_MIN  "F1Mn" // safe minimum RPM: 1200
-+#define SMC_KEY_LEFT_FAN_RPM_MIN   "F2Tg" // safe minimum RPM: 1200
-+#define SMC_KEY_RIGHT_FAN_RPM_MIN  "F1Tg" // safe minimum RPM: 1200
++#define SMC_KEY_LEFT_FAN_RPM_MIN   "F2Mn" // safe minimum RPM: 1200
++#define SMC_KEY_RIGHT_FAN_RPM_MIN  "F1Mn" // safe minimum RPM: 1200
  //
  /* safe maximum RPM for fans (not used, but also see MFDefinitions.h)
  #define SMC_KEY_LEFT_FAN_RPM_MAX   "F2Mx" // safe maximum RPM: 6000
