@@ -349,16 +349,16 @@ void Andigilog::addTachometer(struct MList *sensor, int index)
                     IOPrint("ERROR adding tachometer id value!\n");
             
             length++;
-            
             if (kIOReturnSuccess != fakeSMC->callPlatformFunction(kFakeSMCSetKeyValue, false, (void *)KEY_FAN_NUMBER,
                                                                   (void *)1, (void *)&length, 0))
                 IOPrint("ERROR updating FNum value!\n");
+            length--;
         }
         
         snprintf(name, 5, KEY_FORMAT_FAN_MIN_SPEED, length);
-        addKey(name, TYPE_FPE2, 2, index);
+        addKey(name, TYPE_FPE2, 2, length);
         snprintf(name, 5, KEY_FORMAT_FAN_MAX_SPEED, length);
-        addKey(name, TYPE_FPE2, 2, index);
+        addKey(name, TYPE_FPE2, 2, length);
     }
     else IOPrint("ERROR reading FNum value!\n");
 }
