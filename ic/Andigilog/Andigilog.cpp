@@ -15,6 +15,7 @@ bool Andigilog::init (OSDictionary* dict)
 		return false;
     
     Asc7621_addr = 0; config.num_fan = config.start_fan = 0;
+    config.fan_offset = -1;
     
     return res;
 }
@@ -348,6 +349,9 @@ void Andigilog::addTachometer(struct MList *sensor, int index)
                                                                   (void *)sensor->hwsensor.key))
                     IOPrint("ERROR adding tachometer id value!\n");
             
+            if (config.fan_offset < 0)
+                config.fan_offset = length;
+            
             length++;
             if (kIOReturnSuccess != fakeSMC->callPlatformFunction(kFakeSMCSetKeyValue, false, (void *)KEY_FAN_NUMBER,
                                                                   (void *)1, (void *)&length, 0))
@@ -378,7 +382,7 @@ IOReturn Andigilog::callPlatformFunction(const OSSymbol *functionName, bool wait
         if (key && data) {
                     if (key[0] == 'T' || (key[0] == KEY_FORMAT_FAN_SPEED[0] &&
                                           key[2] == KEY_FORMAT_FAN_SPEED[3] &&
-                                          (fan = strtol(&key[1], NULL, 10)) != -1)) {
+                                          (fan = strtol(&key[1], NULL, 10) - config.fan_offset) != -1)) {
                         for (i = 0; i < NUM_SENSORS; i++)
                             if (Measures[i].fan == fan && Measures[i].hwsensor.key[0])
                                     if (fan >= 0 || (Measures[i].hwsensor.key[1] == key[1] &&
@@ -398,11 +402,11 @@ IOReturn Andigilog::callPlatformFunction(const OSSymbol *functionName, bool wait
                     else if (key[0] == 'F') {
                         if (key[1] == KEY_FAN_FORCE[1]) {
                             /* Return real states */
-                            memcpy(data, &(idx = swap_value(config.pwm_mode)), 2);
+                            memcpy(data, &(idx = swap_value(config.pwm_mode << config.fan_offset)), 2);
                             return kIOReturnSuccess;
                         } else if (key[2] == 'M' &&
                                    (key[3] == KEY_FORMAT_FAN_MIN_SPEED[4] || key[3] == KEY_FORMAT_FAN_MAX_SPEED[4])) {
-                            fan = strtol(&key[1], NULL, 10);
+                            fan = strtol(&key[1], NULL, 10) - config.fan_offset;
                             for (i = config.start_fan; i < NUM_SENSORS; i++) {
                                 if (Measures[i].fan == fan && Measures[i].hwsensor.key[0]) {
                                     idx = i; break;
@@ -428,7 +432,7 @@ IOReturn Andigilog::callPlatformFunction(const OSSymbol *functionName, bool wait
         
         if (key[0] == 'F' && data) {
                 if (key[2] == KEY_FORMAT_FAN_MIN_SPEED[3] && key[3] == KEY_FORMAT_FAN_MIN_SPEED[4]) {
-                    if (config.pwm_mode & (1 << (fan = strtol(&key[1], NULL, 10)))) {
+                    if (config.pwm_mode & (1 << (fan = strtol(&key[1], NULL, 10) - config.fan_offset))) {
                         for (i = config.start_fan; i < NUM_SENSORS; i++) {
                             if (Measures[i].fan == fan && Measures[i].hwsensor.key[0]) {
                                 idx = i; break;
@@ -440,7 +444,7 @@ IOReturn Andigilog::callPlatformFunction(const OSSymbol *functionName, bool wait
                     return kIOReturnSuccess;
                 }
                 else if(key[1] == KEY_FAN_FORCE[1]) {
-                    SetPwmMode(swap_value(*((UInt16 *) data)));
+                    SetPwmMode(swap_value(*((UInt16 *) data)) >> config.fan_offset);
                     return kIOReturnSuccess;
                 }
         }

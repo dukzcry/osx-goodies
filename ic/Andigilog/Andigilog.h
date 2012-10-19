@@ -82,6 +82,7 @@ private:
         UInt16 pwm_mode;
         char start_fan;
         char num_fan;
+        char fan_offset;
     } config;
     
     OSDictionary *	sensors;
