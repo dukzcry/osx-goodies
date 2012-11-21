@@ -220,12 +220,12 @@ int iTCOWatchdog::readTimeleft()
     
     switch (LPCNub->lpc->itco_version) {
         case 1:
-            val = fPCIDevice->ioRead8(ITCO_RL) & ITCO1_RLD_TMR_MAX;
+            val = fPCIDevice->ioRead8(ITCO_RL) & ITCO1_RL_TM_MAX;
             if (!(fPCIDevice->ioRead16(ITCO_ST1) & ITCO_TIMEOUT_ST))
-                val += fPCIDevice->ioRead8(ITCO1_TM) & ITCO1_RLD_TMR_MAX;
+                val += fPCIDevice->ioRead8(ITCO1_TM) & ITCO1_RL_TM_MAX;
         break;
         case 2:
-            val = fPCIDevice->ioRead16(ITCO_RL) & ITCO2_RLD_TMR_MAX;
+            val = fPCIDevice->ioRead16(ITCO_RL) & ITCO2_RL_TM_MAX;
         break;
     }
     
@@ -245,11 +245,11 @@ void iTCOWatchdog::tcoWdSetTimer(UInt32 time)
         time /= 2;
 
     /* Throw away 0x0-0x3, otherwise write value into hw */
-    if (time < ITCO_RLD_TMR_MIN)
+    if (time < ITCO_RL_TM_MIN)
         goto fail;
     switch (LPCNub->lpc->itco_version) {
         case 1:
-            if (time > ITCO1_RLD_TMR_MAX) {
+            if (time > ITCO1_RL_TM_MAX) {
                 if (init_stage) {
                     IOPrint(drvid, "Timeout is not in range [5..76], using %d instead\n", DEFAULT_TIMEOUT);
                     init_stage = false;
@@ -261,14 +261,14 @@ void iTCOWatchdog::tcoWdSetTimer(UInt32 time)
             fPCIDevice->ioWrite8(ITCO1_TM, (fPCIDevice->ioRead8(ITCO1_TM) & 0xc0) | (time & 0xff));
             
 #ifdef DEBUG
-            if ((fPCIDevice->ioRead8(ITCO1_TM) & ITCO1_RLD_TMR_MAX) != time)
+            if ((fPCIDevice->ioRead8(ITCO1_TM) & ITCO1_RL_TM_MAX) != time)
                 IOPrint(drvid, "Failed to set time\n");
 #endif
             
             IOSimpleLockUnlock(lock);
         break;
         case 2:
-            if (time > ITCO2_RLD_TMR_MAX) {
+            if (time > ITCO2_RL_TM_MAX) {
                 if (init_stage) {
                     IOPrint(drvid, "Timeout is not in range [3..614], using %d instead\n", DEFAULT_TIMEOUT);
                     init_stage = false;
@@ -280,7 +280,7 @@ void iTCOWatchdog::tcoWdSetTimer(UInt32 time)
             fPCIDevice->ioWrite16(ITCO2_TM, (fPCIDevice->ioRead16(ITCO2_TM) & 0xfc00) | time);
             
 #ifdef DEBUG
-            if ((fPCIDevice->ioRead16(ITCO2_TM) & ITCO2_RLD_TMR_MAX) != time)
+            if ((fPCIDevice->ioRead16(ITCO2_TM) & ITCO2_RL_TM_MAX) != time)
                 IOPrint(drvid, "Failed to set time\n");
 #endif
             
@@ -298,12 +298,12 @@ void iTCOWatchdog::tcoWdDisableTimer()
     DbgPrint(drvid, "%s\n", __FUNCTION__);
     
     IOSimpleLockLock(lock);
-    fPCIDevice->ioWrite16(ITCO_CR, (fPCIDevice->ioRead16(ITCO_CR) & ITCO_CR_PRESERVE) | ITCO_TMR_HALT);
+    fPCIDevice->ioWrite16(ITCO_CR, (fPCIDevice->ioRead16(ITCO_CR) & ITCO_CR_PRESERVE) | ITCO_TM_HALT);
     
     //disableReboots();
 
 #ifdef DEBUG
-    if (!(fPCIDevice->ioRead16(ITCO_CR) & ITCO_TMR_HALT))
+    if (!(fPCIDevice->ioRead16(ITCO_CR) & ITCO_TM_HALT))
         IOPrint(drvid, "Failed to disable timer\n");
 #endif
     
@@ -320,10 +320,10 @@ void iTCOWatchdog::tcoWdEnableTimer()
     //allowReboots();
     reloadTimer();
     
-    fPCIDevice->ioWrite16(ITCO_CR, (fPCIDevice->ioRead16(ITCO_CR) & ITCO_CR_PRESERVE) & ~ITCO_TMR_HALT);
+    fPCIDevice->ioWrite16(ITCO_CR, (fPCIDevice->ioRead16(ITCO_CR) & ITCO_CR_PRESERVE) & ~ITCO_TM_HALT);
     
 #ifdef DEBUG
-    if (fPCIDevice->ioRead16(ITCO_CR) & ITCO_TMR_HALT)
+    if (fPCIDevice->ioRead16(ITCO_CR) & ITCO_TM_HALT)
         IOPrint(drvid, "Failed to enable timer\n");
 #endif
 
