@@ -1,5 +1,9 @@
 /* Written by Artem Falcon <lomka@gero.in> */
 
+/* Workaround BIOS bug: take with great care. Use then and only then, if reboot doesn't
+ * appears when it should */
+//#define WA_BBUG 1
+
 #include "iTCOWatchdog.h"
 
 /* TO-DO: freeing */
@@ -37,9 +41,13 @@ void iTCOWatchdog::free(void)
 
     //if (Auto)
     tcoWdDisableTimer();
-    
+
+#if defined WA_BBUG
+    fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) | (ITCO_SMIEN_ENABLE+1));
+#else
     if (SMIEnabled)
         fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) | ITCO_SMIEN_ENABLE);
+#endif
     
     clearStatus();
     
@@ -81,27 +89,24 @@ IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
         return NULL;
     }
     
+    /* May be cleared and not work */
     if ((fPCIDevice->ioRead16(ITCO_ST2) & ITCO_SECOND_TO_ST)) {
         IOPrint("Recovered after system failure\n");
     }
     
     //disableReboots();
     
+#if defined WA_BBUG
+    /* Not safe: disable SMI globally */
+    fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) & ~(ITCO_SMIEN_ENABLE+1));
+#else
     if ((SMIEnabled = (fPCIDevice->ioRead32(ITCO_SMIEN) & ITCO_SMIEN_ST) != 0))
-    {
-        UInt32 val;
-        
         /* Some BIOSes install SMI handlers that reset or disable the watchdog timer 
            instead of resetting the system, so we disable the SMI */
-        val = fPCIDevice->ioRead32(ITCO_SMIEN);
-        //IOPrint(drvid, "ITCO_SMIEN was: %04X\n", val);
-        val &= ~ITCO_SMIEN_ENABLE;
-        //IOPrint(drvid, "Will try to set ITCO_SMIEN to: %04X\n", val);
-        fPCIDevice->ioWrite32(ITCO_SMIEN, val);
-        //IOPrint(drvid, "ITCO_SMIEN is: %04X\n", fPCIDevice->ioRead32(ITCO_SMIEN));
-    }
+        fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) & ~ITCO_SMIEN_ENABLE);
+#endif
     
-    IOPrint(drvid, "Attached %s iTCO v%d at phys 0x%04llx\n", LPCNub->lpc->name, LPCNub->lpc->itco_version,
+    IOPrint(drvid, "Attached %s iTCO v%d. Base: 0x%04llx\n", LPCNub->lpc->name, LPCNub->lpc->itco_version,
             (UInt64) ITCO_BASE);
     
     clearStatus();
@@ -120,14 +125,12 @@ bool iTCOWatchdog::start(IOService *provider)
 #if 0
     tcoWdSetTimer(Timeout);
     tcoWdEnableTimer();
-    
+#endif
+#if 0
     for (int i = 0; (i = readTimeleft()) > 0; ) {
-        //IOPrint(drvid, "Time left: %d\n", i);
-        IODelay(5000);
+        IOPrint(drvid, "Time left: %d\n", i);
+        IODelay(5000000);
     }
-    
-    IOPrint(drvid, "ITCO_SMIEN is: %04X\n", fPCIDevice->ioRead32(ITCO_SMIEN));
-    IOPrint(drvid, "ICHLPC_GCS is: %04X\n", OSReadLittleInt32(GCSMem.vaddr, 0x0));
 #endif
     
     return res;
@@ -159,21 +162,14 @@ bool iTCOWatchdog::allowReboots()
     /* Clear NO_REBOOT flag */
     switch (LPCNub->lpc->itco_version) {
         case 1:
-            fPCIDevice->configWrite32(ICHLPC_GEN_STA, LPCNub->fPCIDevice->configRead32(ICHLPC_GEN_STA) & ~ICHLPC_GEN_STA_NO_REBOOT);
+            fPCIDevice->configWrite32(ICHLPC_GEN_STA, LPCNub->fPCIDevice->configRead32(ICHLPC_GEN_STA)
+                                      & ~ICHLPC_GEN_STA_NO_REBOOT);
             if (fPCIDevice->configRead32(ICHLPC_GEN_STA) & ICHLPC_GEN_STA_NO_REBOOT)
                 return false;
         break;
         case 2:
-            UInt32 val;
-            
-            val = OSReadLittleInt32(GCSMem.vaddr, 0x0);
-            IOPrint(drvid, "ICHLPC_GCS was: %04X\n", val);
-            val &= ~ICHLPC_GCS_NO_REBOOT;
-            IOPrint(drvid, "Will try to set ICHLPC_GCS to: %04X\n", val);
-            OSWriteLittleInt32(GCSMem.vaddr, 0x0, val);
-            val = OSReadLittleInt32(GCSMem.vaddr, 0x0);
-            IOPrint(drvid, "ICHLPC_GCS is: %04X\n", val);
-            if (val & ICHLPC_GCS_NO_REBOOT)
+            OSWriteLittleInt32(GCSMem.vaddr, 0x0, OSReadLittleInt32(GCSMem.vaddr, 0x0) & ~ICHLPC_GCS_NO_REBOOT);
+            if (OSReadLittleInt32(GCSMem.vaddr, 0x0) & ICHLPC_GCS_NO_REBOOT)
                 return false;
         break;
     }
@@ -187,7 +183,8 @@ void iTCOWatchdog::disableReboots()
     
     switch (LPCNub->lpc->itco_version) {
         case 1:
-            fPCIDevice->configWrite32(ICHLPC_GEN_STA, LPCNub->fPCIDevice->configRead32(ICHLPC_GEN_STA) | ICHLPC_GEN_STA_NO_REBOOT);
+            fPCIDevice->configWrite32(ICHLPC_GEN_STA, LPCNub->fPCIDevice->configRead32(ICHLPC_GEN_STA)
+                                      | ICHLPC_GEN_STA_NO_REBOOT);
             break;
         case 2:
             OSWriteLittleInt32(GCSMem.vaddr, 0x0, OSReadLittleInt32(GCSMem.vaddr, 0x0) | ICHLPC_GCS_NO_REBOOT);
@@ -298,6 +295,7 @@ void iTCOWatchdog::tcoWdDisableTimer()
     DbgPrint(drvid, "%s\n", __FUNCTION__);
     
     IOSimpleLockLock(lock);
+    
     fPCIDevice->ioWrite16(ITCO_CR, (fPCIDevice->ioRead16(ITCO_CR) & ITCO_CR_PRESERVE) | ITCO_TM_HALT);
     
     //disableReboots();
@@ -315,8 +313,7 @@ void iTCOWatchdog::tcoWdEnableTimer()
     DbgPrint(drvid, "%s\n", __FUNCTION__);
     
     IOSimpleLockLock(lock);
-    
-    
+
     //allowReboots();
     reloadTimer();
     
