@@ -15,12 +15,12 @@
 #define ITCO_CR_PRESERVE   0x0200
 #define ITCO_SMIEN_ENABLE  0x2000
 #define ITCO_SMIEN_ST      ITCO_SMIEN_ENABLE 
-#define ITCO_RLD_TMR_MIN   0x04
-#define ITCO1_RLD_TMR_MAX  0x03f
-#define ITCO2_RLD_TMR_MAX  0x3ff
+#define ITCO_RL_TM_MIN     0x04
+#define ITCO1_RL_TM_MAX    0x03f
+#define ITCO2_RL_TM_MAX    0x3ff
 /* TCO1 */
 #define ITCO_SECOND_TO_ST  0x0002 /* Ran down twice */
-#define ITCO_TMR_HALT      0x0800
+#define ITCO_TM_HALT       0x0800
 /* TCO2 */
 #define ITCO_BOOT_ST       0x0004 /* Failed to come out of reset */
 #define ITCO_TIMEOUT_ST    0x0008
@@ -65,5 +65,4 @@ public:
     void tcoWdSetTimer(UInt32);
     void tcoWdDisableTimer();
     void tcoWdEnableTimer();
-    void tcoWdLoadTimer();
 };
