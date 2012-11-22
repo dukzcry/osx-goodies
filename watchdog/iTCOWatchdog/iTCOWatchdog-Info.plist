@@ -45,6 +45,8 @@
 		<dict>
 			<key>Settings</key>
 			<dict>
+				<key>UnsafeDisableSMIGlobally</key>
+				<false/>
 				<key>Timeout</key>
 				<integer>30</integer>
 				<key>Auto</key>

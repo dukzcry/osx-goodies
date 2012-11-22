@@ -1,9 +1,5 @@
 /* Written by Artem Falcon <lomka@gero.in> */
 
-/* Workaround BIOS bug: take with great care. Use then and only then, if reboot doesn't
- * appears when it should */
-//#define WA_BBUG 1
-
 #include "iTCOWatchdog.h"
 
 /* TO-DO: freeing */
@@ -21,12 +17,15 @@ bool iTCOWatchdog::init (OSDictionary* dict)
     
     Timeout = DEFAULT_TIMEOUT;
     Auto = true;
+    SMIDisabledGlobally = false;
     
     if ((conf = OSDynamicCast(OSDictionary, getProperty("Settings"))) &&
         (nkey = OSDynamicCast(OSNumber, conf->getObject("Timeout"))))
         Timeout = nkey->unsigned32BitValue();
     if (conf && (bkey = OSDynamicCast(OSBoolean, conf->getObject("Auto"))))
         Auto = bkey->isTrue();
+    if (conf && (bkey = OSDynamicCast(OSBoolean, conf->getObject("UnsafeDisableSMIGlobally"))))
+        SMIDisabledGlobally = bkey->isTrue();
     
     lock = IOSimpleLockAlloc();
     
@@ -39,15 +38,12 @@ void iTCOWatchdog::free(void)
 {    
     DbgPrint(drvid, "free\n");
 
-    //if (Auto)
     tcoWdDisableTimer();
 
-#if defined WA_BBUG
-    fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) | (ITCO_SMIEN_ENABLE+1));
-#else
-    if (SMIEnabled)
+    if (SMIDisabledGlobally)
+        fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) | (ITCO_SMIEN_ENABLE+1));
+    else if (SMIEnabled)
         fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) | ITCO_SMIEN_ENABLE);
-#endif
     
     clearStatus();
     
@@ -96,15 +92,13 @@ IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
     
     //disableReboots();
     
-#if defined WA_BBUG
-    /* Not safe: disable SMI globally */
-    fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) & ~(ITCO_SMIEN_ENABLE+1));
-#else
-    if ((SMIEnabled = (fPCIDevice->ioRead32(ITCO_SMIEN) & ITCO_SMIEN_ST) != 0))
+    if (SMIDisabledGlobally)
+        /* Not safe: disable SMI globally */
+        fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) & ~(ITCO_SMIEN_ENABLE+1));
+    else if ((SMIEnabled = (fPCIDevice->ioRead32(ITCO_SMIEN) & ITCO_SMIEN_ST) != 0))
         /* Some BIOSes install SMI handlers that reset or disable the watchdog timer 
            instead of resetting the system, so we disable the SMI */
         fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) & ~ITCO_SMIEN_ENABLE);
-#endif
     
     IOPrint(drvid, "Attached %s iTCO v%d. Base: 0x%04llx\n", LPCNub->lpc->name, LPCNub->lpc->itco_version,
             (UInt64) ITCO_BASE);
@@ -122,10 +116,18 @@ bool iTCOWatchdog::start(IOService *provider)
     bool res = super::start(provider);
     //DbgPrint(drvid, "start\n");
     
-#if 0
-    tcoWdSetTimer(Timeout);
-    tcoWdEnableTimer();
+    if (Auto) {
+        tcoWdSetTimer(Timeout);
+        tcoWdEnableTimer();
+        
+        /* Ugly */
+        while (1) {
+            IOSleep((Timeout-2) * 1000);
+            tcoWdLoadTimer();
+        }
+    }
     
+#if 0    
     for (int i = 0; i < 3; i++) {
         IODelay(25000000);
         IOPrint(drvid, "Time left: %d\n", readTimeleft());

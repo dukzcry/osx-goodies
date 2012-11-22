@@ -42,7 +42,7 @@ private:
     } GCSMem;
     
     MyLPC *LPCNub;
-    bool Auto, SMIEnabled, init_stage;
+    bool Auto, SMIEnabled, SMIDisabledGlobally, init_stage;
     UInt32 Timeout;
     
     void clearStatus();
