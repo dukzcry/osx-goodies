@@ -19,7 +19,7 @@
 #define ITCO1_RL_TM_MAX    0x03f
 #define ITCO2_RL_TM_MAX    0x3ff
 /* TCO1 */
-#define ITCO_SECOND_TO_ST  0x0002 /* Ran down twice */
+#define ITCO_SECOND_TO_ST  0x0002
 #define ITCO_TM_HALT       0x0800
 /* TCO2 */
 #define ITCO_BOOT_ST       0x0004 /* Failed to come out of reset */
@@ -65,4 +65,5 @@ public:
     void tcoWdSetTimer(UInt32);
     void tcoWdDisableTimer();
     void tcoWdEnableTimer();
+    void tcoWdLoadTimer();
 };

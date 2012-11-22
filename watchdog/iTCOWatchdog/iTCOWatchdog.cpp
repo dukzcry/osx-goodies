@@ -125,12 +125,14 @@ bool iTCOWatchdog::start(IOService *provider)
 #if 0
     tcoWdSetTimer(Timeout);
     tcoWdEnableTimer();
-#endif
-#if 0
-    for (int i = 0; (i = readTimeleft()) > 0; ) {
-        IOPrint(drvid, "Time left: %d\n", i);
-        IODelay(5000000);
+    
+    for (int i = 0; i < 3; i++) {
+        IODelay(25000000);
+        IOPrint(drvid, "Time left: %d\n", readTimeleft());
+        tcoWdLoadTimer();
     }
+    
+    return false;
 #endif
     
     return res;
@@ -324,5 +326,24 @@ void iTCOWatchdog::tcoWdEnableTimer()
         IOPrint(drvid, "Failed to enable timer\n");
 #endif
 
+    IOSimpleLockUnlock(lock);
+}
+
+void iTCOWatchdog::tcoWdLoadTimer()
+{
+    DbgPrint(drvid, "%s\n", __FUNCTION__);
+    
+    IOSimpleLockLock(lock);
+    switch (LPCNub->lpc->itco_version) {
+        case 1:
+            /* time *= 2 */
+            fPCIDevice->ioWrite16(ITCO_ST1, ITCO_TIMEOUT_ST);
+            
+            fPCIDevice->ioWrite8(ITCO_RL, 0x01);
+        break;
+        case 2:
+            fPCIDevice->ioWrite16(ITCO_RL, 0x01);
+        break;
+    }
     IOSimpleLockUnlock(lock);
 }
