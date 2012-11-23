@@ -29,6 +29,7 @@ bool iTCOWatchdog::init (OSDictionary* dict)
     
     first_run = true;
     is_active = false;
+    SMIEnabled = false;
     
     GCSMem.range = NULL; GCSMem.map = NULL;
     
