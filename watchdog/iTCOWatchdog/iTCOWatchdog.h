@@ -42,15 +42,15 @@ private:
     } GCSMem;
     
     MyLPC *LPCNub;
-    bool Auto, SMIEnabled, SMIDisabledGlobally, init_stage;
-    UInt32 Timeout;
+    bool SelfFeeding, WorkaroundBug; UInt32 Timeout;
+    bool SMIEnabled, first_run, is_active;
     
     void clearStatus();
     bool allowReboots();
-    //void disableReboots();
+    //void deprecateReboots();
     void reloadTimer();
 #if defined DEBUG
-    int readTimeleft();
+    UInt32 readTimeleft();
 #endif
 protected:
     virtual bool init(OSDictionary *);

@@ -16,20 +16,23 @@ bool iTCOWatchdog::init (OSDictionary* dict)
     res = super::init(dict);
     
     Timeout = DEFAULT_TIMEOUT;
-    Auto = true;
-    SMIDisabledGlobally = false;
+    SelfFeeding = false;
+    WorkaroundBug = false;
     
     if ((conf = OSDynamicCast(OSDictionary, getProperty("Settings"))) &&
         (nkey = OSDynamicCast(OSNumber, conf->getObject("Timeout"))))
         Timeout = nkey->unsigned32BitValue();
-    if (conf && (bkey = OSDynamicCast(OSBoolean, conf->getObject("Auto"))))
-        Auto = bkey->isTrue();
-    if (conf && (bkey = OSDynamicCast(OSBoolean, conf->getObject("UnsafeDisableSMIGlobally"))))
-        SMIDisabledGlobally = bkey->isTrue();
+    if (conf && (bkey = OSDynamicCast(OSBoolean, conf->getObject("SelfFeeding"))))
+        SelfFeeding = bkey->isTrue();
+    if (conf && (bkey = OSDynamicCast(OSBoolean, conf->getObject("UnsafeWorkaroundBIOSBug"))))
+        WorkaroundBug = bkey->isTrue();
     
-    lock = IOSimpleLockAlloc();
+    first_run = true;
+    is_active = false;
     
     GCSMem.range = NULL; GCSMem.map = NULL;
+    
+    lock = IOSimpleLockAlloc();
     
     return res;
 }
@@ -38,9 +41,9 @@ void iTCOWatchdog::free(void)
 {    
     DbgPrint(drvid, "free\n");
 
-    tcoWdDisableTimer();
+    if (is_active) tcoWdDisableTimer();
 
-    if (SMIDisabledGlobally)
+    if (WorkaroundBug)
         fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) | (ITCO_SMIEN_ENABLE+1));
     else if (SMIEnabled)
         fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) | ITCO_SMIEN_ENABLE);
@@ -90,9 +93,9 @@ IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
         IOPrint("Recovered after system failure\n");
     }
     
-    //disableReboots();
+    //deprecateReboots();
     
-    if (SMIDisabledGlobally)
+    if (WorkaroundBug)
         /* Not safe: disable SMI globally */
         fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) & ~(ITCO_SMIEN_ENABLE+1));
     else if ((SMIEnabled = (fPCIDevice->ioRead32(ITCO_SMIEN) & ITCO_SMIEN_ST) != 0))
@@ -116,7 +119,7 @@ bool iTCOWatchdog::start(IOService *provider)
     bool res = super::start(provider);
     //DbgPrint(drvid, "start\n");
     
-    if (Auto) {
+    if (SelfFeeding) {
         tcoWdSetTimer(Timeout);
         tcoWdEnableTimer();
         
@@ -181,7 +184,7 @@ bool iTCOWatchdog::allowReboots()
     return true;
 }
 #if 0
-void iTCOWatchdog::disableReboots()
+void iTCOWatchdog::deprecateReboots()
 {
     DbgPrint(drvid, "%s\n", __FUNCTION__);
     
@@ -213,7 +216,7 @@ void iTCOWatchdog::reloadTimer()
 }
 
 #if defined DEBUG
-int iTCOWatchdog::readTimeleft()
+UInt32 iTCOWatchdog::readTimeleft()
 {
     UInt8 val;
     
@@ -250,15 +253,16 @@ void iTCOWatchdog::tcoWdSetTimer(UInt32 time)
         goto fail;
     switch (LPCNub->lpc->itco_version) {
         case 1:
+            IOSimpleLockLock(lock);
             if (time > ITCO1_RL_TM_MAX) {
-                if (init_stage) {
+                if (first_run) {
                     IOPrint(drvid, "Timeout is not in range [5..76], using %d instead\n", DEFAULT_TIMEOUT);
-                    init_stage = false;
+                    first_run = false;
                 }
+                IOSimpleLockUnlock(lock);
                 goto fail;
             }
             
-            IOSimpleLockLock(lock);
             fPCIDevice->ioWrite8(ITCO1_TM, (fPCIDevice->ioRead8(ITCO1_TM) & 0xc0) | (time & 0xff));
             
 #ifdef DEBUG
@@ -269,15 +273,16 @@ void iTCOWatchdog::tcoWdSetTimer(UInt32 time)
             IOSimpleLockUnlock(lock);
         break;
         case 2:
+            IOSimpleLockLock(lock);
             if (time > ITCO2_RL_TM_MAX) {
-                if (init_stage) {
+                if (first_run) {
                     IOPrint(drvid, "Timeout is not in range [3..614], using %d instead\n", DEFAULT_TIMEOUT);
-                    init_stage = false;
+                    first_run = false;
                 }
+                IOSimpleLockUnlock(lock);
                 goto fail;
             }
             
-            IOSimpleLockLock(lock);
             fPCIDevice->ioWrite16(ITCO2_TM, (fPCIDevice->ioRead16(ITCO2_TM) & 0xfc00) | time);
             
 #ifdef DEBUG
@@ -302,13 +307,14 @@ void iTCOWatchdog::tcoWdDisableTimer()
     
     fPCIDevice->ioWrite16(ITCO_CR, (fPCIDevice->ioRead16(ITCO_CR) & ITCO_CR_PRESERVE) | ITCO_TM_HALT);
     
-    //disableReboots();
+    //deprecateReboots();
 
 #ifdef DEBUG
     if (!(fPCIDevice->ioRead16(ITCO_CR) & ITCO_TM_HALT))
         IOPrint(drvid, "Failed to disable timer\n");
 #endif
     
+    is_active = false;
     IOSimpleLockUnlock(lock);
 }
 
@@ -328,6 +334,7 @@ void iTCOWatchdog::tcoWdEnableTimer()
         IOPrint(drvid, "Failed to enable timer\n");
 #endif
 
+    is_active = true;
     IOSimpleLockUnlock(lock);
 }
 
