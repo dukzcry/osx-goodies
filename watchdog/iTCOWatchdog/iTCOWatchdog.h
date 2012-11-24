@@ -52,6 +52,11 @@ private:
 #if defined DEBUG
     UInt32 readTimeleft();
 #endif
+    
+    void tcoWdSetTimer(UInt32);
+    void tcoWdDisableTimer();
+    void tcoWdEnableTimer();
+    void tcoWdLoadTimer();
 protected:
     virtual bool init(OSDictionary *);
     
@@ -60,10 +65,6 @@ protected:
     
     virtual bool start(IOService *provider);
     virtual void stop(IOService *provider);
-public:
-    /* Interface */
-    void tcoWdSetTimer(UInt32);
-    void tcoWdDisableTimer();
-    void tcoWdEnableTimer();
-    void tcoWdLoadTimer();
+    
+    virtual IOReturn setProperties(OSObject *);
 };

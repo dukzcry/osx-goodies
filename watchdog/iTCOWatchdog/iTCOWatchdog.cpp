@@ -67,7 +67,7 @@ IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
     //DbgPrint(drvid, "probe\n");
     
     if (!(LPCNub = OSDynamicCast(MyLPC, provider))) {
-        IOPrint("Failed to cast to MyLPC\n");
+        IOPrint(drvid, "Failed to cast to MyLPC\n");
         return NULL;
     }
 
@@ -85,13 +85,13 @@ IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
     GCSMem.vaddr = (void *) GCSMem.map->getVirtualAddress();
     
     if (!allowReboots()) {
-        IOPrint("Watchdog disabled in BIOS or hardware. Unloading\n");
+        IOPrint(drvid, "Watchdog disabled in BIOS or hardware. Unloading\n");
         return NULL;
     }
     
     /* May be cleared and not work */
     if ((fPCIDevice->ioRead16(ITCO_ST2) & ITCO_SECOND_TO_ST)) {
-        IOPrint("Recovered after system failure\n");
+        IOPrint(drvid, "Recovered after system failure\n");
     }
     
     //deprecateReboots();
@@ -104,13 +104,11 @@ IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
            instead of resetting the system, so we disable the SMI */
         fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) & ~ITCO_SMIEN_ENABLE);
     
-    IOPrint(drvid, "Attached %s iTCO v%d. Base: 0x%04llx\n", LPCNub->lpc->name, LPCNub->lpc->itco_version,
-            (UInt64) ITCO_BASE);
-    
     clearStatus();
     tcoWdDisableTimer();
-    
-    IOPrint(drvid, "Initialized\n");
+
+    IOPrint(drvid, "Attached %s iTCO v%d. Base: 0x%04llx\n", LPCNub->lpc->name, LPCNub->lpc->itco_version,
+            (UInt64) ITCO_BASE);
     
     return super::probe(provider, score);
 }
@@ -130,6 +128,7 @@ bool iTCOWatchdog::start(IOService *provider)
             tcoWdLoadTimer();
         }
     }
+    else this->registerService();
     
 #if 0    
     for (int i = 0; i < 3; i++) {
@@ -219,7 +218,7 @@ void iTCOWatchdog::reloadTimer()
 #if defined DEBUG
 UInt32 iTCOWatchdog::readTimeleft()
 {
-    UInt8 val;
+    UInt8 val = 0;
     
     //DbgPrint(drvid, "%s\n", __FUNCTION__);
     
@@ -242,7 +241,7 @@ UInt32 iTCOWatchdog::readTimeleft()
 
 void iTCOWatchdog::tcoWdSetTimer(UInt32 time)
 {
-    DbgPrint(drvid, "%s\n", __FUNCTION__);
+    IOPrint(drvid, "Setting timeout to: %d\n", time);
     
     /* 1 tick = 0.6 sec */
     time = (time * 5) / 3;
@@ -317,12 +316,12 @@ void iTCOWatchdog::tcoWdDisableTimer()
     
     is_active = false;
     IOSimpleLockUnlock(lock);
+    
+    if (!first_run) IOPrint(drvid, "Disabled\n");
 }
 
 void iTCOWatchdog::tcoWdEnableTimer()
 {
-    DbgPrint(drvid, "%s\n", __FUNCTION__);
-    
     IOSimpleLockLock(lock);
 
     //allowReboots();
@@ -337,6 +336,8 @@ void iTCOWatchdog::tcoWdEnableTimer()
 
     is_active = true;
     IOSimpleLockUnlock(lock);
+    
+    IOPrint(drvid, "Activated\n");
 }
 
 void iTCOWatchdog::tcoWdLoadTimer()
@@ -356,4 +357,32 @@ void iTCOWatchdog::tcoWdLoadTimer()
         break;
     }
     IOSimpleLockUnlock(lock);
+}
+
+/* A very easy way of communicating with userland */
+IOReturn iTCOWatchdog::setProperties(OSObject *properties)
+{
+    OSDictionary *dict;
+    OSNumber *num;
+    OSString *str;
+    
+    DbgPrint(drvid, "%s\n", __FUNCTION__);
+    
+    if ((dict = OSDynamicCast(OSDictionary, properties))) {
+        if ((num = OSDynamicCast(OSNumber, dict->getObject("tcoWdSetTimer")))) {
+            tcoWdSetTimer(num->unsigned32BitValue());
+            return kIOReturnSuccess;
+        } else if ((str = OSDynamicCast(OSString, dict->getObject("tcoWdEnableTimer")))) {
+            tcoWdEnableTimer();
+            return kIOReturnSuccess;
+        } else if ((str = OSDynamicCast(OSString, dict->getObject("tcoWdDisableTimer")))) {
+            tcoWdDisableTimer();
+            return kIOReturnSuccess;
+        } else if ((str = OSDynamicCast(OSString, dict->getObject("tcoWdLoadTimer")))) {
+            tcoWdLoadTimer();
+            return kIOReturnSuccess;
+        }
+    }
+        
+    return kIOReturnUnsupported;
 }
