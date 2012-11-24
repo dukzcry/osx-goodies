@@ -294,6 +294,8 @@ void iTCOWatchdog::tcoWdSetTimer(UInt32 time)
         break;
     }
     
+    if (first_run) first_run = false;
+    
     return;
 fail:
     tcoWdSetTimer(DEFAULT_TIMEOUT);

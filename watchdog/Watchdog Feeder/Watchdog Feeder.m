@@ -106,7 +106,7 @@ void disable()
 }
 - (void) bone:(NSTimer *)timer
 {
-    //NSLog(@"here's a bone for watchdog");
+    NSLog(@"here's a bone for watchdog");
     IORegistryEntrySetCFProperty(ioObject, CFSTR("tcoWdLoadTimer"), CFSTR(""));
 }
 - (kern_return_t) communicate
