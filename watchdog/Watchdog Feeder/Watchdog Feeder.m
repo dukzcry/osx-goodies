@@ -8,11 +8,16 @@
 io_object_t   ioObject;
 struct sigaction sig_act;
 
-void disable()
+void disable(int sig)
 {
     IORegistryEntrySetCFProperty(ioObject, CFSTR("tcoWdDisableTimer"), CFSTR(""));
-    sig_act.sa_handler = SIG_DFL;
-    sigaction(SIGINT, &sig_act, 0);
+    
+    if (sig > -1) {
+        sigprocmask(SIG_UNBLOCK, &sig_act.sa_mask, NULL);
+        
+        sig_act.sa_handler = SIG_DFL;
+        sigaction(sig, &sig_act, NULL);
+    }
 }
 
 @interface FeedWatchDog : NSObject
@@ -80,12 +85,16 @@ void disable()
             return NULL;
         }
         
-        sig_act.sa_flags = 0;
-        sigemptyset(&sig_act.sa_mask);
-        sigaddset(&sig_act.sa_mask, SIGINT);
         sig_act.sa_handler = disable;
+        sig_act.sa_flags = 0;
+        sigfillset(&sig_act.sa_mask);
         
-        sigaction(SIGINT, &sig_act, 0);
+        sigdelset(&sig_act.sa_mask, SIGINT);
+        sigdelset(&sig_act.sa_mask, SIGTERM);
+        sigaction(SIGINT, &sig_act, NULL);
+        sigaction(SIGTERM, &sig_act, NULL);
+        
+        sigprocmask(SIG_BLOCK, &sig_act.sa_mask, NULL);
         
         NSLog(@"Watchdog Feeder running\n");
             
@@ -100,7 +109,7 @@ void disable()
 - (void) dealloc
 {
     [timer invalidate];
-    disable();
+    disable(-1);
     IOObjectRelease(ioObject);
     [super dealloc];
 }
