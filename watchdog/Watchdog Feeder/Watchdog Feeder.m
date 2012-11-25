@@ -1,9 +1,6 @@
 /* Written by Artem Falcon <lomka@gero.in> */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <IOKit/IOKitLib.h>
-#import <Foundation/Foundation.h>
+#include <Cocoa/Cocoa.h>
 
 io_object_t   ioObject;
 struct sigaction sig_act;
