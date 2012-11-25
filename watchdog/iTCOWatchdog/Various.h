@@ -77,6 +77,7 @@
 /* Additional ones */
 #define PCI_PRODUCT_ICH9    0x2918
 #define PCI_PRODUCT_ICH10R  0x3a16
+#define PCI_PRODUCT_H55	    0x3b06
 
 typedef struct {
 	UInt16						lpc_product;
@@ -98,6 +99,7 @@ namespace lpc_structs {
         { PCI_PRODUCT_PCH, "PCH Desktop Full Featured", 2 },
         { PCI_PRODUCT_PCHM, "PCH Mobile Full Featured", 2 },
         { PCI_PRODUCT_P55, "P55", 2 },
+	{ PCI_PRODUCT_H55, "H55", 2 },
         { PCI_PRODUCT_HM55, "HM55", 2 },
         { PCI_PRODUCT_CPTD, "Cougar Point Desktop", 2 },
         { PCI_PRODUCT_CPT1, "Cougar Point", 2 },
