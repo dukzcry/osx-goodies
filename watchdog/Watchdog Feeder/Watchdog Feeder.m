@@ -7,6 +7,7 @@
 
 io_object_t   ioObject;
 struct sigaction sig_act;
+bool logstd;
 
 void disable(int sig)
 {
@@ -25,7 +26,7 @@ void disable(int sig)
 @protected
     NSTimer *timer;
 }
-@end 
+@end
 
 @implementation FeedWatchDog
 - (id) init
@@ -91,7 +92,7 @@ void disable(int sig)
         
         sigdelset(&sig_act.sa_mask, SIGINT);
         sigdelset(&sig_act.sa_mask, SIGTERM);
-        sigaction(SIGINT, &sig_act, NULL);
+        sigaction(SIGINT, &sig_act, NULL); /* Catch this signal even if -d flag wasn't given */
         sigaction(SIGTERM, &sig_act, NULL);
         
         sigprocmask(SIG_BLOCK, &sig_act.sa_mask, NULL);
@@ -115,7 +116,7 @@ void disable(int sig)
 }
 - (void) bone:(NSTimer *)timer
 {
-    NSLog(@"here's a bone for watchdog");
+    if (logstd) NSLog(@"here's a bone for watchdog");
     IORegistryEntrySetCFProperty(ioObject, CFSTR("tcoWdLoadTimer"), CFSTR(""));
 }
 - (kern_return_t) communicate
@@ -150,11 +151,31 @@ void disable(int sig)
 
 int main(int argc, char *argv[])
 {
-    NSRunLoop *loop = [NSRunLoop currentRunLoop];
-    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-    FeedWatchDog *feed_watchdog = [[FeedWatchDog alloc] init];
+    NSRunLoop *loop;
+    NSAutoreleasePool *pool;
+    FeedWatchDog *feed_watchdog;
     
-    if (!feed_watchdog) {
+    int c;
+    
+    logstd = false;
+    if ((c = getopt(argc, argv, "dh")) != -1) {
+        switch(c) {
+            case 'd':
+                logstd = true;
+            break;
+            case 'h':
+                printf("Usage:\n");
+                printf("%s [options]\n", argv[0]);
+                printf("\t-d\t: log to stderr\n");
+                printf("\t-h\t: help\n");
+                return EXIT_SUCCESS;
+            break;
+        }
+    }
+    
+    loop = [NSRunLoop currentRunLoop];
+    pool = [[NSAutoreleasePool alloc] init];
+    if (!(feed_watchdog = [[FeedWatchDog alloc] init])) {
         [pool release];
         return EXIT_FAILURE;
     }
@@ -163,5 +184,5 @@ int main(int argc, char *argv[])
     
     [feed_watchdog release];
     [pool release];
-	return EXIT_SUCCESS; 
+	return EXIT_SUCCESS;   
 }
