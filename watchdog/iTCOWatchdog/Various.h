@@ -31,7 +31,52 @@
 #define ACPI_BASE_ENDGCS    0x3414
 #define ACPI_CT             0x44
 
+/* These are pci8086 from AppleLPC in same order */
+#define PCI_PRODUCT_ICH8ME  0x2811
+#define PCI_PRODUCT_ICH8M   0x2815
+#define PCI_PRODUCT_ICH7M   0x27b9
+#define PCI_PRODUCT_ICH7MDH 0x27bd
+#define PCI_PRODUCT_63XXESB 0x2670
+//#define PCI_PRODUCT_SCH   0x8119
 #define PCI_PRODUCT_ICH9R   0x2916
+#define PCI_PRODUCT_ICH10   0x3a18
+#define PCI_PRODUCT_PCH     0x3b00
+#define PCI_PRODUCT_PCHM    0x3b01
+#define PCI_PRODUCT_P55     0x3b02
+#define PCI_PRODUCT_HM55    0x3b09
+#define PCI_PRODUCT_PPT4    0x1e44
+
+#define PCI_PRODUCT_CPTD    0x1c42
+#define PCI_PRODUCT_CPT4    0x1c44
+#define PCI_PRODUCT_CPT14   0x1c4e
+#define PCI_PRODUCT_PPT12   0x1e4c
+#define PCI_PRODUCT_CPT16   0x1c50
+#define PCI_PRODUCT_CPT10   0x1c4a
+#define PCI_PRODUCT_CPT6    0x1c46
+#define PCI_PRODUCT_CPT28   0x1c5c
+#define PCI_PRODUCT_CPT18   0x1c52
+#define PCI_PRODUCT_CPT20   0x1c54
+#define PCI_PRODUCT_CPT22   0x1c56
+#define PCI_PRODUCT_CPT3    0x1c43
+#define PCI_PRODUCT_CPT15   0x1c4f
+#define PCI_PRODUCT_CPT7    0x1c47
+#define PCI_PRODUCT_CPT9    0x1c49
+#define PCI_PRODUCT_CPT11   0x1c4b
+#define PCI_PRODUCT_CPT1    0x1c41
+#define PCI_PRODUCT_CPT13   0x1c4d
+#define PCI_PRODUCT_PPT2    0x1e42
+#define PCI_PRODUCT_PPT21   0x1e55
+#define PCI_PRODUCT_PPT24   0x1e58
+#define PCI_PRODUCT_PPT23   0x1e57
+#define PCI_PRODUCT_PPT25   0x1e59
+#define PCI_PRODUCT_PPT29   0x1e5d
+#define PCI_PRODUCT_PPT3    0x1e43
+#define PCI_PRODUCT_PPT22   0x1e56
+/* */
+
+/* Additional ones */
+#define PCI_PRODUCT_ICH9    0x2918
+#define PCI_PRODUCT_ICH10R  0x3a16
 
 typedef struct {
 	UInt16						lpc_product;
@@ -41,7 +86,46 @@ typedef struct {
 } lpc_pci_device;
 namespace lpc_structs {
     lpc_pci_device lpc_pci_devices[] = {
-        { PCI_PRODUCT_ICH9R, "ICH9R", 2 }
+        { PCI_PRODUCT_63XXESB, "631xESB/632xESB", 2 },
+        { PCI_PRODUCT_ICH7M, "ICH7-M/ICH7-U", 2 },
+        { PCI_PRODUCT_ICH7MDH, "ICH7-M DH", 2 },
+        { PCI_PRODUCT_ICH8ME, "ICH8-ME", 2 },
+        { PCI_PRODUCT_ICH8M, "ICH8M", 2 },
+        { PCI_PRODUCT_ICH9, "ICH9", 2 },
+        { PCI_PRODUCT_ICH9R, "ICH9R", 2 },
+        { PCI_PRODUCT_ICH10, "ICH10", 2 },
+        { PCI_PRODUCT_ICH10R, "ICH10R", 2 },
+        { PCI_PRODUCT_PCH, "PCH Desktop Full Featured", 2 },
+        { PCI_PRODUCT_PCHM, "PCH Mobile Full Featured", 2 },
+        { PCI_PRODUCT_P55, "P55", 2 },
+        { PCI_PRODUCT_HM55, "HM55", 2 },
+        { PCI_PRODUCT_CPTD, "Cougar Point Desktop", 2 },
+        { PCI_PRODUCT_CPT1, "Cougar Point", 2 },
+        { PCI_PRODUCT_CPT4, "Cougar Point", 2 },
+        { PCI_PRODUCT_CPT3, "Cougar Point", 2 },
+        { PCI_PRODUCT_CPT6, "Cougar Point", 2 },
+        { PCI_PRODUCT_CPT7, "Cougar Point", 2 },
+        { PCI_PRODUCT_CPT9, "Cougar Point", 2 },
+        { PCI_PRODUCT_CPT10, "Cougar Point", 2 },
+        { PCI_PRODUCT_CPT11, "Cougar Point", 2 },
+        { PCI_PRODUCT_CPT13, "Cougar Point", 2 },
+        { PCI_PRODUCT_CPT14, "Cougar Point", 2 },
+        { PCI_PRODUCT_CPT15, "Cougar Point", 2 },
+        { PCI_PRODUCT_CPT16, "Cougar Point", 2 },
+        { PCI_PRODUCT_CPT18, "Cougar Point", 2 },
+        { PCI_PRODUCT_CPT20, "Cougar Point", 2 },
+        { PCI_PRODUCT_CPT22, "Cougar Point", 2 },
+        { PCI_PRODUCT_CPT28, "Cougar Point", 2 },
+        { PCI_PRODUCT_PPT2, "Panther Point", 2 },
+        { PCI_PRODUCT_PPT4, "Panther Point", 2 },
+        { PCI_PRODUCT_PPT3, "Panther Point", 2 },
+        { PCI_PRODUCT_PPT12, "Panther Point", 2 },
+        { PCI_PRODUCT_PPT21, "Panther Point", 2 },
+        { PCI_PRODUCT_PPT22, "Panther Point", 2 },
+        { PCI_PRODUCT_PPT23, "Panther Point", 2 },
+        { PCI_PRODUCT_PPT24, "Panther Point", 2 },
+        { PCI_PRODUCT_PPT25, "Panther Point", 2 },
+        { PCI_PRODUCT_PPT29, "Panther Point", 2 }
     };
 }
 
