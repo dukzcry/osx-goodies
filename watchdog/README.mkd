@@ -1,0 +1,6 @@
+#Intel ICH WDT driver
+
+###Notes
+
+It's an open alternative to [AppleTCOWatchdog](http://wiki.awkwardtv.org/wiki/Watchdog#What_is_Watchdog) (seen in 1st gen of AppleTV).
+
