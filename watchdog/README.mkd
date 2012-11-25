@@ -3,19 +3,19 @@
 ###Notes
 
 It's an analog of binary-only [AppleTCOWatchdog](http://wiki.awkwardtv.org/wiki/Watchdog#What_is_Watchdog) (seen in 1st gen of AppleTV).
-The device is present (but may be unusable) in any motherboard with ICH southbridge.
-If the feature is providen by WDT implementation, kext will note booting after watchdog device workout by printing "Recovered after system failure".
+The device is present (but may be unusable) on motherboards with ICH southbridge.
+If this feature is providen by WDT implementation, kext will note booting after watchdog device workout by printing "Recovered after system failure".
 
 ###Info.plist options
 
 These are located in Settings dictionary.
 
-- Timeout - The timeout in seconds. Range constraints depend on TCO WDT device version. With current driver revision they're (for second version of device): [3..614].
-- SelfFeeding - If true, kext will activate the device and do feeding; device will do machine reset on kernel halt. If false, it's expected that userspace app will do init and watchdog's timer resetting; reboot will occur on process scheduling failure as well.
-	You may use applied "Watchdog Feeder" prog for the last case.
-- UnsafeWorkaroundBIOSBug - **Fat warning**: This option will disable SMI globally, and thus required be avoided if possible. Must be avoided on laptops. 
-	Option is intended for those whose products have certain Intel boards (>= ICH7) with broken BIOS implementation, where watchdog doesn't reboot the system, when it should.
+- Timeout - The timeout in seconds. Range constraints depend on TCO WDT device version. With current driver revision they're (for second version of device): [3..614];
+- SelfFeeding - If true, kext will activate the device and do feeding; device will do machine reset on kernel halt. If false, it's expected that userspace app will do init and watchdog's timer resetting; reboot will also occur on process scheduling failure, 
+	you may use applied "Watchdog Feeder" prog for this case;
+- UnsafeWorkaroundBIOSBug - **Fat warning**: This option will disable SMI globally, and thus required to be avoided if possible. Must be avoided on laptops. 
+	Option is intended for those whose products have certain Intel boards (>= ICH7) with broken BIOS implementation, where watchdog doesn't reboot the system when it should.
 
 ###Problems
 
-Watchdog is an integrated function of ICH LPC interface bridge, so iTCOWatchdog will supplant proprietary AppleLPC and hence it [not recommended](http://translate.google.ru/translate?sl=ru&tl=en&js=n&prev=_t&hl=ru&ie=UTF-8&layout=2&eotf=1&u=http%3A%2F%2Fwww.applelife.ru%2Fthreads%2F%25D0%259F%25D0%25BE%25D0%25BB%25D0%25B5%25D0%25B7%25D0%25BD%25D1%258B%25D0%25B5-%25D0%259A%25D0%25B5%25D0%25BA%25D1%2581%25D1%2582%25D1%258B-%25D0%25A3%25D1%2582%25D0%25B8%25D0%25BB%25D0%25B8%25D1%2582%25D1%258B-%25D0%2598-%25D0%25A1%25D0%25BE%25D0%25BB%25D1%258E%25D1%2588%25D0%25B5%25D0%25BD%25D1%258B-%25D0%2594%25D0%25BB%25D1%258F-osx86.9675%2Fpage-86%23post-149660) for use on real Macs.
+Watchdog is an integrated function of ICH LPC interface bridge, so iTCOWatchdog will supplant proprietary AppleLPC and hence it [not recommended](http://translate.google.ru/translate?sl=ru&tl=en&js=n&prev=_t&hl=ru&ie=UTF-8&layout=2&eotf=1&u=http%3A%2F%2Fwww.applelife.ru%2Fthreads%2F%25D0%259F%25D0%25BE%25D0%25BB%25D0%25B5%25D0%25B7%25D0%25BD%25D1%258B%25D0%25B5-%25D0%259A%25D0%25B5%25D0%25BA%25D1%2581%25D1%2582%25D1%258B-%25D0%25A3%25D1%2582%25D0%25B8%25D0%25BB%25D0%25B8%25D1%2582%25D1%258B-%25D0%2598-%25D0%25A1%25D0%25BE%25D0%25BB%25D1%258E%25D1%2588%25D0%25B5%25D0%25BD%25D1%258B-%25D0%2594%25D0%25BB%25D1%258F-osx86.9675%2Fpage-86%23post-149660) for use on real Macs, especially portable ones.
