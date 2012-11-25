@@ -73,6 +73,7 @@
                 
                 <string>pci8086,2918</string>
                 <string>pci8086,3a16</string>
+                <string>pci8086,3b06</string>
             </array>
 			<key>IOClass</key>
 			<string>MyLPC</string>
