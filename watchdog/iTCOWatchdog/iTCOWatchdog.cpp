@@ -78,6 +78,7 @@ IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
     fPCIDevice->setIOEnable(true);
     fPCIDevice->setMemoryEnable(true);
 
+    //AppleLPC::start - no RCBA device memory
     if (!(GCSMem.range = IODeviceMemory::withRange(LPCNub->acpi_gcs.start,
                                                    LPCNub->acpi_gcs.end - LPCNub->acpi_gcs.start)) ||
         !(GCSMem.map = GCSMem.range->map()))

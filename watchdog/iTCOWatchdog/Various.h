@@ -116,6 +116,7 @@ IOService *MyLPC::probe (IOService* provider, SInt32* score)
 #endif
 
     if (!(fPCIDevice = OSDynamicCast(IOPCIDevice, provider))) {
+        //AppleLPC::start - no LPC IOPCIDevice found
         IOPrint(lpcid, "Failed to cast provider\n");
         return NULL;
     }
@@ -179,6 +180,7 @@ bool MyLPC::InitWatchdog()
     if (lpc->itco_version == 2) {
         bar = fPCIDevice->configRead32(RCBA_BASE);
         if (!(bar & 1)) {
+            //AppleLPC::start - RCBA not enabled
             DbgPrint(lpcid, "RCBA disabled\n");
             return false;
         }
