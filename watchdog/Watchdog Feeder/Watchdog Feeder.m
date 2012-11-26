@@ -11,6 +11,9 @@ void disable(int sig)
     IORegistryEntrySetCFProperty(ioObject, CFSTR("tcoWdDisableTimer"), CFSTR(""));
     
     if (sig > -1) {
+        /* For launchd */
+        if (sig == SIGTERM) exit(EXIT_SUCCESS);
+        
         sigprocmask(SIG_UNBLOCK, &sig_act.sa_mask, NULL);
         
         sig_act.sa_handler = SIG_DFL;
@@ -34,9 +37,9 @@ void disable(int sig)
     UInt32 time;
     
     if ((self = [super init])) {
-        if ([self communicate])
+        if (![self communicate])
             return NULL;
-        
+
         if (IORegistryEntryCreateCFProperties(ioObject, &properties, kCFAllocatorDefault, kNilOptions)
             != KERN_SUCCESS || !properties) {
             NSLog(@"Error: Can't get system properties\n");
@@ -116,7 +119,7 @@ void disable(int sig)
     if (logstd) NSLog(@"here's a bone for watchdog");
     IORegistryEntrySetCFProperty(ioObject, CFSTR("tcoWdLoadTimer"), CFSTR(""));
 }
-- (kern_return_t) communicate
+- (bool) communicate
 {
     kern_return_t result;
     mach_port_t   masterPort;
@@ -129,7 +132,7 @@ void disable(int sig)
     if (result != kIOReturnSuccess)
     {
         NSLog(@"Error: IOServiceGetMatchingServices() = %08x\n", result);
-        return 1;
+        return false;
     }
     
     ioObject = IOIteratorNext(iterator);
@@ -137,12 +140,12 @@ void disable(int sig)
     if (!ioObject)
     {
         NSLog(@"Error: no iTCOWatchdog found\n");
-        return 1;
+        return false;
     }
     
     IOObjectRetain(ioObject);
     
-    return kIOReturnSuccess;
+    return true;
 }
 @end
 
