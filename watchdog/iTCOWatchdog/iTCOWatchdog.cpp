@@ -102,7 +102,7 @@ IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
         else if (SMIWereEnabled = (reg & ITCO_SMIEN_ST) != 0)
              /* Some BIOSes install SMI handlers that reset or disable the watchdog timer 
                 instead of resetting the system, so we disable the SMI */
-            reg &= ITCO_SMIEN_ENABLE;
+            reg &= ~ITCO_SMIEN_ENABLE;
     }
     
     /* May be cleared and not work */
