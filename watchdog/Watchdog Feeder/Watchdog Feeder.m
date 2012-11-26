@@ -46,12 +46,12 @@ void disable(int sig)
                 break;
             [NSThread sleepForTimeInterval:8];
         }
-        if (!st) return NULL;
         if (!ioObject)
         {
             NSLog(@"Error: no iTCOWatchdog found\n");
             return NULL;
         }
+        if (!st) return NULL;
         IOObjectRetain(ioObject);
 
         if (IORegistryEntryCreateCFProperties(ioObject, &properties, kCFAllocatorDefault, kNilOptions)
@@ -151,6 +151,8 @@ void disable(int sig)
     
     ioObject = IOIteratorNext(iterator);
     IOObjectRelease(iterator);
+    
+    if (!ioObject) return false;
     
     return true;
 }
