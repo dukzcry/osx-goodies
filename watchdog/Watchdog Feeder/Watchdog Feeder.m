@@ -41,10 +41,10 @@ void disable(int sig)
     
     if ((self = [super init])) {
         /* Wait for a kernel service to be available via stupid polling */
-        for (; i < 10; i++) {
+        for (; i < 30; i++) {
             if ((st = [self communicate]))
                 break;
-            [NSThread sleepForTimeInterval:8];
+            [NSThread sleepForTimeInterval:30];
         }
         if (!ioObject)
         {

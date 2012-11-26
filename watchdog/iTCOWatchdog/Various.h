@@ -31,6 +31,11 @@
 #define ACPI_BASE_ENDGCS    0x3414
 #define ACPI_CT             0x44
 
+/* Quirks */
+#define GEN_PMCON_3         0xa4
+#define AFTERG3_ENABLE(x)   (x | 1 << 0)
+/* */
+
 /* These are pci8086 from AppleLPC in same order */
 #define PCI_PRODUCT_ICH8ME  0x2811
 #define PCI_PRODUCT_ICH8M   0x2815
@@ -228,6 +233,9 @@ IOService *MyLPC::probe (IOService* provider, SInt32* score)
         IOPrint(lpcid, "Failed to init watchdog\n");
         return NULL;
     }
+    
+    /* Stay in S5 state */
+    fPCIDevice->configWrite8(GEN_PMCON_3, AFTERG3_ENABLE(fPCIDevice->configRead8(GEN_PMCON_3)));
 
     /* Throw off the AppleLPC (we don't have another choice) */
     return super::probe(provider, score);
