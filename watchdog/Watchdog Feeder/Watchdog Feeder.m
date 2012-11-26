@@ -34,11 +34,25 @@ void disable(int sig)
     CFMutableDictionaryRef properties = NULL;
     CFTypeRef              settings, timeout;
     CFTypeID type;
+    
     UInt32 time;
+    int i = 0;
+    bool st = false;
     
     if ((self = [super init])) {
-        if (![self communicate])
+        /* Wait for a kernel service to be available via stupid polling */
+        for (; i < 10; i++) {
+            if ((st = [self communicate]))
+                break;
+            [NSThread sleepForTimeInterval:8];
+        }
+        if (!st) return NULL;
+        if (!ioObject)
+        {
+            NSLog(@"Error: no iTCOWatchdog found\n");
             return NULL;
+        }
+        IOObjectRetain(ioObject);
 
         if (IORegistryEntryCreateCFProperties(ioObject, &properties, kCFAllocatorDefault, kNilOptions)
             != KERN_SUCCESS || !properties) {
@@ -137,13 +151,6 @@ void disable(int sig)
     
     ioObject = IOIteratorNext(iterator);
     IOObjectRelease(iterator);
-    if (!ioObject)
-    {
-        NSLog(@"Error: no iTCOWatchdog found\n");
-        return false;
-    }
-    
-    IOObjectRetain(ioObject);
     
     return true;
 }

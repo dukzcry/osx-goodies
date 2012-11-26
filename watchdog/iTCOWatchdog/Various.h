@@ -166,6 +166,7 @@ bool MyLPC::init (OSDictionary* dict)
     //DbgPrint(lpcid, "init\n");
 
     AcpiReg = -1;
+    lpc = NULL;
     
     return res;
 }
@@ -173,9 +174,11 @@ bool MyLPC::init (OSDictionary* dict)
 void MyLPC::free(void)
 {
     DbgPrint(lpcid, "free\n");
-    
+
+#if 0
     if (AcpiReg >= 0)
         fPCIDevice->configWrite8(ACPI_CT, AcpiReg);
+#endif
     
     fPCIDevice->close(this);
     fPCIDevice->release();
@@ -211,13 +214,16 @@ IOService *MyLPC::probe (IOService* provider, SInt32* score)
     fPCIDevice->open(this);
     
 	DeviceId = fPCIDevice->configRead16(kIOPCIConfigDeviceID);
-    for (int i = 0; i < nitems(lpc_pci_devices); i++) {
-        lpc = &lpc_pci_devices[i];
-        
-        if (lpc->lpc_product == DeviceId) {
+    for (int i = 0; i < nitems(lpc_pci_devices); i++)
+        if (lpc_pci_devices[i].lpc_product == DeviceId) {
+            lpc = &lpc_pci_devices[i];
             DbgPrint(lpcid, "Found LPC: %s\n", lpc->name);
             break;
         }
+    
+    if (!lpc) {
+        IOPrint(lpcid, "%#x product is not in driver base\n", DeviceId);
+        return NULL;
     }
     
     if (!InitWatchdog()) {
@@ -257,10 +263,12 @@ bool MyLPC::InitWatchdog()
     acpi_tco.end = bar + ACPI_BASE_ENDTCO;
     acpi_smi.start = bar + ACPI_BASE_OFFSMI;
     acpi_smi.end = bar + ACPI_BASE_ENDSMI;
-    
+
+#if 0
     /* Enable ACPI space */
     AcpiReg = fPCIDevice->configRead8(ACPI_CT);
     fPCIDevice->configWrite8(ACPI_CT, AcpiReg | 0x10);
+#endif
     
     /* GCS register, for NO_REBOOT flag */
     if (lpc->itco_version == 2) {
