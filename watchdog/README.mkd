@@ -19,3 +19,4 @@ These are located in Settings dictionary.
 ###Problems
 
 Watchdog is an integrated function of ICH LPC interface bridge, so iTCOWatchdog will supplant proprietary AppleLPC and hence it [not recommended](http://translate.google.ru/translate?sl=ru&tl=en&js=n&prev=_t&hl=ru&ie=UTF-8&layout=2&eotf=1&u=http%3A%2F%2Fwww.applelife.ru%2Fthreads%2F%25D0%259F%25D0%25BE%25D0%25BB%25D0%25B5%25D0%25B7%25D0%25BD%25D1%258B%25D0%25B5-%25D0%259A%25D0%25B5%25D0%25BA%25D1%2581%25D1%2582%25D1%258B-%25D0%25A3%25D1%2582%25D0%25B8%25D0%25BB%25D0%25B8%25D1%2582%25D1%258B-%25D0%2598-%25D0%25A1%25D0%25BE%25D0%25BB%25D1%258E%25D1%2588%25D0%25B5%25D0%25BD%25D1%258B-%25D0%2594%25D0%25BB%25D1%258F-osx86.9675%2Fpage-86%23post-149660) for use on real Macs, especially portable ones.
+Current implementation of communication of kext with userland is highly unsecure: it allows *any user* to control hardware.
