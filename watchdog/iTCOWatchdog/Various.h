@@ -23,6 +23,7 @@
 #define ACPI_BASE           0x40
 #define ACPI_BASE_MASK      0x00007f80
 #define RCBA_BASE           0xf0
+#define RCBA_EN		    0x00000001
 #define ACPI_BASE_OFFTCO    0x60
 #define ACPI_BASE_ENDTCO    0x7f
 #define ACPI_BASE_OFFSMI    0x30
@@ -281,12 +282,12 @@ bool MyLPC::InitWatchdog()
     /* GCS register, for NO_REBOOT flag */
     if (lpc->itco_version == 2) {
         bar = fPCIDevice->configRead32(RCBA_BASE);
-        if (!(bar & 1)) {
+        if (!(bar & RCBA_EN)) {
             //AppleLPC::start - RCBA not enabled
             DbgPrint(lpcid, "RCBA disabled\n");
             return false;
         }
-        bar &= 0xffffc000;
+        bar &= ~RCBA_EN;
         
         acpi_gcs.start = bar + ACPI_BASE_OFFGCS;
         acpi_gcs.end = bar + ACPI_BASE_ENDGCS;
