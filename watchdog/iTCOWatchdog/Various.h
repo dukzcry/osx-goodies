@@ -87,6 +87,8 @@ typedef struct {
 } lpc_pci_device;
 namespace lpc_structs {
     lpc_pci_device lpc_pci_devices[] = {
+        { 0, "Unknown", 2 },
+        
         { PCI_PRODUCT_63XXESB, "631xESB/632xESB", 2 },
         { PCI_PRODUCT_ICH7M, "ICH7-M/ICH7-U", 2 },
         { PCI_PRODUCT_ICH7MDH, "ICH7-M DH", 2 },
@@ -214,17 +216,13 @@ IOService *MyLPC::probe (IOService* provider, SInt32* score)
     fPCIDevice->open(this);
     
 	DeviceId = fPCIDevice->configRead16(kIOPCIConfigDeviceID);
-    for (int i = 0; i < nitems(lpc_pci_devices); i++)
+    for (int i = 1; i < nitems(lpc_pci_devices); i++)
         if (lpc_pci_devices[i].lpc_product == DeviceId) {
             lpc = &lpc_pci_devices[i];
             DbgPrint(lpcid, "Found LPC: %s\n", lpc->name);
             break;
         }
-    
-    if (!lpc) {
-        IOPrint(lpcid, "%#x product is not in driver base\n", DeviceId);
-        return NULL;
-    }
+    if (!lpc) lpc = &lpc_pci_devices[0];
     
     if (!InitWatchdog()) {
         IOPrint(lpcid, "Failed to init watchdog\n");
