@@ -89,8 +89,8 @@ IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
     
     reg = fPCIDevice->ioRead32(ITCO_SMIEN);
     if (!allowReboots()) {
-        /*IOPrint(drvid, "Watchdog disabled in BIOS or hardware. Unloading\n");
-        return NULL;*/
+        IOPrint(drvid, "Watchdog disabled in hardware. Trying SMI handler\n");
+        //return NULL;
         
         /* Last chance */
         reg |= ITCO_SMIEN_ENABLE;
