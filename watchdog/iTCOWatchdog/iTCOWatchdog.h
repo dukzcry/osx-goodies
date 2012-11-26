@@ -43,7 +43,7 @@ private:
     
     MyLPC *LPCNub;
     bool SelfFeeding, WorkaroundBug; UInt32 Timeout;
-    bool SMIEnabled, first_run, is_active;
+    bool SMIWereEnabled, first_run, is_active;
     
     void clearStatus();
     bool allowReboots();
