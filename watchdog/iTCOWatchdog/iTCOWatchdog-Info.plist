@@ -9,7 +9,7 @@
 	<key>CFBundleIconFile</key>
 	<string></string>
 	<key>CFBundleIdentifier</key>
-	<string>org.dukzcry.${PRODUCT_NAME:rfc1034identifier}</string>
+	<string>cc.dukzcry.${PRODUCT_NAME:rfc1034identifier}</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -82,7 +82,7 @@
 			<key>IOProviderClass</key>
 			<string>IOPCIDevice</string>
 			<key>CFBundleIdentifier</key>
-			<string>org.dukzcry.${PRODUCT_NAME:rfc1034identifier}</string>
+			<string>cc.dukzcry.${PRODUCT_NAME:rfc1034identifier}</string>
 		</dict>
 		<key>iTCOWatchdog</key>
 		<dict>
@@ -98,7 +98,7 @@
 			<key>IOMatchCategory</key>
 			<string>iTCOWatchdog</string>
 			<key>CFBundleIdentifier</key>
-			<string>org.dukzcry.${PRODUCT_NAME:rfc1034identifier}</string>
+			<string>cc.dukzcry.${PRODUCT_NAME:rfc1034identifier}</string>
 			<key>IOProviderClass</key>
 			<string>MyLPC</string>
 			<key>IOResourceMatch</key>
