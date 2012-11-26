@@ -116,10 +116,18 @@ IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
 
 bool iTCOWatchdog::start(IOService *provider)
 {    
-    bool res = super::start(provider);
+    bool res;
+    UInt16 bar;
+    
     //DbgPrint(drvid, "start\n");
     
+    res = super::start(provider);
+    
     if (SelfFeeding) {
+        /* Temporary right here */
+        if (!AFTERG3_ST(bar = fPCIDevice->configRead16(GEN_PMCON_3)))
+            fPCIDevice->configWrite16(GEN_PMCON_3, AFTERG3_ENABLE(bar));
+        
         tcoWdSetTimer(Timeout);
         tcoWdEnableTimer();
         
@@ -304,6 +312,8 @@ fail:
 
 void iTCOWatchdog::tcoWdDisableTimer()
 {
+    UInt16 bar;
+    
     DbgPrint(drvid, "%s\n", __FUNCTION__);
     
     IOSimpleLockLock(lock);
@@ -318,6 +328,11 @@ void iTCOWatchdog::tcoWdDisableTimer()
 #endif
     
     is_active = false;
+    
+    /* Temporary right here */
+    if (!AFTERG3_ST(bar = fPCIDevice->configRead16(GEN_PMCON_3)))
+        fPCIDevice->configWrite16(GEN_PMCON_3, AFTERG3_ENABLE(bar));
+    
     IOSimpleLockUnlock(lock);
     
     if (!first_run) IOPrint(drvid, "Disabled\n");

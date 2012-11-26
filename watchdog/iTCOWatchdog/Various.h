@@ -33,6 +33,7 @@
 
 /* Quirks */
 #define GEN_PMCON_3         0xa4
+#define AFTERG3_ST(x)       (x & 0x0001)
 #define AFTERG3_ENABLE(x)   (x | 1 << 0)
 /* */
 
@@ -185,6 +186,10 @@ void MyLPC::free(void)
 #if 0
     if (AcpiReg >= 0)
         fPCIDevice->configWrite8(ACPI_CT, AcpiReg);
+    
+    /* Stay in S5 state on next power on */
+    if (!AFTERG3_ST(bar = fPCIDevice->configRead16(GEN_PMCON_3)))
+        fPCIDevice->configWrite16(GEN_PMCON_3, AFTERG3_ENABLE(bar));
 #endif
     
     fPCIDevice->close(this);
@@ -233,9 +238,6 @@ IOService *MyLPC::probe (IOService* provider, SInt32* score)
         IOPrint(lpcid, "Failed to init watchdog\n");
         return NULL;
     }
-    
-    /* Stay in S5 state */
-    fPCIDevice->configWrite8(GEN_PMCON_3, AFTERG3_ENABLE(fPCIDevice->configRead8(GEN_PMCON_3)));
 
     /* Throw off the AppleLPC (we don't have another choice) */
     return super::probe(provider, score);
