@@ -29,7 +29,7 @@ bool iTCOWatchdog::init (OSDictionary* dict)
     
     first_run = true;
     is_active = false;
-    SMIEnabled = false;
+    SMIWereEnabled = false;
     
     GCSMem.range = NULL; GCSMem.map = NULL;
     
@@ -46,7 +46,7 @@ void iTCOWatchdog::free(void)
 
     if (WorkaroundBug)
         fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) | (ITCO_SMIEN_ENABLE+1));
-    else if (SMIEnabled)
+    else if (SMIWereEnabled)
         fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) | ITCO_SMIEN_ENABLE);
     
     clearStatus();
@@ -64,6 +64,8 @@ void iTCOWatchdog::free(void)
 
 IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
 {
+    UInt32 reg;
+    
     //DbgPrint(drvid, "probe\n");
     
     if (!(LPCNub = OSDynamicCast(MyLPC, provider))) {
@@ -85,9 +87,22 @@ IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
         return NULL;
     GCSMem.vaddr = (void *) GCSMem.map->getVirtualAddress();
     
+    reg = fPCIDevice->ioRead32(ITCO_SMIEN);
     if (!allowReboots()) {
-        IOPrint(drvid, "Watchdog disabled in BIOS or hardware. Unloading\n");
-        return NULL;
+        /*IOPrint(drvid, "Watchdog disabled in BIOS or hardware. Unloading\n");
+        return NULL;*/
+        
+        /* Last chance */
+        reg |= ITCO_SMIEN_ENABLE;
+        SMIWereEnabled = false;
+    } else {
+        if (WorkaroundBug)
+            /* Not safe: disable SMI globally */
+            reg &= ~(ITCO_SMIEN_ENABLE+1);
+        else if (SMIWereEnabled = (reg & ITCO_SMIEN_ST) != 0)
+             /* Some BIOSes install SMI handlers that reset or disable the watchdog timer 
+                instead of resetting the system, so we disable the SMI */
+            reg &= ITCO_SMIEN_ENABLE;
     }
     
     /* May be cleared and not work */
@@ -97,13 +112,7 @@ IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
     
     //deprecateReboots();
     
-    if (WorkaroundBug)
-        /* Not safe: disable SMI globally */
-        fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) & ~(ITCO_SMIEN_ENABLE+1));
-    else if ((SMIEnabled = (fPCIDevice->ioRead32(ITCO_SMIEN) & ITCO_SMIEN_ST) != 0))
-        /* Some BIOSes install SMI handlers that reset or disable the watchdog timer 
-           instead of resetting the system, so we disable the SMI */
-        fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) & ~ITCO_SMIEN_ENABLE);
+    fPCIDevice->ioWrite32(ITCO_SMIEN, reg);
     
     clearStatus();
     tcoWdDisableTimer();
