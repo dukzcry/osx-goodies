@@ -176,6 +176,7 @@ private:
     bool InitWatchdog();
     void Sleep();
     void WakeUp();
+    void free_common();
 public:
     IOPCIDevice *fPCIDevice;
     
@@ -213,6 +214,8 @@ void MyLPC::free(void)
 {
     DbgPrint(lpcid, "free\n");
     
+    free_common();
+    
     fPCIDevice->close(this);
     fPCIDevice->release();
     
@@ -230,8 +233,7 @@ void MyLPC::systemWillShutdown(IOOptionBits spec)
     switch (spec) {
         case kIOMessageSystemWillRestart:
         case kIOMessageSystemWillPowerOff:
-            if (AcpiReg >= 0)
-                fPCIDevice->configWrite8(ACPI_CT, AcpiReg);
+            free_common();
             if (spec == kIOMessageSystemWillPowerOff) {
                 /* Stay in S5 state on next power on */
                 if (!AFTERG3_ST(bar = fPCIDevice->configRead16(GEN_PMCON_3)))
@@ -241,6 +243,14 @@ void MyLPC::systemWillShutdown(IOOptionBits spec)
     }
     
     super::systemWillShutdown(spec);
+}
+
+void MyLPC::free_common()
+{
+    if (AcpiReg >= 0) {
+        fPCIDevice->configWrite8(ACPI_CT, AcpiReg);
+        AcpiReg = -1;
+    }
 }
 
 IOReturn MyLPC::setPowerState(unsigned long state, IOService *dev __unused)

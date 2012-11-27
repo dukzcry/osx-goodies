@@ -46,6 +46,8 @@ void iTCOWatchdog::free(void)
 {    
     DbgPrint(drvid, "free\n");
     
+    free_common();
+    
     PMstop();
     
     if (GCSMem.map) GCSMem.map->release();
@@ -59,6 +61,25 @@ void iTCOWatchdog::free(void)
     super::free();
 }
 
+void iTCOWatchdog::free_common()
+{
+    if (is_active) {
+        tcoWdDisableTimer();
+        is_active = false;
+    }
+    
+    if (WorkaroundBug) {
+        fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) | (ITCO_SMIEN_ENABLE+1));
+        clearStatus();
+    }
+    else if (SMIWereEnabled) {
+        fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) | ITCO_SMIEN_ENABLE);
+        clearStatus();
+    }
+    
+    WorkaroundBug = SMIWereEnabled = false;
+}
+
 void iTCOWatchdog::systemWillShutdown(IOOptionBits spec)
 {
     DbgPrint(lpcid, "%s: spec = %#x\n", __FUNCTION__, spec);
@@ -66,14 +87,7 @@ void iTCOWatchdog::systemWillShutdown(IOOptionBits spec)
     switch (spec) {
         case kIOMessageSystemWillRestart:
         case kIOMessageSystemWillPowerOff:
-            if (is_active) tcoWdDisableTimer();
-            
-            if (WorkaroundBug)
-                fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) | (ITCO_SMIEN_ENABLE+1));
-            else if (SMIWereEnabled)
-                fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) | ITCO_SMIEN_ENABLE);
-            
-            clearStatus();
+            free_common();
         break;
     }
     

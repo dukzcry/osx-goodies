@@ -51,6 +51,7 @@ private:
 #if defined DEBUG
     UInt32 readTimeleft();
 #endif
+    void free_common();
     
     void tcoWdSetTimer(UInt32);
     void tcoWdDisableTimer();
