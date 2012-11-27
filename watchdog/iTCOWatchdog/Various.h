@@ -23,7 +23,7 @@
 #define ACPI_BASE           0x40
 #define ACPI_BASE_MASK      0x00007f80
 #define RCBA_BASE           0xf0
-#define RCBA_EN		    0x00000001
+#define RCBA_EN             0x00000001
 #define ACPI_BASE_OFFTCO    0x60
 #define ACPI_BASE_ENDTCO    0x7f
 #define ACPI_BASE_OFFSMI    0x30

@@ -88,7 +88,7 @@ IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
     GCSMem.vaddr = (void *) GCSMem.map->getVirtualAddress();
     
     reg = fPCIDevice->ioRead32(ITCO_SMIEN);
-    if (!allowReboots()) {
+    if (!enableReboots()) {
         IOPrint(drvid, "Watchdog disabled in hardware. Trying with SMI handler\n");
         //return NULL;
         
@@ -99,7 +99,7 @@ IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
         if (WorkaroundBug)
             /* Not safe: disable SMI globally */
             reg &= ~(ITCO_SMIEN_ENABLE+1);
-        else if (SMIWereEnabled = (reg & ITCO_SMIEN_ST) != 0)
+        else if ((SMIWereEnabled = (reg & ITCO_SMIEN_ST) != 0))
              /* Some BIOSes install SMI handlers that reset or disable the watchdog timer 
                 instead of resetting the system, so we disable the SMI */
             reg &= ~ITCO_SMIEN_ENABLE;
@@ -110,7 +110,7 @@ IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
         IOPrint(drvid, "Recovered after system failure\n");
     }
     
-    //deprecateReboots();
+    //disableReboots();
     
     fPCIDevice->ioWrite32(ITCO_SMIEN, reg);
     
@@ -180,7 +180,7 @@ void iTCOWatchdog::clearStatus()
     fPCIDevice->ioWrite16(ITCO_ST2, ITCO_BOOT_ST);
 }
 
-bool iTCOWatchdog::allowReboots()
+bool iTCOWatchdog::enableReboots()
 {
     DbgPrint(drvid, "%s\n", __FUNCTION__);
     
@@ -202,7 +202,7 @@ bool iTCOWatchdog::allowReboots()
     return true;
 }
 #if 0
-void iTCOWatchdog::deprecateReboots()
+void iTCOWatchdog::disableReboots()
 {
     DbgPrint(drvid, "%s\n", __FUNCTION__);
     
@@ -329,7 +329,7 @@ void iTCOWatchdog::tcoWdDisableTimer()
     
     fPCIDevice->ioWrite16(ITCO_CR, (fPCIDevice->ioRead16(ITCO_CR) & ITCO_CR_PRESERVE) | ITCO_TM_HALT);
     
-    //deprecateReboots();
+    //disableReboots();
 
 #ifdef DEBUG
     if (!(fPCIDevice->ioRead16(ITCO_CR) & ITCO_TM_HALT))
@@ -351,7 +351,7 @@ void iTCOWatchdog::tcoWdEnableTimer()
 {
     IOSimpleLockLock(lock);
 
-    //allowReboots();
+    //enableReboots();
     reloadTimer();
     
     fPCIDevice->ioWrite16(ITCO_CR, (fPCIDevice->ioRead16(ITCO_CR) & ITCO_CR_PRESERVE) & ~ITCO_TM_HALT);

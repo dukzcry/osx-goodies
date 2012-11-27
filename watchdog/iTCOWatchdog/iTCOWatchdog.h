@@ -46,8 +46,8 @@ private:
     bool SMIWereEnabled, first_run, is_active;
     
     void clearStatus();
-    bool allowReboots();
-    //void deprecateReboots();
+    bool enableReboots();
+    //void disableReboots();
     void reloadTimer();
 #if defined DEBUG
     UInt32 readTimeleft();
