@@ -181,6 +181,7 @@ public:
     IOPCIDevice *fPCIDevice;
     
     lpc_pci_device *lpc;
+    UInt16 DeviceId;
     
     my_res acpi_tco;
     my_res acpi_smi;
@@ -276,7 +277,6 @@ IOReturn MyLPC::setPowerState(unsigned long state, IOService *dev __unused)
 IOService *MyLPC::probe (IOService* provider, SInt32* score)
 {
     //IOACPIPlatformDevice *acpiDevice;
-	UInt16 DeviceId;
     
     using namespace lpc_structs;
     

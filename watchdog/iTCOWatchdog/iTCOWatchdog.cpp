@@ -148,7 +148,9 @@ IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
     clearStatus();
     tcoWdDisableTimer();
 
-    IOPrint(drvid, "Attached %s iTCO v%d. Base: 0x%04llx\n", LPCNub->lpc->name, LPCNub->lpc->itco_version,
+    IOPrint(drvid, "Attached %s (%#x) iTCO v%d. Base: 0x%04llx\n", LPCNub->lpc->name,
+            LPCNub->DeviceId,
+            LPCNub->lpc->itco_version,
             (UInt64) ITCO_BASE);
     
     return super::probe(provider, score);
