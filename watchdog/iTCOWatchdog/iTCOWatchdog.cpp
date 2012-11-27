@@ -6,6 +6,10 @@
 OSDefineMetaClassAndStructors(MyLPC, IOService)
 OSDefineMetaClassAndStructors(iTCOWatchdog, IOService)
 
+static IOPMPowerState PowerStates[] = {
+    {1, kIOPMPowerOn, kIOPMPowerOn, kIOPMPowerOn, 0, 0, 0, 0, 0, 0, 0, 0}
+};
+
 bool iTCOWatchdog::init (OSDictionary* dict)
 {
     OSNumber *nkey;
@@ -41,15 +45,8 @@ bool iTCOWatchdog::init (OSDictionary* dict)
 void iTCOWatchdog::free(void)
 {    
     DbgPrint(drvid, "free\n");
-
-    if (is_active) tcoWdDisableTimer();
-
-    if (WorkaroundBug)
-        fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) | (ITCO_SMIEN_ENABLE+1));
-    else if (SMIWereEnabled)
-        fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) | ITCO_SMIEN_ENABLE);
     
-    clearStatus();
+    PMstop();
     
     if (GCSMem.map) GCSMem.map->release();
     if (GCSMem.range) GCSMem.range->release();
@@ -60,6 +57,27 @@ void iTCOWatchdog::free(void)
     IOSimpleLockFree(lock);
 
     super::free();
+}
+
+void iTCOWatchdog::systemWillShutdown(IOOptionBits spec)
+{
+    DbgPrint(lpcid, "%s: spec = %#x\n", __FUNCTION__, spec);
+    
+    switch (spec) {
+        case kIOMessageSystemWillRestart:
+        case kIOMessageSystemWillPowerOff:
+            if (is_active) tcoWdDisableTimer();
+            
+            if (WorkaroundBug)
+                fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) | (ITCO_SMIEN_ENABLE+1));
+            else if (SMIWereEnabled)
+                fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) | ITCO_SMIEN_ENABLE);
+            
+            clearStatus();
+        break;
+    }
+    
+    super::systemWillShutdown(spec);
 }
 
 IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
@@ -80,7 +98,6 @@ IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
     fPCIDevice->setIOEnable(true);
     fPCIDevice->setMemoryEnable(true);
 
-    //AppleLPC::start - no RCBA device memory
     if (!(GCSMem.range = IODeviceMemory::withRange(LPCNub->acpi_gcs.start,
                                                    LPCNub->acpi_gcs.end - LPCNub->acpi_gcs.start)) ||
         !(GCSMem.map = GCSMem.range->map()))
@@ -126,17 +143,16 @@ IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
 bool iTCOWatchdog::start(IOService *provider)
 {    
     bool res;
-    UInt16 bar;
     
     //DbgPrint(drvid, "start\n");
     
     res = super::start(provider);
     
-    if (SelfFeeding) {
-        /* Temporary right here */
-        if (!AFTERG3_ST(bar = fPCIDevice->configRead16(GEN_PMCON_3)))
-            fPCIDevice->configWrite16(GEN_PMCON_3, AFTERG3_ENABLE(bar));
-        
+    PMinit();
+    provider->joinPMtree(this);
+    registerPowerDriver(this, PowerStates, 1);
+    
+    if (SelfFeeding) {        
         tcoWdSetTimer(Timeout);
         tcoWdEnableTimer();
         
@@ -321,8 +337,6 @@ fail:
 
 void iTCOWatchdog::tcoWdDisableTimer()
 {
-    UInt16 bar;
-    
     DbgPrint(drvid, "%s\n", __FUNCTION__);
     
     IOSimpleLockLock(lock);
@@ -337,10 +351,6 @@ void iTCOWatchdog::tcoWdDisableTimer()
 #endif
     
     is_active = false;
-    
-    /* Temporary right here */
-    if (!AFTERG3_ST(bar = fPCIDevice->configRead16(GEN_PMCON_3)))
-        fPCIDevice->configWrite16(GEN_PMCON_3, AFTERG3_ENABLE(bar));
     
     IOSimpleLockUnlock(lock);
     

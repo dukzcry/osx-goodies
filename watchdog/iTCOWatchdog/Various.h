@@ -31,6 +31,14 @@
 #define ACPI_BASE_OFFGCS    0x3410
 #define ACPI_BASE_ENDGCS    0x3414
 #define ACPI_CT             0x44
+#define ACPI_CT_EN          0x10
+
+/* Routing control */
+#define LPC_PIRQA_ROUTE     0x60
+#define LPC_PIRQE_ROUTE     0x68
+
+#define GEN_PMCON_1         0xa0
+#define ICHLPC_GEN_STA      0xd4
 
 /* Quirks */
 #define GEN_PMCON_3         0xa4
@@ -94,6 +102,8 @@ typedef struct {
 } lpc_pci_device;
 namespace lpc_structs {
     lpc_pci_device lpc_pci_devices[] = {
+        /* v1: < ICH6
+         * v2: >= ICH6 */
         { 0, "Unknown", 2 },
         
         { PCI_PRODUCT_63XXESB, "631xESB/632xESB", 2 },
@@ -138,6 +148,10 @@ namespace lpc_structs {
         { PCI_PRODUCT_PPT25, "Panther Point", 2 },
         { PCI_PRODUCT_PPT29, "Panther Point", 2 }
     };
+    static IOPMPowerState PowerStates[] = {
+        {1, kIOPMSleep, kIOPMSleep, kIOPMSleep, 0, 0, 0, 0, 0, 0, 0, 0},
+        {1, kIOPMPowerOn, kIOPMPowerOn, kIOPMPowerOn, 0, 0, 0, 0, 0, 0, 0, 0}
+    };
 }
 
 typedef struct {
@@ -149,6 +163,19 @@ class MyLPC: public super {
     OSDeclareDefaultStructors(MyLPC)
 private:
     SInt32 AcpiReg;
+    struct {
+        /* Check sizes */
+        UInt32 PIRQ[2];
+        UInt16 pmcon1;
+        UInt32 fwh_ich5;
+        UInt32 rcba;
+        
+        bool entered_sleep;
+    } store;
+    
+    bool InitWatchdog();
+    void Sleep();
+    void WakeUp();
 public:
     IOPCIDevice *fPCIDevice;
     
@@ -157,8 +184,6 @@ public:
     my_res acpi_tco;
     my_res acpi_smi;
     my_res acpi_gcs;
-    
-    bool InitWatchdog();
 protected:
     virtual bool init(OSDictionary *);
     
@@ -167,6 +192,9 @@ protected:
     
     virtual bool start(IOService *provider);
     virtual void stop(IOService *provider) { super::stop(provider); }
+    
+    virtual void systemWillShutdown(IOOptionBits);
+    virtual IOReturn setPowerState(unsigned long, IOService *);
 };
 
 bool MyLPC::init (OSDictionary* dict)
@@ -176,6 +204,7 @@ bool MyLPC::init (OSDictionary* dict)
 
     AcpiReg = -1;
     lpc = NULL;
+    store.entered_sleep = false;
     
     return res;
 }
@@ -183,20 +212,55 @@ bool MyLPC::init (OSDictionary* dict)
 void MyLPC::free(void)
 {
     DbgPrint(lpcid, "free\n");
-
-#if 0
-    if (AcpiReg >= 0)
-        fPCIDevice->configWrite8(ACPI_CT, AcpiReg);
-    
-    /* Stay in S5 state on next power on */
-    if (!AFTERG3_ST(bar = fPCIDevice->configRead16(GEN_PMCON_3)))
-        fPCIDevice->configWrite16(GEN_PMCON_3, AFTERG3_ENABLE(bar));
-#endif
     
     fPCIDevice->close(this);
     fPCIDevice->release();
     
+    PMstop();
+    
     super::free();
+}
+
+void MyLPC::systemWillShutdown(IOOptionBits spec)
+{
+    UInt16 bar;
+    
+    DbgPrint(lpcid, "%s: spec = %#x\n", __FUNCTION__, spec);
+
+    switch (spec) {
+        case kIOMessageSystemWillRestart:
+        case kIOMessageSystemWillPowerOff:
+            if (AcpiReg >= 0)
+                fPCIDevice->configWrite8(ACPI_CT, AcpiReg);
+            if (spec == kIOMessageSystemWillPowerOff) {
+                /* Stay in S5 state on next power on */
+                if (!AFTERG3_ST(bar = fPCIDevice->configRead16(GEN_PMCON_3)))
+                    fPCIDevice->configWrite16(GEN_PMCON_3, AFTERG3_ENABLE(bar));
+            }
+        break;
+    }
+    
+    super::systemWillShutdown(spec);
+}
+
+IOReturn MyLPC::setPowerState(unsigned long state, IOService *dev __unused)
+{
+    DbgPrint(lpcid, "%s: spec = %lu\n", __FUNCTION__, state);
+    
+    /* Rework: i doubt this API is right for catching sleeps */
+    switch (state) {
+        case 0:
+            /* XXX: is it really sleep state? */
+            Sleep();
+            store.entered_sleep = true;
+        break;
+        default:
+            if (store.entered_sleep)
+                WakeUp();
+        break;
+    }
+    
+    return kIOPMAckImplied;
 }
 
 IOService *MyLPC::probe (IOService* provider, SInt32* score)
@@ -218,7 +282,6 @@ IOService *MyLPC::probe (IOService* provider, SInt32* score)
 #endif
 
     if (!(fPCIDevice = OSDynamicCast(IOPCIDevice, provider))) {
-        //AppleLPC::start - no LPC IOPCIDevice found
         IOPrint(lpcid, "Failed to cast provider\n");
         return NULL;
     }
@@ -246,7 +309,14 @@ IOService *MyLPC::probe (IOService* provider, SInt32* score)
 
 bool MyLPC::start(IOService *provider)
 {
-    bool res = super::start(provider);
+    bool res;
+    
+    res = super::start(provider);
+    
+    PMinit();
+    provider->joinPMtree(this);
+    registerPowerDriver(this, lpc_structs::PowerStates, 2);
+    
     this->registerService();
     
     DbgPrint(lpcid, "LPC preparing done\n");
@@ -273,17 +343,16 @@ bool MyLPC::InitWatchdog()
     acpi_smi.start = bar + ACPI_BASE_OFFSMI;
     acpi_smi.end = bar + ACPI_BASE_ENDSMI;
 
-#if 0
-    /* Enable ACPI space */
+    /* Init power management timer */
     AcpiReg = fPCIDevice->configRead8(ACPI_CT);
-    fPCIDevice->configWrite8(ACPI_CT, AcpiReg | 0x10);
-#endif
+    if (!(AcpiReg & ACPI_CT_EN))
+        fPCIDevice->configWrite8(ACPI_CT, AcpiReg | ACPI_CT_EN);
+    else AcpiReg = -1;
     
     /* GCS register, for NO_REBOOT flag */
     if (lpc->itco_version == 2) {
         bar = fPCIDevice->configRead32(RCBA_BASE);
         if (!(bar & RCBA_EN)) {
-            //AppleLPC::start - RCBA not enabled
             DbgPrint(lpcid, "RCBA disabled\n");
             return false;
         }
@@ -294,4 +363,33 @@ bool MyLPC::InitWatchdog()
     }
     
     return true;
+}
+
+void MyLPC::Sleep()
+{
+    store.PIRQ[0] = fPCIDevice->configRead32(LPC_PIRQA_ROUTE);
+    store.PIRQ[1] = fPCIDevice->configRead32(LPC_PIRQE_ROUTE);
+    
+    store.pmcon1 = fPCIDevice->configRead16(GEN_PMCON_1);
+    switch (lpc->itco_version) {
+        case 1:
+            /* XXX: Do i need to save this one? */
+            store.fwh_ich5 = fPCIDevice->configRead32(ICHLPC_GEN_STA);
+        case 2:
+            store.rcba = fPCIDevice->configRead32(RCBA_BASE);
+    }
+}
+
+void MyLPC::WakeUp()
+{
+    fPCIDevice->configWrite32(LPC_PIRQA_ROUTE, store.PIRQ[0]);
+    fPCIDevice->configWrite32(LPC_PIRQE_ROUTE, store.PIRQ[1]);
+    
+    fPCIDevice->configWrite16(GEN_PMCON_1, store.pmcon1);
+    switch (lpc->itco_version) {
+        case 1:
+            fPCIDevice->configWrite32(ICHLPC_GEN_STA, store.fwh_ich5);
+        case 2:
+            fPCIDevice->configWrite32(RCBA_BASE, store.rcba);
+    }
 }

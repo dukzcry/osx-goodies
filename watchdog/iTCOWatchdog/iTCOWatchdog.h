@@ -25,7 +25,6 @@
 #define ITCO_BOOT_ST       0x0004 /* Failed to come out of reset */
 #define ITCO_TIMEOUT_ST    0x0008
 
-#define ICHLPC_GEN_STA           0xd4
 #define ICHLPC_GEN_STA_NO_REBOOT 0x02
 #define ICHLPC_GCS_NO_REBOOT     0x20
 
@@ -67,4 +66,5 @@ protected:
     virtual void stop(IOService *provider);
     
     virtual IOReturn setProperties(OSObject *);
+    virtual void systemWillShutdown(IOOptionBits);
 };
