@@ -2,7 +2,7 @@
 
 ###Notes
 
-It's an analog of binary-only [AppleTCOWatchdog](http://wiki.awkwardtv.org/wiki/Watchdog#What_is_Watchdog) (seen in 1st gen of AppleTV) to be used on modern OS X.
+It's an analog of binary-only [AppleTCOWatchdog](http://wiki.awkwardtv.org/wiki/Watchdog#What_is_Watchdog) (seen in 1st gen of AppleTV) to be used on computers with modern OS X.
 The device is present (but may be unusable) on motherboards with ICH southbridge. If you have watchdog-related option in BIOS, don't forget to enable it.
 If such feature is providen by WDT implementation, kext will note booting after watchdog device workout by printing "Recovered after system failure".
 
