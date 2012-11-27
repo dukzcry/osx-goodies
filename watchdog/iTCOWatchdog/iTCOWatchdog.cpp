@@ -89,7 +89,7 @@ IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
     
     reg = fPCIDevice->ioRead32(ITCO_SMIEN);
     if (!allowReboots()) {
-        IOPrint(drvid, "Watchdog disabled in hardware. Trying SMI handler\n");
+        IOPrint(drvid, "Watchdog disabled in hardware. Trying with SMI handler\n");
         //return NULL;
         
         /* Last chance */
