@@ -99,10 +99,10 @@ IOReturn iTCOWatchdog::setPowerState(unsigned long state, IOService *dev __unuse
         case 0:
             tcoWdDisableTimer();
             entered_sleep = true;
-            break;
+        break;
         default:
             if (entered_sleep) tcoWdEnableTimer();
-            break;
+        break;
     }
     
     return kIOPMAckImplied;

@@ -30,8 +30,7 @@
 #define ICHLPC_GEN_STA_NO_REBOOT 0x02
 #define ICHLPC_GCS_NO_REBOOT     0x20
 
-class iTCOWatchdog: public //IOWatchDogTimer
-IOService {
+class iTCOWatchdog: public IOService {
     OSDeclareDefaultStructors(iTCOWatchdog)
 private:
     OSDictionary *conf;
