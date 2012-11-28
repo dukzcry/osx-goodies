@@ -2,22 +2,24 @@
 
 #include <Cocoa/Cocoa.h>
 
-io_object_t   ioObject;
-struct sigaction sig_act;
-bool logstd;
+static struct {
+    io_object_t   ioObject;
+    struct sigaction sig_act;
+    bool logstd;
+} glbl;
 
 void disable(int sig)
 {
-    IORegistryEntrySetCFProperty(ioObject, CFSTR("tcoWdDisableTimer"), CFSTR(""));
+    IORegistryEntrySetCFProperty(glbl.ioObject, CFSTR("tcoWdDisableTimer"), CFSTR(""));
     
     if (sig > -1) {
         /* For launchd */
         if (sig == SIGTERM) exit(EXIT_SUCCESS);
         
-        sigprocmask(SIG_UNBLOCK, &sig_act.sa_mask, NULL);
+        sigprocmask(SIG_UNBLOCK, &glbl.sig_act.sa_mask, NULL);
         
-        sig_act.sa_handler = SIG_DFL;
-        sigaction(sig, &sig_act, NULL);
+        glbl.sig_act.sa_handler = SIG_DFL;
+        sigaction(sig, &glbl.sig_act, NULL);
     }
 }
 
@@ -46,15 +48,15 @@ void disable(int sig)
                 break;
             [NSThread sleepForTimeInterval:30];
         }
-        if (!ioObject)
+        if (!glbl.ioObject)
         {
             NSLog(@"Error: no iTCOWatchdog found\n");
             return NULL;
         }
         if (!st) return NULL;
-        IOObjectRetain(ioObject);
+        IOObjectRetain(glbl.ioObject);
 
-        if (IORegistryEntryCreateCFProperties(ioObject, &properties, kCFAllocatorDefault, kNilOptions)
+        if (IORegistryEntryCreateCFProperties(glbl.ioObject, &properties, kCFAllocatorDefault, kNilOptions)
             != KERN_SUCCESS || !properties) {
             NSLog(@"Error: Can't get system properties\n");
             return NULL;
@@ -93,23 +95,23 @@ void disable(int sig)
         CFRetain(timeout);
         CFNumberGetValue((CFNumberRef) timeout, kCFNumberSInt32Type, &time);
         
-        if (IORegistryEntrySetCFProperty(ioObject, CFSTR("tcoWdSetTimer"), timeout) != KERN_SUCCESS ||
-            IORegistryEntrySetCFProperty(ioObject, CFSTR("tcoWdEnableTimer"), CFSTR("")) != KERN_SUCCESS) {
+        if (IORegistryEntrySetCFProperty(glbl.ioObject, CFSTR("tcoWdSetTimer"), timeout) != KERN_SUCCESS ||
+            IORegistryEntrySetCFProperty(glbl.ioObject, CFSTR("tcoWdEnableTimer"), CFSTR("")) != KERN_SUCCESS) {
             CFRelease(timeout);
             NSLog(@"Error: Can't init watchdog\n");
             return NULL;
         }
         
-        sig_act.sa_handler = disable;
-        sig_act.sa_flags = 0;
-        sigfillset(&sig_act.sa_mask);
+        glbl.sig_act.sa_handler = disable;
+        glbl.sig_act.sa_flags = 0;
+        sigfillset(&glbl.sig_act.sa_mask);
         
-        sigdelset(&sig_act.sa_mask, SIGINT);
-        sigdelset(&sig_act.sa_mask, SIGTERM);
-        sigaction(SIGINT, &sig_act, NULL); /* Catch this signal even if -d flag wasn't given */
-        sigaction(SIGTERM, &sig_act, NULL);
+        sigdelset(&glbl.sig_act.sa_mask, SIGINT);
+        sigdelset(&glbl.sig_act.sa_mask, SIGTERM);
+        sigaction(SIGINT, &glbl.sig_act, NULL); /* Catch this signal even if -d flag wasn't given */
+        sigaction(SIGTERM, &glbl.sig_act, NULL);
         
-        sigprocmask(SIG_BLOCK, &sig_act.sa_mask, NULL);
+        sigprocmask(SIG_BLOCK, &glbl.sig_act.sa_mask, NULL);
         
         NSLog(@"Watchdog Feeder running\n");
             
@@ -125,13 +127,13 @@ void disable(int sig)
 {
     [timer invalidate];
     disable(-1);
-    IOObjectRelease(ioObject);
+    IOObjectRelease(glbl.ioObject);
     [super dealloc];
 }
 - (void) bone:(NSTimer *)timer
 {
-    if (logstd) NSLog(@"here's a bone for watchdog");
-    IORegistryEntrySetCFProperty(ioObject, CFSTR("tcoWdLoadTimer"), CFSTR(""));
+    if (glbl.logstd) NSLog(@"here's a bone for watchdog");
+    IORegistryEntrySetCFProperty(glbl.ioObject, CFSTR("tcoWdLoadTimer"), CFSTR(""));
 }
 - (bool) communicate
 {
@@ -149,10 +151,10 @@ void disable(int sig)
         return false;
     }
     
-    ioObject = IOIteratorNext(iterator);
+    glbl.ioObject = IOIteratorNext(iterator);
     IOObjectRelease(iterator);
     
-    if (!ioObject) return false;
+    if (!glbl.ioObject) return false;
     
     return true;
 }
@@ -166,11 +168,11 @@ int main(int argc, char *argv[])
     
     int c;
     
-    logstd = false;
+    glbl.logstd = false;
     if ((c = getopt(argc, argv, "dh")) != -1) {
         switch(c) {
             case 'd':
-                logstd = true;
+                glbl.logstd = true;
             break;
             case 'h':
                 printf("Usage:\n");

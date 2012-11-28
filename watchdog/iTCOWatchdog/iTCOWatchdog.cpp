@@ -2,7 +2,7 @@
 
 #include "iTCOWatchdog.h"
 
-/* TO-DO: freeing */
+/* TO-DO: Move them into separate kexts in order to make unloading possible */
 OSDefineMetaClassAndStructors(MyLPC, IOService)
 OSDefineMetaClassAndStructors(iTCOWatchdog, IOService)
 

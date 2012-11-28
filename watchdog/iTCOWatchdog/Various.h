@@ -167,6 +167,7 @@ private:
         /* Check sizes */
         UInt32 PIRQ[2];
         UInt16 pmcon1;
+        /* */
         UInt32 fwh_ich5;
         UInt32 rcba;
         
@@ -353,6 +354,7 @@ bool MyLPC::InitWatchdog()
     acpi_smi.start = bar + ACPI_BASE_OFFSMI;
     acpi_smi.end = bar + ACPI_BASE_ENDSMI;
 
+    /* TO-DO: make it usable in os */
     /* Init power management timer */
     AcpiReg = fPCIDevice->configRead8(ACPI_CT);
     if (!(AcpiReg & ACPI_CT_EN))
