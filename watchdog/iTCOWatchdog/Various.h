@@ -148,11 +148,12 @@ namespace lpc_structs {
         { PCI_PRODUCT_PPT25, "Panther Point", 2 },
         { PCI_PRODUCT_PPT29, "Panther Point", 2 }
     };
-    static IOPMPowerState PowerStates[] = {
-        {1, kIOPMSleep, kIOPMSleep, kIOPMSleep, 0, 0, 0, 0, 0, 0, 0, 0},
-        {1, kIOPMPowerOn, kIOPMPowerOn, kIOPMPowerOn, 0, 0, 0, 0, 0, 0, 0, 0}
-    };
 }
+
+static IOPMPowerState PowerStates[] = {
+    {1, kIOPMSleep, kIOPMSleep, kIOPMSleep, 0, 0, 0, 0, 0, 0, 0, 0},
+    {1, kIOPMPowerOn, kIOPMPowerOn, kIOPMPowerOn, 0, 0, 0, 0, 0, 0, 0, 0}
+};
 
 typedef struct {
     UInt32 start;
@@ -269,8 +270,7 @@ IOReturn MyLPC::setPowerState(unsigned long state, IOService *dev __unused)
             store.entered_sleep = true;
         break;
         default:
-            if (store.entered_sleep)
-                WakeUp();
+            if (store.entered_sleep) WakeUp();
         break;
     }
     
@@ -328,7 +328,7 @@ bool MyLPC::start(IOService *provider)
     
     PMinit();
     provider->joinPMtree(this);
-    registerPowerDriver(this, lpc_structs::PowerStates, 2);
+    registerPowerDriver(this, PowerStates, 2);
     
     this->registerService();
     

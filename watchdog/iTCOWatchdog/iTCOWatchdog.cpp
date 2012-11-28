@@ -6,10 +6,6 @@
 OSDefineMetaClassAndStructors(MyLPC, IOService)
 OSDefineMetaClassAndStructors(iTCOWatchdog, IOService)
 
-static IOPMPowerState PowerStates[] = {
-    {1, kIOPMPowerOn, kIOPMPowerOn, kIOPMPowerOn, 0, 0, 0, 0, 0, 0, 0, 0}
-};
-
 bool iTCOWatchdog::init (OSDictionary* dict)
 {
     OSNumber *nkey;
@@ -34,6 +30,7 @@ bool iTCOWatchdog::init (OSDictionary* dict)
     first_run = true;
     is_active = false;
     SMIWereEnabled = false;
+    entered_sleep = false;
     
     GCSMem.range = NULL; GCSMem.map = NULL;
     
@@ -82,7 +79,7 @@ void iTCOWatchdog::free_common()
 
 void iTCOWatchdog::systemWillShutdown(IOOptionBits spec)
 {
-    DbgPrint(lpcid, "%s: spec = %#x\n", __FUNCTION__, spec);
+    DbgPrint(drvid, "%s: spec = %#x\n", __FUNCTION__, spec);
     
     switch (spec) {
         case kIOMessageSystemWillRestart:
@@ -92,6 +89,23 @@ void iTCOWatchdog::systemWillShutdown(IOOptionBits spec)
     }
     
     super::systemWillShutdown(spec);
+}
+
+IOReturn iTCOWatchdog::setPowerState(unsigned long state, IOService *dev __unused)
+{
+    DbgPrint(drvid, "%s: spec = %lu\n", __FUNCTION__, state);
+    
+    switch (state) {
+        case 0:
+            tcoWdDisableTimer();
+            entered_sleep = true;
+            break;
+        default:
+            if (entered_sleep) tcoWdEnableTimer();
+            break;
+    }
+    
+    return kIOPMAckImplied;
 }
 
 IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
@@ -166,7 +180,7 @@ bool iTCOWatchdog::start(IOService *provider)
     
     PMinit();
     provider->joinPMtree(this);
-    registerPowerDriver(this, PowerStates, 1);
+    registerPowerDriver(this, PowerStates, 2);
     
     if (SelfFeeding) {        
         tcoWdSetTimer(Timeout);
