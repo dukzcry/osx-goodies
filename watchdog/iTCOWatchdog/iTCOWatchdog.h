@@ -19,16 +19,18 @@
 #define ITCO1_RL_TM_MAX    0x03f
 #define ITCO2_RL_TM_MAX    0x3ff
 /* TCO1 */
-#define ITCO_SECOND_TO_ST  0x0002
 #define ITCO_TM_HALT       0x0800
+#define ITCO_TIMEOUT_ST    0x08
 /* TCO2 */
-#define ITCO_BOOT_ST       0x0004 /* Failed to come out of reset */
-#define ITCO_TIMEOUT_ST    0x0008
+#define ITCO_SECOND_TO_ST  0x02
+#define ITCO_BOOT_ST       0x04 /* Failed to come out of reset */
 
 #define ICHLPC_GEN_STA_NO_REBOOT 0x02
 #define ICHLPC_GCS_NO_REBOOT     0x20
 
-class iTCOWatchdog: public super {
+class iTCOWatchdog: public
+    /* I wasn't aware of IOWatchDogTimer */
+IOService {
     OSDeclareDefaultStructors(iTCOWatchdog)
 private:
     OSDictionary *conf;

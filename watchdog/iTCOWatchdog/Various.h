@@ -162,7 +162,7 @@ typedef struct {
 class MyLPC: public super {
     OSDeclareDefaultStructors(MyLPC)
 private:
-    SInt32 AcpiReg;
+    //SInt32 AcpiReg;
     struct {
         /* Check sizes */
         UInt32 PIRQ[2];
@@ -205,7 +205,7 @@ bool MyLPC::init (OSDictionary* dict)
     bool res = super::init(dict);
     //DbgPrint(lpcid, "init\n");
 
-    AcpiReg = -1;
+    //AcpiReg = -1;
     lpc = NULL;
     store.entered_sleep = false;
     
@@ -216,7 +216,7 @@ void MyLPC::free(void)
 {
     DbgPrint(lpcid, "free\n");
     
-    free_common();
+    //free_common();
     
     fPCIDevice->close(this);
     fPCIDevice->release();
@@ -235,7 +235,7 @@ void MyLPC::systemWillShutdown(IOOptionBits spec)
     switch (spec) {
         case kIOMessageSystemWillRestart:
         case kIOMessageSystemWillPowerOff:
-            free_common();
+            //free_common();
             if (spec == kIOMessageSystemWillPowerOff) {
                 /* Stay in S5 state on next power on */
                 if (!AFTERG3_ST(bar = fPCIDevice->configRead16(GEN_PMCON_3)))
@@ -247,6 +247,7 @@ void MyLPC::systemWillShutdown(IOOptionBits spec)
     super::systemWillShutdown(spec);
 }
 
+#if 0
 void MyLPC::free_common()
 {
     if (AcpiReg >= 0) {
@@ -254,6 +255,7 @@ void MyLPC::free_common()
         AcpiReg = -1;
     }
 }
+#endif
 
 IOReturn MyLPC::setPowerState(unsigned long state, IOService *dev __unused)
 {
@@ -354,12 +356,15 @@ bool MyLPC::InitWatchdog()
     acpi_smi.start = bar + ACPI_BASE_OFFSMI;
     acpi_smi.end = bar + ACPI_BASE_ENDSMI;
 
-    /* TO-DO: make it usable in os */
+#if 0
+    /* XXX: How to make this RTC available to system? */
+    /* TO-DO: Write readTime() */
     /* Init power management timer */
     AcpiReg = fPCIDevice->configRead8(ACPI_CT);
     if (!(AcpiReg & ACPI_CT_EN))
         fPCIDevice->configWrite8(ACPI_CT, AcpiReg | ACPI_CT_EN);
     else AcpiReg = -1;
+#endif
     
     /* GCS register, for NO_REBOOT flag */
     if (lpc->itco_version == 2) {
