@@ -137,7 +137,6 @@ IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
         IOPrint(drvid, "Watchdog disabled in hardware. Trying with SMI handler\n");
         //return NULL;
         
-        /* Last chance */
         reg |= ITCO_SMIEN_ENABLE;
         SMIWereEnabled = false;
     } else {
