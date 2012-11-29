@@ -68,13 +68,13 @@ void iTCOWatchdog::free_common()
     if (WorkaroundBug) {
         fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) | (ITCO_SMIEN_ENABLE+1));
         clearStatus();
+        WorkaroundBug = false;
     }
     else if (SMIWereEnabled) {
         fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) | ITCO_SMIEN_ENABLE);
         clearStatus();
+        SMIWereEnabled = false;
     }
-    
-    WorkaroundBug = SMIWereEnabled = false;
 }
 
 void iTCOWatchdog::systemWillShutdown(IOOptionBits spec)
