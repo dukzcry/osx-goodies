@@ -1,5 +1,3 @@
-//#include <IOKit/system_management/IOWatchDogTimer.h>
-
 #include "Various.h"
 
 #define drvid "[iTCOWatchdog] "
