@@ -185,7 +185,6 @@ bool iTCOWatchdog::start(IOService *provider)
         tcoWdSetTimer(Timeout);
         tcoWdEnableTimer();
         
-        /* Ugly */
         while (1) {
             IOSleep((Timeout-2) * 1000);
             tcoWdLoadTimer();
