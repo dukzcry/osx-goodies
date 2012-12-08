@@ -45,13 +45,13 @@ void iTCOWatchdog::free(void)
     
     free_common();
     
-    PMstop();
-    
     if (GCSMem.map) GCSMem.map->release();
     if (GCSMem.range) GCSMem.range->release();
     
     LPCNub->close(this);
     LPCNub->release();
+    
+    PMstop();
     
     IOSimpleLockFree(lock);
 
@@ -192,7 +192,7 @@ bool iTCOWatchdog::start(IOService *provider)
     }
     else this->registerService();
     
-#if 0    
+#if test
     for (int i = 0; i < 3; i++) {
         IODelay(25000000);
         IOPrint(drvid, "Time left: %d\n", readTimeleft());

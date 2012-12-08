@@ -248,7 +248,7 @@ void MyLPC::systemWillShutdown(IOOptionBits spec)
     super::systemWillShutdown(spec);
 }
 
-#if 0
+#if timer
 void MyLPC::free_common()
 {
     if (AcpiReg >= 0) {
@@ -356,7 +356,7 @@ bool MyLPC::InitWatchdog()
     acpi_smi.start = bar + ACPI_BASE_OFFSMI;
     acpi_smi.end = bar + ACPI_BASE_ENDSMI;
 
-#if 0
+#if timer
     /* XXX: How to make this RTC available to system? */
     /* TO-DO: Write readTime() */
     /* Init power management timer */
