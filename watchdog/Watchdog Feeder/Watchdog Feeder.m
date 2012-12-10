@@ -1,5 +1,7 @@
 /* Written by Artem Falcon <lomka@gero.in> */
 
+/* TO-DO: Core Foundation -> Foundation: get rid of manual reference counting */
+
 #include <Cocoa/Cocoa.h>
 
 static struct {
