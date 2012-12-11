@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>English</string>
+	<key>CFBundleExecutable</key>
+	<string>${EXECUTABLE_NAME}</string>
+	<key>CFBundleIconFile</key>
+	<string></string>
+	<key>CFBundleIdentifier</key>
+	<string>cc.dukzcry.${PRODUCT_NAME:rfc1034identifier}</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>${PRODUCT_NAME}</string>
+	<key>CFBundlePackageType</key>
+	<string>KEXT</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>IOKitPersonalities</key>
+	<dict>
+		<key>SASMegaRAID</key>
+		<dict>
+			<key>Settings</key>
+			<dict>
+				<key>PreferMSI</key>
+				<false/>
+			</dict>
+			<key>IOResourceMatch</key>
+			<string>IOKit</string>
+			<key>CFBundleIdentifier</key>
+			<string>cc.dukzcry.SASMegaRAID</string>
+			<key>IOProviderClass</key>
+			<string>IOPCIDevice</string>
+			<key>IOClass</key>
+			<string>SASMegaRAID</string>
+			<key>IOPCIMatch</key>
+			<string>0x04111000 0x04131000 0x00601000 0x007c1000 0x00151028 0x00781000 0x00791000 0x00731000</string>
+			<key>IOPCIMatchComment</key>
+			<string>Symbios Logic MegaRAID SAS 1064R, MegaRAID Verde ZCR, SAS1078, SAS1078DE; Dell PERC 5; Symbios Logic MegaRAID SAS2108 CRYPTO GEN2, MegaRAID SAS2108 GEN2, MegaRAID SAS2008</string>
+			<!--<key>IOMinimumSegmentAlignmentByteCountKey</key>
+			<integer>1</integer>
+			<key>IOMaximumSegmentAddressableBitCountKey</key>
+			<integer>64</integer>
+			<key>IOMaximumSegmentByteCountRead</key>
+			<integer></integer>
+			<key>IOMaximumSegmentByteCountWrite</key>
+			<integer></integer>-->
+		</dict>
+	</dict>
+	<key>OSBundleLibraries</key>
+	<dict>
+		<key>com.apple.kpi.mach</key>
+		<string>8.0.0b2</string>
+		<key>com.apple.iokit.IOSCSIParallelFamily</key>
+		<string>2.0.1</string>
+		<key>com.apple.iokit.IOPCIFamily</key>
+		<string>2.6</string>
+		<key>com.apple.kpi.iokit</key>
+		<string>10.0.0</string>
+		<key>com.apple.kpi.libkern</key>
+		<string>10.0.0</string>
+	</dict>
+</dict>
+</plist>

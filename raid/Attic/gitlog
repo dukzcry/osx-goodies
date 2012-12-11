@@ -1,0 +1,52 @@
+2e4cbdd17206df07762e453e502d40e123e6d395 89e1849d8c5fc68d00800bdcc0996b67c5c621d7 Artem Falcon <artem.falcon@gmail.com> 1352702322 +0400	commit: Let's start from scratch.
+89e1849d8c5fc68d00800bdcc0996b67c5c621d7 2c10c42a74a97a24f2e871cdcd29f186a7a8df7e Artem Falcon <artem.falcon@gmail.com> 1352717498 +0400	commit: Prepare memory for PCI DMA access.
+2c10c42a74a97a24f2e871cdcd29f186a7a8df7e 7c2b25f1da43cf3bbba0566c91499e9e976c3c0f Artem Falcon <artem.falcon@gmail.com> 1352717722 +0400	commit: Prepare memory for PCI DMA access.
+7c2b25f1da43cf3bbba0566c91499e9e976c3c0f 9f8bbaa029b076ce22bab6236dddad66ac9a65f5 Artem Falcon <artem.falcon@gmail.com> 1352739175 +0400	commit: Init ccbs.
+9f8bbaa029b076ce22bab6236dddad66ac9a65f5 24e63b69ba969ca19a0d069bf939958f8d5453c8 Artem Falcon <artem.falcon@gmail.com> 1352749997 +0400	commit: Init firmware.
+24e63b69ba969ca19a0d069bf939958f8d5453c8 7cc178360f3e7f0292c5deb2e8aef5c0dc1cf4bb Artem Falcon <artem.falcon@gmail.com> 1352752115 +0400	commit: Info structs.
+7cc178360f3e7f0292c5deb2e8aef5c0dc1cf4bb 1846a246782c4c10f003f3650fb7c94a36184ad1 Artem Falcon <artem.falcon@gmail.com> 1352786346 +0400	commit: Cleanup.
+1846a246782c4c10f003f3650fb7c94a36184ad1 a0cc5e72332e996d8154f47dcc9698bede755aa8 Artem Falcon <artem.falcon@gmail.com> 1352818397 +0400	commit:
+a0cc5e72332e996d8154f47dcc9698bede755aa8 432be176a7c372b1b48d9fb305acd0383e0f622f Artem Falcon <artem.falcon@gmail.com> 1352925869 +0400	commit:
+432be176a7c372b1b48d9fb305acd0383e0f622f 2733beca53dda7831b8deb09788251279b3bc555 Artem Falcon <artem.falcon@gmail.com> 1352966156 +0400	commit:
+2733beca53dda7831b8deb09788251279b3bc555 fc40c48c962f8e4b5a5048001fb05dc7e603984e Artem Falcon <artem.falcon@gmail.com> 1352970620 +0400	commit: Add command executing for interrupt-driven mode.
+fc40c48c962f8e4b5a5048001fb05dc7e603984e d583a0bcd4b700b5653e42b146983498ccb7eb17 Artem Falcon <artem.falcon@gmail.com> 1352978965 +0400	commit: Most significant changes: typedefize structs, unions, enums. Correct hardware structures. Firmware init is now broken, sigh :(
+d583a0bcd4b700b5653e42b146983498ccb7eb17 df72cd5ed3302f48cdcb4785e69ec2b7c1f284f4 Artem Falcon <artem.falcon@gmail.com> 1352978987 +0400	commit: Most significant changes: typedefize structs, unions, enums. Correct hardware structures. Firmware init is now broken, sigh :(
+df72cd5ed3302f48cdcb4785e69ec2b7c1f284f4 e739e304ecf1d5098bb1d5bd6507e24b8a79fc5c Artem Falcon <artem.falcon@gmail.com> 1352986444 +0400	commit:
+e739e304ecf1d5098bb1d5bd6507e24b8a79fc5c 4286a2ba240c40d8f7d7e650a3776a523a43da3e Artem Falcon <artem.falcon@gmail.com> 1352986537 +0400	commit:
+4286a2ba240c40d8f7d7e650a3776a523a43da3e 97c3bbb6a6512427e369bb29bf9c6e51299d6898 Artem Falcon <artem.falcon@gmail.com> 1353079396 +0400	commit:
+9954f4f60b6b5c5b80c325fa201842629eaadfd5 78885290d5d16049f82308c0a038228d8900b0a6 Artem Falcon <artem.falcon@gmail.com> 1353238621 +0400	commit:
+0f29042a0deca8f8c655203dbf4becc42750b626 99012e729b7fa0ee7d1ab510cb099e1d0ddf2300 Artem Falcon <artem.falcon@gmail.com> 1353608404 +0400	commit:
+2ac9f644bae65d1079a37e412162aae54bf493a8 a3814a8d2a0d09c049c7acaeda6084ab0a72bc3d Artem Falcon <artem.falcon@gmail.com> 1354135466 +0400	commit: Re-import struct descriptions.
+a3814a8d2a0d09c049c7acaeda6084ab0a72bc3d 9e974763d5fec24413a92a49af19d388e55eb96c Artem Falcon <artem.falcon@gmail.com> 1354135489 +0400	commit: Re-import struct descriptions.
+9e974763d5fec24413a92a49af19d388e55eb96c b3c79958dc8a709e74c47148ad82cf9cfac3b95d Artem Falcon <artem.falcon@gmail.com> 1354188920 +0400	commit:
+b3c79958dc8a709e74c47148ad82cf9cfac3b95d 31b00c5547a5e82f82fcb3463888d30f83c41524 Artem Falcon <artem.falcon@gmail.com> 1354395248 +0400	commit: Cool :( I was so blind, no byteswapping for little endian. Also cleanup.
+31b00c5547a5e82f82fcb3463888d30f83c41524 1fadffc34f4de2a201d327cee1a0e68fd15e3977 Artem Falcon <artem.falcon@gmail.com> 1354427073 +0400	pull: Fast-forward
+1fadffc34f4de2a201d327cee1a0e68fd15e3977 76379f6dfab6d9954cd70a50abbd146e24a53277 Artem Falcon <artem.falcon@gmail.com> 1354457235 +0400	pull: Fast-forward
+76379f6dfab6d9954cd70a50abbd146e24a53277 f014751aee9cdb5f47988c039211d76ad354a2ff Artem Falcon <artem.falcon@gmail.com> 1354476660 +0400	commit: Fixed struct size. Now i'm able to retrieve info from ctrlr.
+f014751aee9cdb5f47988c039211d76ad354a2ff 262730ca7f6ec025e4e327f211a54324692eecda Artem Falcon <artem.falcon@gmail.com> 1354479304 +0400	commit: Print ctrlr info.
+262730ca7f6ec025e4e327f211a54324692eecda e7bfc270f7d62c7ad566f2aefd1fab892422782e Artem Falcon <artem.falcon@gmail.com> 1354521181 +0400	commit: Get BBU info.
+e7bfc270f7d62c7ad566f2aefd1fab892422782e ccf28ec3ca18ffe68540c3f191ccac5cdc4b7aa9 Artem Falcon <artem.falcon@gmail.com> 1354522461 +0400	commit: Report constraints.
+ccf28ec3ca18ffe68540c3f191ccac5cdc4b7aa9 cd795d931bf947e9aaa96b1fbabfd9312203d8b6 Artem Falcon <artem.falcon@gmail.com> 1354543444 +0400	commit: Enable intrs in hw.
+cd795d931bf947e9aaa96b1fbabfd9312203d8b6 9b31545befa0e82c3d6db0d9f898e177c652ae9a Artem Falcon <artem.falcon@gmail.com> 1354561008 +0400	commit: Write interrupt handler.
+9b31545befa0e82c3d6db0d9f898e177c652ae9a e224f931e862fed82b0ce2aa7445429c01f20a70 Artem Falcon <artem.falcon@gmail.com> 1354561393 +0400	commit:
+e224f931e862fed82b0ce2aa7445429c01f20a70 bd41f21f60b7ef561a6aa08ce22f7e861aad1086 Artem Falcon <artem.falcon@gmail.com> 1354619818 +0400	commit: Ensure that intr handler works.
+bd41f21f60b7ef561a6aa08ce22f7e861aad1086 98507bce5b58c6e2e5223be59bf35154700b08dc Artem Falcon <artem.falcon@gmail.com> 1354644994 +0400	commit:
+98507bce5b58c6e2e5223be59bf35154700b08dc 2b398af4ad3b5ca88b266f7577f48d45d1da80f1 Artem Falcon <artem.falcon@gmail.com> 1354652809 +0400	commit:
+2b398af4ad3b5ca88b266f7577f48d45d1da80f1 5a8d46889e1d460ffb3416bd48c8c9465f3866d5 Artem Falcon <artem.falcon@gmail.com> 1354689220 +0400	pull: Fast-forward
+5a8d46889e1d460ffb3416bd48c8c9465f3866d5 599919428649d66f2b088659d6605a80583fb3d1 Artem Falcon <artem.falcon@gmail.com> 1354691287 +0400	commit:
+599919428649d66f2b088659d6605a80583fb3d1 266e4680e800ea8b400796ea2151af2d91a4e6bc Artem Falcon <artem.falcon@gmail.com> 1354698893 +0400	commit: Disable intrs & fw.
+266e4680e800ea8b400796ea2151af2d91a4e6bc 9df8d57b180a6fce711a9a239ba6040abdecf8a6 Artem Falcon <artem.falcon@gmail.com> 1354708519 +0400	commit: Make code safe.
+9df8d57b180a6fce711a9a239ba6040abdecf8a6 461eeeef464f167226307372490cb242ab6cfd76 Artem Falcon <artem.falcon@gmail.com> 1354726149 +0400	commit: Let OS find devices.
+461eeeef464f167226307372490cb242ab6cfd76 bb709f9ca76d956dd5dedd2d321cde110a2046e7 Artem Falcon <artem.falcon@gmail.com> 1354818237 +0400	commit: Big WIP on SCSI part.
+bb709f9ca76d956dd5dedd2d321cde110a2046e7 210b6a0da5f79cf55f5da85d0841ccf6bd67da12 Artem Falcon <artem.falcon@gmail.com> 1354929018 +0400	commit:
+210b6a0da5f79cf55f5da85d0841ccf6bd67da12 bec55c4c411f5bfca7871b856b9b195521d130a3 Artem Falcon <artem.falcon@gmail.com> 1355012703 +0400	commit:
+bec55c4c411f5bfca7871b856b9b195521d130a3 fd3843e5f375fad36223f163c11e57b1644aa7ba Artem Falcon <artem.falcon@gmail.com> 1355040758 +0400	commit:
+fd3843e5f375fad36223f163c11e57b1644aa7ba 9d024b95c45d023c9ac8a79d85048a8eaab5b509 Artem Falcon <artem.falcon@gmail.com> 1355061935 +0400	commit:
+9d024b95c45d023c9ac8a79d85048a8eaab5b509 203a27cd2c5d0e3e2303d7a21bc16664a0db51c6 Artem Falcon <artem.falcon@gmail.com> 1355077626 +0400	pull: Fast-forward
+203a27cd2c5d0e3e2303d7a21bc16664a0db51c6 198d4791f7f3dbb015e5ce5d3562767848d1212b Artem Falcon <artem.falcon@gmail.com> 1355078795 +0400	commit: Cool. Inquiry works!
+198d4791f7f3dbb015e5ce5d3562767848d1212b cd701542947180c0588a9e4752450ae36cfe9cee Artem Falcon <artem.falcon@gmail.com> 1355084124 +0400	commit:
+cd701542947180c0588a9e4752450ae36cfe9cee e58d7386969b778f743131466d0c74d18f640514 Artem Falcon <artem.falcon@gmail.com> 1355116215 +0400	commit:
+e58d7386969b778f743131466d0c74d18f640514 275388519e97a82d219b7ed2f25353e86278c98c Artem Falcon <artem.falcon@gmail.com> 1355117110 +0400	commit:
+275388519e97a82d219b7ed2f25353e86278c98c 5372a08e42fade22d0d2239fc844398ed8768ae0 Artem Falcon <artem.falcon@gmail.com> 1355117207 +0400	pull: Fast-forward
+5bb855b76ea1e0ae5d52f48a3a988ef659f968f2 77a3901d4f24a2b0a66e3c5ec5984ee2b289b0ac Artem Falcon <artem.falcon@gmail.com> 1355219356 +0400	commit: Haz read/write support for small amounts of data now ;)
+77a3901d4f24a2b0a66e3c5ec5984ee2b289b0ac 76620d7296bdfb6b8c6d53f3c5d6633f570eb3e1 Artem Falcon <artem.falcon@gmail.com> 1355219396 +0400	commit: Haz read/write support for small amounts of data now ;)
