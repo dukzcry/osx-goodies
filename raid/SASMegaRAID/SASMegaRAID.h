@@ -4,7 +4,7 @@
 #include <IOKit/scsi/SCSICommandOperationCodes.h>
 #include <IOKit/storage/IOStorageDeviceCharacteristics.h>
 #include <IOKit/scsi/SCSICommandDefinitions.h>
-//#include <IOKit/IOKitKeys.h>
+#include <IOKit/IOKitKeys.h>
 
 #include "Hardware.h"
 #include "HelperLib.h"
@@ -230,17 +230,18 @@ protected:
     virtual SCSILogicalUnitNumber	ReportHBAHighestLogicalUnitNumber ( void ) {return MRAID_MAX_LUN;};
     virtual SCSIDeviceIdentifier	ReportHighestSupportedDeviceID ( void ) {return MRAID_MAX_LD;};
     virtual bool                    DoesHBAPerformDeviceManagement ( void ) {return false;};
-    virtual void                    HandleInterruptRequest ( void ) {};
     virtual UInt32                  ReportMaximumTaskCount ( void ) {return 1;};
-    /* We don't need it, we use our own cmds pool, and we're rely on it much before service starting */
-    virtual UInt32                  ReportHBASpecificDeviceDataSize ( void ) {return 0;};
     /* We're not a real SCSI controller */
     virtual SCSIInitiatorIdentifier	ReportInitiatorIdentifier ( void ) {return MRAID_MAX_LD+1;};
-    /* This one is a must for starting */
-    virtual UInt32                  ReportHBASpecificTaskDataSize ( void ) {return MRAID_MAXFER;};
     virtual bool                    InitializeTargetForID ( SCSITargetIdentifier targetID );
     virtual SCSIServiceResponse     ProcessParallelTask ( SCSIParallelTaskIdentifier parallelRequest );
     virtual bool                    DoesHBASupportSCSIParallelFeature ( SCSIParallelFeature theFeature );
+    
+    virtual void                    HandleInterruptRequest ( void ) {};
+    /* We don't need it, we use our own cmds pool, and we're rely on it much before service starting */
+    virtual UInt32                  ReportHBASpecificDeviceDataSize ( void ) {return 0;};
+    /* This one is a must for starting, but we don't need this one too */
+    virtual UInt32                  ReportHBASpecificTaskDataSize ( void ) {return 1;};
     /* Implement us */
     virtual SCSIServiceResponse     AbortTaskRequest ( SCSITargetIdentifier theT, SCSILogicalUnitNumber theL,
                                                       SCSITaggedTaskIdentifier theQ ) {
@@ -263,7 +264,8 @@ protected:
     };
     /* */
     
-    void ReportHBAConstraints (OSDictionary *constraints );
+    virtual bool DoesHBAPerformAutoSense(void) {return true;}
+    virtual void ReportHBAConstraints(OSDictionary *);
 public:
     void CompleteTask(mraid_ccbCommand *, cmd_context *);
 };

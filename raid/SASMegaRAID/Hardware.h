@@ -23,7 +23,6 @@
 #define MRAID_OSTS_SKINNY_INTR_VALID            0x00000001
 #define MRAID_INVALID_CTX                       0xffffffff
 #define MRAID_ENABLE_INTR                       0x01
-#define MRAID_MAXFER                            MAXPHYS /* XXX: Bogus */
 
 /* PPC-specific */
 #define MRAID_PPC_ENABLE_INTR_MASK              0x80000004

@@ -1348,10 +1348,10 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
     mraid_io_frame *io;
     cmd_context *cmd;
     
-    DbgPrint("%s\n", __FUNCTION__);
-    
     if (!(transferMemDesc = GetDataBuffer(pr)))
         return false;
+    
+    DbgPrint("%s: Transfer length: %lld\n", __FUNCTION__, transferMemDesc->getLength());
     
     io = &ccb->s.ccb_frame->mrr_io;
     switch (GetDataTransferDirection(pr)) {
@@ -1511,25 +1511,29 @@ bool SASMegaRAID::DoesHBASupportSCSIParallelFeature(SCSIParallelFeature theFeatu
     return false;
 }
 
-/* Optionals */
-
-void SASMegaRAID::ReportHBAConstraints(OSDictionary *constraints )
+void SASMegaRAID::ReportHBAConstraints(OSDictionary *constraints)
 {
-#if 0
-    OSNumber *byteCount = NULL;
-    UInt64 align_mask = 0xFFFFFFFFFFFFFFFFULL;
+    UInt64 num;
+    OSNumber *val;
     
-    byteCount = OSDynamicCast(OSNumber, getProperty(kIOMaximumSegmentCountReadKey));
-    setProperty(kIOMaximumSegmentCountReadKey, byteCount); byteCount = NULL;
+    val = OSNumber::withNumber((num = 1), 64);
+    constraints->setObject(kIOMaximumSegmentCountReadKey, val);
+    constraints->setObject(kIOMaximumSegmentCountWriteKey, val);
+    /* XXX: Bogus */
+    val->setValue(64 * 1024);
+    constraints->setObject(kIOMaximumSegmentByteCountReadKey, val);
+    constraints->setObject(kIOMaximumSegmentByteCountWriteKey, val);
     
-    byteCount = OSDynamicCast(OSNumber, getProperty(kIOMaximumSegmentCountWriteKey));
-    setProperty(kIOMaximumSegmentCountWriteKey, byteCount); byteCount = NULL;
-#endif
-    
-    BaseClass::ReportHBAConstraints(constraints);
+    val->setValue(PAGE_SIZE / 1024);
+    constraints->setObject(kIOMinimumSegmentAlignmentByteCountKey, val);
+    /* We don't care, we do copy anyway */
+    val->setValue(64);
+    constraints->setObject(kIOMaximumSegmentAddressableBitCountKey, val);
+    val->setValue(0xFFFFFFFFFFFFFFFFULL);
+    constraints->setObject(kIOMinimumHBADataAlignmentMaskKey, val);
+    /* */
+    val->release();
 }
-
-/* */
 
 bool SASMegaRAID::mraid_xscale_intr()
 {
