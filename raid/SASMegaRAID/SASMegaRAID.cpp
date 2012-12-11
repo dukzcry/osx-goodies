@@ -225,8 +225,8 @@ void SASMegaRAID::interruptHandler(OSObject *owner, void *src, IOService *nub, i
 
     //sc.sc_pcq->cmd->synchronize(kIODirectionInOut);
     
-    Producer = pcq->mpc_producer;
-    Consumer = pcq->mpc_consumer;
+    Producer = letoh32(pcq->mpc_producer);
+    Consumer = letoh32(pcq->mpc_consumer);
     
     while (Consumer != Producer) {
         DbgPrint("pi: %#x ci: %#x\n", Producer, Consumer);
@@ -239,10 +239,10 @@ void SASMegaRAID::interruptHandler(OSObject *owner, void *src, IOService *nub, i
             /* TO-DO: Remove from queue */
             ccb = (mraid_ccbCommand *) sc.sc_ccb[Context];
             DbgPrint("ccb: %#x\n", Context);
-#if segmem
-            if (ccb->s.ccb_sglmem.len > 0)
+#ifdef segmem
+            /*if (ccb->s.ccb_sglmem.len > 0)
                 ccb->s.ccb_sglmem.cmd->synchronize((ccb->s.ccb_direction & MRAID_DATA_IN) ?
-                                                   kIODirectionIn : kIODirectionOut);
+                                                   kIODirectionIn : kIODirectionOut);*/
 #endif
             ccb->s.ccb_done(ccb);
         }
@@ -511,7 +511,7 @@ void SASMegaRAID::FreeMem(mraid_mem *mm)
     mm = NULL;
 }
 
-#if segmem
+#ifdef segmem
 bool SASMegaRAID::GenerateSegments(mraid_ccbCommand *ccb)
 {
     IOReturn st = kIOReturnSuccess;
@@ -532,18 +532,28 @@ bool SASMegaRAID::GenerateSegments(mraid_ccbCommand *ccb)
     ccb->s.ccb_sglmem.numSeg = sc.sc_max_sgl;
     while ((st == kIOReturnSuccess) && (offset < ccb->s.ccb_sglmem.bmd->getLength()))
     {
-        /* TO-DO: gen64IOVMSegments */
-        ccb->s.ccb_sglmem.segments = IONew(IODMACommand::Segment32, sc.sc_max_sgl);
+#if IOPhysSize == 64
+        ccb->s.ccb_sglmem.segs.seg64 = IONew(IODMACommand::Segment64, sc.sc_max_sgl);
+        ccb->s.ccb_sglmem.segments = (void *) ccb->s.ccb_sglmem.segs.seg64;
+#else
+        ccb->s.ccb_sglmem.segs.seg32 = IONew(IODMACommand::Segment32, sc.sc_max_sgl);
+        ccb->s.ccb_sglmem.segments = (void *) ccb->s.ccb_sglmem.segs.seg32;
+#endif
         
-        st = ccb->s.ccb_sglmem.cmd->gen32IOVMSegments(&offset, &ccb->s.ccb_sglmem.segments[0], &ccb->s.ccb_sglmem.numSeg);
-        if (ccb->s.ccb_sglmem.numSeg > 1)
-            return false;
+        st = IOPhysSize == 64 ?
+            ccb->s.ccb_sglmem.cmd->gen64IOVMSegments(&offset,
+                (IODMACommand::Segment64 *) ccb->s.ccb_sglmem.segments, &ccb->s.ccb_sglmem.numSeg)
+        :
+            ccb->s.ccb_sglmem.cmd->gen32IOVMSegments(&offset,
+                (IODMACommand::Segment32 *) ccb->s.ccb_sglmem.segments, &ccb->s.ccb_sglmem.numSeg);
+        /*if (ccb->s.ccb_sglmem.numSeg > 1)
+            return false;*/
     }
     if (st != kIOReturnSuccess)
         return false;
     
-    DbgPrint("gen32IOVMSegments: nseg %d, perseg %d, totlen %lld\n", ccb->s.ccb_sglmem.numSeg,
-                ccb->s.ccb_sglmem.segments[0].fLength, ccb->s.ccb_sglmem.bmd->getLength());
+    DbgPrint("genIOVMSegments: nseg %d, totlen %lld\n", ccb->s.ccb_sglmem.numSeg,
+                ccb->s.ccb_sglmem.bmd->getLength());
     return true;
 }
 #endif
@@ -662,14 +672,14 @@ bool SASMegaRAID::Initialize_Firmware()
     qinfo = (mraid_init_qinfo *)((UInt8 *) init + MRAID_FRAME_SIZE);
     
     memset(qinfo, 0, sizeof(mraid_init_qinfo));
-    qinfo->miq_rq_entries = sc.sc_max_cmds + 1;
+    qinfo->miq_rq_entries = htole32(sc.sc_max_cmds + 1);
     
     qinfo->miq_rq_addr = htole64(MRAID_DVA(sc.sc_pcq) + offsetof(mraid_prod_cons, mpc_reply_q));
 	qinfo->miq_pi_addr = htole64(MRAID_DVA(sc.sc_pcq) + offsetof(mraid_prod_cons, mpc_producer));
 	qinfo->miq_ci_addr = htole64(MRAID_DVA(sc.sc_pcq) + offsetof(mraid_prod_cons, mpc_consumer));
     
     init->mif_header.mrh_cmd = MRAID_CMD_INIT;
-    init->mif_header.mrh_data_len = sizeof(mraid_init_qinfo);
+    init->mif_header.mrh_data_len = htole32(sizeof(mraid_init_qinfo));
     init->mif_qinfo_new_addr = htole64(ccb->s.ccb_pframe + MRAID_FRAME_SIZE);
     
     /*DbgPrint("Entries: %#x, rq: %#llx, pi: %#llx, ci: %#llx\n", qinfo->miq_rq_entries,
@@ -965,13 +975,12 @@ bool SASMegaRAID::CreateSGL(mraid_ccbCommand *ccb)
 {
     mraid_frame_header *hdr = &ccb->s.ccb_frame->mrr_header;
     mraid_sgl *sgl;
-    //IODMACommand::Segment32 *sgd;
     IOByteCount length;
     
     DbgPrint("%s\n", __FUNCTION__);
     
     ccb->s.ccb_sglmem.paddr = ccb->s.ccb_sglmem.bmd->getPhysicalSegment(0, &length);
-#if segmem
+#ifdef segmem
     if (!GenerateSegments(ccb)) {
         IOPrint("Unable to generate segments\n");
         return false;
@@ -979,8 +988,12 @@ bool SASMegaRAID::CreateSGL(mraid_ccbCommand *ccb)
 #endif
     
     sgl = ccb->s.ccb_sgl;
-#if segmem
-    sgd = ccb->s.ccb_sglmem.segments;
+#ifdef segmem
+#if IOPhysSize == 64
+    IODMACommand::Segment64 *sgd = (IODMACommand::Segment64 *) ccb->s.ccb_sglmem.segments;
+#else
+    IODMACommand::Segment32 *sgd = (IODMACommand::Segment32 *) ccb->s.ccb_sglmem.segments;
+#endif
     for (int i = 0; i < ccb->s.ccb_sglmem.numSeg; i++) {
 #endif
         if (IOPhysSize == 64) {
@@ -988,16 +1001,24 @@ bool SASMegaRAID::CreateSGL(mraid_ccbCommand *ccb)
             sgl->sg64[0].addr = htole64(ccb->s.ccb_sglmem.paddr);
             sgl->sg64[0].len = htole32(ccb->s.ccb_sglmem.len);
         } else {
-            sgl->sg32[0].addr = (UInt32)(htole32(ccb->s.ccb_sglmem.paddr) & 0x00000000ffffffff);
+            sgl->sg32[0].addr = (UInt32) htole32(ccb->s.ccb_sglmem.paddr
+#ifndef PPC
+                & 0x00000000ffffffff
+#endif
+            );
             sgl->sg32[0].len = htole32(ccb->s.ccb_sglmem.len);
         }
         DbgPrint("Paddr: %#llx\n", ccb->s.ccb_sglmem.paddr);
 #else
         sgl->sg64[0].addr = htole64(sgd[i].fIOVMAddr);
-        sgl->sg64[0].len = htole32(sgd[i].fLength);
+        sgl->sg64[0].len = (UInt32) htole32(sgd[i].fLength);
     } else {
-        sgl->sg32[0].addr = htole32(sgd[i].fIOVMAddr);
-        sgl->sg32[0].len = htole32(sgd[i].fLength);
+        sgl->sg32[0].addr = (UInt32) htole32(sgd[i].fIOVMAddr
+#ifndef PPC
+        & 0x00000000ffffffff
+#endif
+        );
+        sgl->sg32[0].len = (UInt32) htole32(sgd[i].fLength);
     }
     }
 #endif
@@ -1011,8 +1032,8 @@ bool SASMegaRAID::CreateSGL(mraid_ccbCommand *ccb)
     }
     
     hdr->mrh_flags |= sc.sc_sgl_flags;
-    hdr->mrh_sg_count = 1; //ccb->s.ccb_sglmem.numSeg;
-    ccb->s.ccb_frame_size += sc.sc_sgl_size; //* ccb->s.ccb_sglmem.numSeg;
+    hdr->mrh_sg_count = 1; //ccb->s.ccb_sglmem.numSeg
+    ccb->s.ccb_frame_size += sc.sc_sgl_size; //* ccb->s.ccb_sglmem.numSeg
     ccb->s.ccb_extra_frames = (ccb->s.ccb_frame_size - 1) / MRAID_FRAME_SIZE;
     
     DbgPrint("frame_size: %d extra_frames: %d\n",
@@ -1117,10 +1138,10 @@ void SASMegaRAID::MRAID_Poll(mraid_ccbCommand *ccb)
         //sc.sc_frames->cmd->synchronize(kIODirectionInOut);
     }
 
-#if segmem
-    if (ccb->s.ccb_sglmem.len > 0)
+#ifdef segmem
+    /*if (ccb->s.ccb_sglmem.len > 0)
         ccb->s.ccb_sglmem.cmd->synchronize((ccb->s.ccb_direction & MRAID_DATA_IN) ?
-                                         kIODirectionIn : kIODirectionOut);
+                                         kIODirectionIn : kIODirectionOut);*/
 #endif
     
     ccb->s.ccb_done(ccb);
@@ -1203,7 +1224,7 @@ void mraid_cmd_done(mraid_ccbCommand *ccb)
         default:
             cmd->ts = kSCSITaskStatus_No_Status;
 #if defined(DEBUG)
-            IOPrint("kSCSITaskStatus_No_Status: 0x%02x on %02x\n", hdr->mrh_cmd_status,
+            IOPrint("Warning: kSCSITaskStatus_No_Status: 0x%02x on 0x%x\n", hdr->mrh_cmd_status,
                     cmd->opcode);
 #endif
             if (hdr->mrh_scsi_status) {
@@ -1262,7 +1283,7 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
     pf->mpf_header.mrh_cdb_len = GetCommandDescriptorBlockSize(pr);
     pf->mpf_header.mrh_timeout = 0;
     /* XXX */
-    pf->mpf_header.mrh_data_len = (UInt32) GetRequestedDataTransferCount(pr);
+    pf->mpf_header.mrh_data_len = (UInt32) htole32(GetRequestedDataTransferCount(pr));
     pf->mpf_header.mrh_sense_len = MRAID_SENSE_SIZE;
     
     pf->mpf_sense_addr = htole64(ccb->s.ccb_psense);
@@ -1346,7 +1367,7 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
     io->mif_header.mrh_target_id = GetTargetIdentifier(pr);
     io->mif_header.mrh_timeout = 0;
     io->mif_header.mrh_flags = 0;
-    io->mif_header.mrh_data_len = len;
+    io->mif_header.mrh_data_len = htole32(len);
     io->mif_header.mrh_sense_len = MRAID_SENSE_SIZE;
     io->mif_lba = htole64(lba);
 

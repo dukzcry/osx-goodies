@@ -25,17 +25,21 @@ typedef struct {
 
     IOBufferMemoryDescriptor *bmd;
     IOPhysicalAddress paddr;
-#if segmem
+#ifdef segmem
     UInt32 numSeg; /* For FreeSGL() */
     
     IODMACommand *cmd;
     IOMemoryMap *map;
-    IODMACommand::Segment32 *segments;
+    union {
+        IODMACommand::Segment32 *seg32;
+        IODMACommand::Segment64 *seg64;
+    } segs;
+    void *segments;
 #endif
 } mraid_sgl_mem;
 void FreeSGL(mraid_sgl_mem *mm)
 {
-#if segmem
+#ifdef segmem
     if (mm->map) {
         mm->map->release();
         mm->map = NULL;
@@ -52,15 +56,21 @@ void FreeSGL(mraid_sgl_mem *mm)
         mm->bmd->release();
         mm->bmd = NULL;
     }
-#if segmem
+#ifdef segmem
     if (mm->segments) {
-        IODelete(mm->segments, IODMACommand::Segment32, mm->numSeg);
+        IODelete(mm->segments,
+#if IOPhysSize == 64
+                 IODMACommand::Segment64
+#else
+                 IODMACommand::Segment32
+#endif
+                 , mm->numSeg);
         mm->segments = NULL;
     }
 #endif
 }
 
-#if segmem
+#ifdef segmem
 #define MRAID_DVA(_am) ((_am)->segment.fIOVMAddr)
 #define MRAID_KVA(_am) ((_am)->map->getVirtualAddress())
 #else
