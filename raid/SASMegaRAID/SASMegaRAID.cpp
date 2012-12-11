@@ -1332,7 +1332,9 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
 
 bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UInt32 lba, UInt16 len)
 {
+#if defined(DEBUG)
     SCSICommandDescriptorBlock cdbData = { 0 };
+#endif
     IOMemoryDescriptor* transferMemDesc;
     IOByteCount transferLen;
     
