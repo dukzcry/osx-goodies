@@ -23,7 +23,6 @@ bool SASMegaRAID::init (OSDictionary* dict)
 	PCIHelperP = new PCIHelper<SASMegaRAID>;
     
     sc.sc_iop = IONew(mraid_iop_ops, 1);
-    sc.sc_ccb_spin = NULL; sc.sc_lock = NULL;
     
     sc.sc_pcq = sc.sc_frames = sc.sc_sense = NULL;
     sc.sc_bbuok = false;
@@ -194,12 +193,6 @@ void SASMegaRAID::free(void)
     /*PCIHelperP->release();*/
     delete PCIHelperP;
     if (sc.sc_iop) IODelete(sc.sc_iop, mraid_iop_ops, 1);
-    if (sc.sc_ccb_spin) {
-        /*IOSimpleLockUnlock(sc.sc_ccb_spin);*/ IOSimpleLockFree(sc.sc_ccb_spin);
-    }
-    if (sc.sc_lock) {
-        /*IORWLockUnlock(sc.sc_lock);*/ IORWLockFree(sc.sc_lock);
-    }
     
     if (sc.sc_pcq) FreeMem(sc.sc_pcq);
     if (sc.sc_frames) FreeMem(sc.sc_frames);
@@ -324,8 +317,6 @@ bool SASMegaRAID::Attach()
         IOPrint("Can't init command pool\n");
         return false;
     }
-    
-    sc.sc_ccb_spin = IOSimpleLockAlloc(); sc.sc_lock = IORWLockAlloc();
     
     /* Get constraints forming frames pool contiguous memory */
     status = mraid_fw_state();
@@ -591,19 +582,13 @@ void SASMegaRAID::Initccb()
 void SASMegaRAID::Putccb(mraid_ccbCommand *ccb)
 {
     ccb->scrubCommand();
-    
-    IOSimpleLockLock(sc.sc_ccb_spin);
     ccbCommandPool->returnCommand(ccb);
-    IOSimpleLockUnlock(sc.sc_ccb_spin);
 }
 mraid_ccbCommand *SASMegaRAID::Getccb()
 {
     mraid_ccbCommand *ccb;
     
-    IOSimpleLockLock(sc.sc_ccb_spin);
     ccb = (mraid_ccbCommand *) ccbCommandPool->getCommand(true);
-    IOSimpleLockUnlock(sc.sc_ccb_spin);
-    
     return ccb;
 }
 
@@ -911,7 +896,7 @@ bool SASMegaRAID::Management(UInt32 opc, UInt32 dir, UInt32 len, void *buf, UInt
 bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, UInt32 len, void *buf, UInt8 *mbox)
 {
     mraid_dcmd_frame *dcmd;
-    IOVirtualAddress addr;
+    IOVirtualAddress addr = 0x1; /* Prevent analyzer warn */
     
     DbgPrint("%s: ccb_num: %d, opcode: %#x\n", __FUNCTION__, ccb->s.ccb_frame->mrr_header.mrh_context, opc);
         
@@ -1164,9 +1149,10 @@ void SASMegaRAID::MRAID_Exec(mraid_ccbCommand *ccb)
     
     DbgPrint("%s\n", __FUNCTION__);
     
+    my_assert(!ccb->s.ccb_context);
 #if defined(DEBUG)
-    if (ccb->s.ccb_context || ccb->s.ccb_done)
-        IOPrint("Warning: event or done set\n");
+    if (ccb->s.ccb_done)
+        IOPrint("Warning: ccb_done set\n");
 #endif
     ccb_lock.holder = IOLockAlloc();
     ccb_lock.event = false;
@@ -1217,7 +1203,7 @@ void mraid_cmd_done(mraid_ccbCommand *ccb)
         default:
             cmd->ts = kSCSITaskStatus_No_Status;
 #if defined(DEBUG)
-            IOPrint("kSCSITaskStatus_No_Status: %02x on %02x\n", hdr->mrh_cmd_status,
+            IOPrint("kSCSITaskStatus_No_Status: 0x%02x on %02x\n", hdr->mrh_cmd_status,
                     cmd->opcode);
 #endif
             if (hdr->mrh_scsi_status) {

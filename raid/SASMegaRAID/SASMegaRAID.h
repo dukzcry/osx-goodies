@@ -95,11 +95,6 @@ typedef struct {
 #define MRAID_BBU_BAD               1
 #define MRAID_BBU_UNKNOWN           2
     bool                            sc_bbuok;
-    
-    /* Because gated-get/returnCommand are protected methods */
-    IOSimpleLock                    *sc_ccb_spin;
-    /* Management lock */
-    IORWLock                        *sc_lock;
 } mraid_softc;
 
 typedef struct {
@@ -226,11 +221,7 @@ protected:
     virtual SCSIDeviceIdentifier	ReportHighestSupportedDeviceID ( void ) {return MRAID_MAX_LD;};
     virtual bool                    DoesHBAPerformDeviceManagement ( void ) {return false;};
     virtual void                    HandleInterruptRequest ( void ) {};
-    virtual UInt32                  ReportMaximumTaskCount ( void ) {return
-#if 0
-        sc.sc_max_cmds -
-#endif
-1;};
+    virtual UInt32                  ReportMaximumTaskCount ( void ) {return 1;};
     /* We don't need it, we use our own cmds pool, and we're rely on it much before service starting */
     virtual UInt32                  ReportHBASpecificDeviceDataSize ( void ) {return 0;};
     /* We're not a real SCSI controller */

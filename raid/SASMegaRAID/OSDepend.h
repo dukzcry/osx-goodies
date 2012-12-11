@@ -10,6 +10,7 @@
 #else
 #define DbgPrint(arg...)
 #endif
+#define my_assert(x) (x ? (void) 0 : Assert(__FILE__, __LINE__, # x))
 
 #define nitems(_a)          (sizeof((_a)) / sizeof((_a)[0]))
 
