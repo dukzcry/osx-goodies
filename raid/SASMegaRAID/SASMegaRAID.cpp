@@ -332,9 +332,9 @@ bool SASMegaRAID::Attach()
     }
     IOPrint("DMA: %d-bit, max commands: %u", IOPhysSize, sc.sc_max_cmds);
 #ifdef segmem
-    IOPrint(", max SGL count: %u", sc.sc_max_sgl);
+    IOLog(", max SGL count: %u", sc.sc_max_sgl);
 #endif
-    IOPrint("\n");
+    IOLog("\n");
     
     /* Allocate united mem for reply queue & producer-consumer */
     if (!(sc.sc_pcq = AllocMem(sizeof(UInt32) /* Context size */
@@ -1438,15 +1438,15 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
     ccb = Getccb();
     
     switch (cdbData[0]) {
-#if 0
         case kSCSICmd_READ_12:
         case kSCSICmd_WRITE_12:
+#if 0
             if (!IOCmd(ccb, parallelRequest, OSReadBigInt32(cdbData, 2),
                        /* XXX: Check me */
                        OSReadBigInt16(cdbData, 9)))
-                goto fail;
-            break;
 #endif
+                goto fail;
+        break;
         case kSCSICmd_READ_10:
         case kSCSICmd_WRITE_10:
             if (!IOCmd(ccb, parallelRequest, OSReadBigInt32(cdbData, 2), OSReadBigInt16(cdbData, 7)))

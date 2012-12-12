@@ -245,22 +245,22 @@ protected:
     /* Implement us */
     virtual SCSIServiceResponse     AbortTaskRequest ( SCSITargetIdentifier theT, SCSILogicalUnitNumber theL,
                                                       SCSITaggedTaskIdentifier theQ ) {
-        return kSCSIServiceResponse_SERVICE_DELIVERY_OR_TARGET_FAILURE;
+        return kSCSIServiceResponse_TASK_COMPLETE;
     }
     virtual	SCSIServiceResponse     AbortTaskSetRequest (SCSITargetIdentifier theT, SCSILogicalUnitNumber theL ) {
-        return kSCSIServiceResponse_SERVICE_DELIVERY_OR_TARGET_FAILURE;
+        return kSCSIServiceResponse_TASK_COMPLETE;
     }
 	virtual	SCSIServiceResponse ClearACARequest (SCSITargetIdentifier theT, SCSILogicalUnitNumber theL ) {
-        return kSCSIServiceResponse_SERVICE_DELIVERY_OR_TARGET_FAILURE;
+        return kSCSIServiceResponse_TASK_COMPLETE;
     };
 	virtual	SCSIServiceResponse ClearTaskSetRequest (SCSITargetIdentifier theT, SCSILogicalUnitNumber theL ) {
-        return kSCSIServiceResponse_SERVICE_DELIVERY_OR_TARGET_FAILURE;
+        return kSCSIServiceResponse_TASK_COMPLETE;
     };
 	virtual	SCSIServiceResponse LogicalUnitResetRequest (SCSITargetIdentifier theT, SCSILogicalUnitNumber theL ) {
-        return kSCSIServiceResponse_SERVICE_DELIVERY_OR_TARGET_FAILURE;
+        return kSCSIServiceResponse_TASK_COMPLETE;
     };
 	virtual	SCSIServiceResponse TargetResetRequest (SCSITargetIdentifier theT ) {
-        return kSCSIServiceResponse_SERVICE_DELIVERY_OR_TARGET_FAILURE;
+        return kSCSIServiceResponse_TASK_COMPLETE;
     };
     /* */
     
