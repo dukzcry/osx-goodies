@@ -929,7 +929,7 @@ bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, U
     if (dir != MRAID_DATA_NONE) {
         /* Support 64-bit DMA */
         if (!(ccb->s.ccb_sglmem.bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(kernel_task,
-            kIOMemoryPhysicallyContiguous
+            kIOMemoryPhysicallyContiguous /*| kIOMapInhibitCache*/
             ,len, IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : 0x00000000FFFFF000ULL)))
             return false;
         
