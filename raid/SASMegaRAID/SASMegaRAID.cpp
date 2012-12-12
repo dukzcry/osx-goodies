@@ -1534,7 +1534,7 @@ void SASMegaRAID::ReportHBAConstraints(OSDictionary *constraints)
     constraints->setObject(kIOMaximumSegmentCountReadKey, val);
     constraints->setObject(kIOMaximumSegmentCountWriteKey, val);
     /* XXX: There is restriction on single chunk size, but this value is bogus */
-    val->setValue(64 * 1024);
+    val->setValue(MAXPHYS);
     constraints->setObject(kIOMaximumSegmentByteCountReadKey, val);
     constraints->setObject(kIOMaximumSegmentByteCountWriteKey, val);
     
