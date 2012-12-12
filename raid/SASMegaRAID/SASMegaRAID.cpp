@@ -27,7 +27,7 @@ bool SASMegaRAID::init (OSDictionary* dict)
     sc.sc_pcq = sc.sc_frames = sc.sc_sense = NULL;
     sc.sc_bbuok = false;
     memset(sc.sc_ld_present, 0, MRAID_MAX_LD);
-    
+
     return true;
 }
 
@@ -72,7 +72,7 @@ bool SASMegaRAID::InitializeController(void)
     switch(type) {
         case PCI_MAPREG_TYPE_IO:
 #if 1
-            IOPrint("Memory mapping failed\n");
+            IOPrint("We don't support IO ports\n");
             return false;
 #else
             fPCIDevice->setIOEnable(true);
@@ -236,7 +236,6 @@ void SASMegaRAID::interruptHandler(OSObject *owner, void *src, IOService *nub, i
         if(Context == MRAID_INVALID_CTX)
             IOPrint("Invalid context, Prod: %d Cons: %d\n", Producer, Consumer);
         else {
-            /* TO-DO: Remove from queue */
             ccb = (mraid_ccbCommand *) sc.sc_ccb[Context];
             DbgPrint("ccb: %#x\n", Context);
 #ifdef segmem
@@ -295,8 +294,7 @@ bool SASMegaRAID::Probe()
 
 void mraid_empty_done(mraid_ccbCommand *)
 {
-    /* ;) */
-    __asm__ /*volatile*/("nop");
+    /* __asm__ ("nop"); */
 }
 
 bool SASMegaRAID::Attach()
@@ -426,6 +424,7 @@ bool SASMegaRAID::Attach()
     PMinit();
     getProvider()->joinPMtree(this);
     registerPowerDriver(this, PowerStates, 1);
+    /* */
     
 #if test
     /* Ensure that interrupts work */
@@ -453,7 +452,7 @@ mraid_mem *SASMegaRAID::AllocMem(vm_size_t size)
     if (!(mm = IONew(mraid_mem, 1)))
         return NULL;
     
-    /* Below 4gb for fast access */
+    /* Hardware requirement: Page aligned */
     if (!(mm->bmd = IOBufferMemoryDescriptor::inTaskWithOptions(kernel_task, kIOMemoryPhysicallyContiguous, size, PAGE_SIZE))) {
         goto free;
     }
@@ -466,6 +465,7 @@ mraid_mem *SASMegaRAID::AllocMem(vm_size_t size)
     
     return mm;
 #else
+    /* Below 4gb for fast access */
     if (!(mm->cmd = IODMACommand::withSpecification(kIODMACommandOutputHost32, 32, 0, IODMACommand::kMapped, size, PAGE_SIZE)))
         goto bmd_free;
     
@@ -546,8 +546,9 @@ bool SASMegaRAID::GenerateSegments(mraid_ccbCommand *ccb)
         :
             ccb->s.ccb_sglmem.cmd->gen32IOVMSegments(&offset,
                 (IODMACommand::Segment32 *) ccb->s.ccb_sglmem.segments, &ccb->s.ccb_sglmem.numSeg);
-        /*if (ccb->s.ccb_sglmem.numSeg > 1)
-            return false;*/
+        /* XXX: size = sg[1] */
+        if (ccb->s.ccb_sglmem.numSeg > 1)
+            return false;
     }
     if (st != kIOReturnSuccess)
         return false;
@@ -906,7 +907,7 @@ bool SASMegaRAID::Management(UInt32 opc, UInt32 dir, UInt32 len, void *buf, UInt
 bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, UInt32 len, void *buf, UInt8 *mbox)
 {
     mraid_dcmd_frame *dcmd;
-    IOVirtualAddress addr = 0x1; /* Prevent analyzer warn */
+    IOVirtualAddress addr = 0x1; /* Shut analyzer warn */
     
     DbgPrint("%s: ccb_num: %d, opcode: %#x\n", __FUNCTION__, ccb->s.ccb_frame->mrr_header.mrh_context, opc);
         
@@ -928,7 +929,7 @@ bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, U
     if (dir != MRAID_DATA_NONE) {
         /* Support 64-bit DMA */
         if (!(ccb->s.ccb_sglmem.bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(kernel_task,
-            kIOMemoryPhysicallyContiguous | kIOMapInhibitCache /* Disable caching */
+            kIOMemoryPhysicallyContiguous
             ,len, IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : 0x00000000FFFFF000ULL)))
             return false;
         
@@ -979,6 +980,7 @@ bool SASMegaRAID::CreateSGL(mraid_ccbCommand *ccb)
     
     DbgPrint("%s\n", __FUNCTION__);
     
+    /* Rework: Remove this bottleneck, we should preallocate memory beforehand */
     ccb->s.ccb_sglmem.paddr = ccb->s.ccb_sglmem.bmd->getPhysicalSegment(0, &length);
 #ifdef segmem
     if (!GenerateSegments(ccb)) {
@@ -1247,9 +1249,11 @@ void SASMegaRAID::CompleteTask(mraid_ccbCommand *ccb, cmd_context *cmd)
     if (ccb->s.ccb_direction != MRAID_DATA_NONE) {
     	if (cmd->ts == kSCSITaskStatus_GOOD) {
         	if (ccb->s.ccb_direction == MRAID_DATA_IN)
+                    /* Rework */
             		GetDataBuffer(cmd->pr)->writeBytes(cmd->instance->GetDataBufferOffset(cmd->pr),
                                    (void *) ccb->s.ccb_sglmem.bmd->getBytesNoCopy(),
                                     ccb->s.ccb_sglmem.len);
+                    /* */
             SetRealizedDataTransferCount(cmd->pr, ccb->s.ccb_sglmem.len);
     	} else
     		SetRealizedDataTransferCount(cmd->pr, 0);
@@ -1318,6 +1322,7 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
     }
 
     if ((transferMemDesc = GetDataBuffer(pr))) {
+        /* Rework */
         if (!(ccb->s.ccb_sglmem.bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(
                                                     kernel_task,
                                                     kIOMemoryPhysicallyContiguous,
@@ -1329,6 +1334,7 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
         ccb->s.ccb_sglmem.len = (UInt32) transferLen;
         if (ccb->s.ccb_direction == MRAID_DATA_OUT)
             transferMemDesc->readBytes(GetDataBufferOffset(pr), (void *) ccb->s.ccb_sglmem.bmd->getBytesNoCopy(), transferLen);
+        /* */
         
         if (!CreateSGL(ccb))
             return false;
@@ -1386,6 +1392,7 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
     ccb->s.ccb_frame_size = MRAID_PASS_FRAME_SIZE;
     ccb->s.ccb_sgl = &io->mif_sgl;
     
+    /* Rework */
     if (!(ccb->s.ccb_sglmem.bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(
                                                                                     kernel_task,
                                                                                     kIOMemoryPhysicallyContiguous,
@@ -1397,6 +1404,7 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
     ccb->s.ccb_sglmem.len = (UInt32) transferLen;
     if (ccb->s.ccb_direction == MRAID_DATA_OUT)
         transferMemDesc->readBytes(GetDataBufferOffset(pr), (void *) ccb->s.ccb_sglmem.bmd->getBytesNoCopy(), transferLen);
+    /* */
         
     if (!CreateSGL(ccb))
         return false;
@@ -1427,6 +1435,7 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
     ccb = Getccb();
     
     switch (cdbData[0]) {
+#if 0
         case kSCSICmd_READ_12:
         case kSCSICmd_WRITE_12:
             if (!IOCmd(ccb, parallelRequest, OSReadBigInt32(cdbData, 2),
@@ -1434,6 +1443,7 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
                        OSReadBigInt16(cdbData, 9)))
                 goto fail;
             break;
+#endif
         case kSCSICmd_READ_10:
         case kSCSICmd_WRITE_10:
             if (!IOCmd(ccb, parallelRequest, OSReadBigInt32(cdbData, 2), OSReadBigInt16(cdbData, 7)))
@@ -1500,12 +1510,13 @@ bool SASMegaRAID::DoesHBASupportSCSIParallelFeature(SCSIParallelFeature theFeatu
     DbgPrint("%s\n", __FUNCTION__);
     
     switch (theFeature) {
-        case kSCSIParallelFeature_WideDataTransfer:
         case kSCSIParallelFeature_SynchronousDataTransfer:
+            return false;
+        case kSCSIParallelFeature_WideDataTransfer:
         case kSCSIParallelFeature_QuickArbitrationAndSelection:
         case kSCSIParallelFeature_DoubleTransitionDataTransfers:
         case kSCSIParallelFeature_InformationUnitTransfers:
-        return true;
+            return true;
     }
     
     return false;
@@ -1519,17 +1530,19 @@ void SASMegaRAID::ReportHBAConstraints(OSDictionary *constraints)
     val = OSNumber::withNumber((num = 1), 64);
     constraints->setObject(kIOMaximumSegmentCountReadKey, val);
     constraints->setObject(kIOMaximumSegmentCountWriteKey, val);
-    /* XXX: Bogus */
+    /* XXX: There is restriction on single chunk size, but this value is bogus */
     val->setValue(64 * 1024);
     constraints->setObject(kIOMaximumSegmentByteCountReadKey, val);
     constraints->setObject(kIOMaximumSegmentByteCountWriteKey, val);
     
-    val->setValue(PAGE_SIZE / 1024);
+#if 0
+    /* We don't use OS-prepared SGs */
+    val->setValue();
     constraints->setObject(kIOMinimumSegmentAlignmentByteCountKey, val);
-    /* We don't care, we do copy anyway */
-    val->setValue(64);
+    val->setValue(IOPhysSize);
     constraints->setObject(kIOMaximumSegmentAddressableBitCountKey, val);
-    val->setValue(0xFFFFFFFFFFFFFFFFULL);
+#endif
+    val->setValue(IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : 0x00000000FFFFF000ULL);
     constraints->setObject(kIOMinimumHBADataAlignmentMaskKey, val);
     /* */
     val->release();

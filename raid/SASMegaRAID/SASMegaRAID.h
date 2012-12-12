@@ -230,7 +230,7 @@ protected:
     virtual SCSILogicalUnitNumber	ReportHBAHighestLogicalUnitNumber ( void ) {return MRAID_MAX_LUN;};
     virtual SCSIDeviceIdentifier	ReportHighestSupportedDeviceID ( void ) {return MRAID_MAX_LD;};
     virtual bool                    DoesHBAPerformDeviceManagement ( void ) {return false;};
-    virtual UInt32                  ReportMaximumTaskCount ( void ) {return 1;};
+    virtual UInt32                  ReportMaximumTaskCount ( void ) {/*temp*/return 1;};
     /* We're not a real SCSI controller */
     virtual SCSIInitiatorIdentifier	ReportInitiatorIdentifier ( void ) {return MRAID_MAX_LD+1;};
     virtual bool                    InitializeTargetForID ( SCSITargetIdentifier targetID );
@@ -241,7 +241,7 @@ protected:
     /* We don't need it, we use our own cmds pool, and we're rely on it much before service starting */
     virtual UInt32                  ReportHBASpecificDeviceDataSize ( void ) {return 0;};
     /* This one is a must for starting, but we don't need this one too */
-    virtual UInt32                  ReportHBASpecificTaskDataSize ( void ) {return 1;};
+    virtual UInt32                  ReportHBASpecificTaskDataSize ( void ) {/*must be > 0*/return 1;};
     /* Implement us */
     virtual SCSIServiceResponse     AbortTaskRequest ( SCSITargetIdentifier theT, SCSILogicalUnitNumber theL,
                                                       SCSITaggedTaskIdentifier theQ ) {
