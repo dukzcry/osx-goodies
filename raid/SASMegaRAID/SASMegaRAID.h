@@ -99,11 +99,15 @@ typedef struct {
     /* For access by index */
     addr64_t                        *sc_ccb;
     
-    mraid_ctrl_info                 sc_info;
+    struct {
+        mraid_ctrl_info             *info;
+        mraid_sgl_mem               *mem;
+    } sc_info;
 
 #define MRAID_BBU_GOOD              0
 #define MRAID_BBU_BAD               1
 #define MRAID_BBU_UNKNOWN           2
+#define MRAID_BBU_ERROR             3
     bool                            sc_bbuok;
 } mraid_softc;
 
@@ -176,9 +180,9 @@ private:
     bool Initialize_Firmware();
     bool GetInfo();
     void ExportInfo();
-    int GetBBUInfo(mraid_bbu_status *);
-    bool Management(UInt32, UInt32, UInt32, void *, UInt8 *);
-    bool Do_Management(mraid_ccbCommand *, UInt32, UInt32, UInt32, void *, UInt8 *);
+    int GetBBUInfo(mraid_sgl_mem *&, mraid_bbu_status *&);
+    bool Management(UInt32, UInt32, UInt32, mraid_sgl_mem *&, UInt8 *);
+    bool Do_Management(mraid_ccbCommand *, UInt32, UInt32, UInt32, mraid_sgl_mem *&, UInt8 *);
     mraid_mem *AllocMem(vm_size_t);
     void FreeMem(mraid_mem *);
     bool CreateSGL(mraid_ccbCommand *);

@@ -1,6 +1,6 @@
 /* Notes for code reader:
  - Syncs are bogus and not in all places they ough to be
- - Segments support bits aren't in all places they should to be */
+ - Segments support bits aren't in all places they should be */
 
 #include "SASMegaRAID.h"
 #include "Registers.h"
@@ -26,7 +26,8 @@ bool SASMegaRAID::init (OSDictionary* dict)
     
     sc.sc_pcq = sc.sc_frames = sc.sc_sense = NULL;
     sc.sc_bbuok = false;
-    memset(sc.sc_ld_present, 0, MRAID_MAX_LD);
+    sc.sc_info.info = NULL;
+    bzero(sc.sc_ld_present, MRAID_MAX_LD);
 
     return true;
 }
@@ -179,6 +180,7 @@ void SASMegaRAID::free(void)
     DbgPrint("IOService->free\n");
     
     if(map) map->release();
+    if (sc.sc_info.info) FreeSGL(sc.sc_info.mem);
     if (ccb_inited) {
         IODelete(sc.sc_ccb, addr64_t, sc.sc_max_cmds);
         for (int i = 0; i < sc.sc_max_cmds; i++)
@@ -383,12 +385,20 @@ bool SASMegaRAID::Attach()
     }
     ExportInfo();
     
-    if (sc.sc_info.mci_hw_present & MRAID_INFO_HW_BBU) {
-        mraid_bbu_status bbu_stat;
-        /* Retrieve battery info */
-        int mraid_bbu_status = GetBBUInfo(&bbu_stat);
+    status = true;
+    do {
+        mraid_bbu_status *bbu_stat;
+        mraid_sgl_mem *mem;
+        int mraid_bbu_stat;
+        
+        if (!(sc.sc_info.info->mci_hw_present & MRAID_INFO_HW_BBU) ||
+            (mraid_bbu_stat = GetBBUInfo(mem, bbu_stat)) == MRAID_BBU_ERROR) {
+            status = false;
+            break;
+        }
+        
         IOPrint("BBU type: ");
-		switch (bbu_stat.battery_type) {
+		switch (bbu_stat->battery_type) {
             case MRAID_BBU_TYPE_BBU:
                 IOLog("BBU");
                 break;
@@ -396,10 +406,11 @@ bool SASMegaRAID::Attach()
                 IOLog("IBBU");
                 break;
             default:
-                IOLog("unknown type %d", bbu_stat.battery_type);
+                IOLog("unknown type %d", bbu_stat->battery_type);
 		}
+        FreeSGL(mem);
         IOLog(", status ");
-		switch(mraid_bbu_status) {
+		switch(mraid_bbu_stat) {
             case MRAID_BBU_GOOD:
                 IOLog("good");
                 sc.sc_bbuok = true;
@@ -411,11 +422,12 @@ bool SASMegaRAID::Attach()
                 IOLog("unknown");
                 break;
 		}
-    } else
-        IOPrint("BBU not present");
+    } while (0);
+    if (!status)
+        IOPrint("BBU not present/read error");
     IOLog("\n");
-    
-    sc.sc_ld_cnt = sc.sc_info.mci_lds_present;
+
+    sc.sc_ld_cnt = sc.sc_info.info->mci_lds_present;
     for (int i = 0; i < sc.sc_ld_cnt; i++) {
         sc.sc_ld_present[i] = true;
     }
@@ -423,15 +435,13 @@ bool SASMegaRAID::Attach()
     mraid_intr_enable();
     /* XXX: Is it possible to get intrs enabled info from controller? */
     InterruptsActivated = true;
-    /* Rework: InitializePowerManagement() */
     PMinit();
     getProvider()->joinPMtree(this);
     registerPowerDriver(this, PowerStates, 1);
-    /* */
     
 #if test
     /* Ensure that interrupts work */
-    memset(&sc.sc_info, 0, sizeof(sc.sc_info));
+    bzero(sc.sc_info.info, sizeof(mraid_ctrl_info));
     if (!GetInfo()) {
         IOPrint("Unable to get controller info\n");
         return false;
@@ -455,7 +465,7 @@ mraid_mem *SASMegaRAID::AllocMem(vm_size_t size)
     if (!(mm = IONew(mraid_mem, 1)))
         return NULL;
     
-    /* Hardware requirement: Page aligned */
+    /* Hardware requirement: Page size aligned */
     if (!(mm->bmd = IOBufferMemoryDescriptor::inTaskWithOptions(kernel_task, kIOMemoryPhysicallyContiguous, size, PAGE_SIZE))) {
         goto free;
     }
@@ -464,7 +474,7 @@ mraid_mem *SASMegaRAID::AllocMem(vm_size_t size)
     mm->vaddr = (IOVirtualAddress) mm->bmd->getBytesNoCopy();
     mm->paddr = mm->bmd->getPhysicalSegment(0, &length);
     /* Zero the whole region for easy */
-    memset((void *) mm->vaddr, 0, size);
+    bzero((void *) mm->vaddr, size);
     
     return mm;
 #else
@@ -485,7 +495,7 @@ mraid_mem *SASMegaRAID::AllocMem(vm_size_t size)
     }
     if (st == kIOReturnSuccess) {
         mm->map = mm->bmd->map();
-        memset((void *) mm->map->getVirtualAddress(), 0, size);
+        bzero((void *) mm->map->getVirtualAddress(), size);
         return mm;
     }
     
@@ -645,6 +655,7 @@ bool SASMegaRAID::Transition_Firmware()
                 IOPrint("Unknown firmware state\n");
                 return false;
         }
+        /* Rework: Freeze is possible */
         for(int i = 0; i < (max_wait * 10); i++) {
             fw_state = mraid_fw_state() & MRAID_STATE_MASK;
             if(fw_state == cur_state)
@@ -675,7 +686,7 @@ bool SASMegaRAID::Initialize_Firmware()
     /* Skip header */
     qinfo = (mraid_init_qinfo *)((UInt8 *) init + MRAID_FRAME_SIZE);
     
-    memset(qinfo, 0, sizeof(mraid_init_qinfo));
+    bzero(qinfo, sizeof(mraid_init_qinfo));
     qinfo->miq_rq_entries = htole32(sc.sc_max_cmds + 1);
     
     qinfo->miq_rq_addr = htole64(MRAID_DVA(sc.sc_pcq) + offsetof(mraid_prod_cons, mpc_reply_q));
@@ -705,107 +716,110 @@ bool SASMegaRAID::GetInfo()
 {
     DbgPrint("%s\n", __FUNCTION__);
     
-    if (!Management(MRAID_DCMD_CTRL_GET_INFO, MRAID_DATA_IN, sizeof(sc.sc_info), &sc.sc_info, NULL))
+    if (!Management(MRAID_DCMD_CTRL_GET_INFO, MRAID_DATA_IN, sizeof(mraid_ctrl_info), sc.sc_info.mem, NULL)) {
+        sc.sc_info.info = NULL;
         return false;
-
+    }
+    sc.sc_info.info = (mraid_ctrl_info *) sc.sc_info.mem->bmd->getBytesNoCopy();
+    
 #if defined(DEBUG)
     int i;
-	for (i = 0; i < sc.sc_info.mci_image_component_count; i++) {
+	for (i = 0; i < sc.sc_info.info->mci_image_component_count; i++) {
 		IOPrint("Active FW %s Version %s date %s time %s\n",
-               sc.sc_info.mci_image_component[i].mic_name,
-               sc.sc_info.mci_image_component[i].mic_version,
-               sc.sc_info.mci_image_component[i].mic_build_date,
-               sc.sc_info.mci_image_component[i].mic_build_time);
+               sc.sc_info.info->mci_image_component[i].mic_name,
+               sc.sc_info.info->mci_image_component[i].mic_version,
+               sc.sc_info.info->mci_image_component[i].mic_build_date,
+               sc.sc_info.info->mci_image_component[i].mic_build_time);
 	}
-    for (i = 0; i < sc.sc_info.mci_pending_image_component_count; i++) {
+    for (i = 0; i < sc.sc_info.info->mci_pending_image_component_count; i++) {
 		IOPrint("Pending FW %s Version %s date %s time %s\n",
-               sc.sc_info.mci_pending_image_component[i].mic_name,
-               sc.sc_info.mci_pending_image_component[i].mic_version,
-               sc.sc_info.mci_pending_image_component[i].mic_build_date,
-               sc.sc_info.mci_pending_image_component[i].mic_build_time);
+               sc.sc_info.info->mci_pending_image_component[i].mic_name,
+               sc.sc_info.info->mci_pending_image_component[i].mic_version,
+               sc.sc_info.info->mci_pending_image_component[i].mic_build_date,
+               sc.sc_info.info->mci_pending_image_component[i].mic_build_time);
 	}
     IOPrint("max_arms %d max_spans %d max_arrs %d max_lds %d\n",
-           sc.sc_info.mci_max_arms,
-           sc.sc_info.mci_max_spans,
-           sc.sc_info.mci_max_arrays,
-           sc.sc_info.mci_max_lds);
+           sc.sc_info.info->mci_max_arms,
+           sc.sc_info.info->mci_max_spans,
+           sc.sc_info.info->mci_max_arrays,
+           sc.sc_info.info->mci_max_lds);
     IOPrint("Serial %s present %#x fw time %d max_cmds %d max_sg %d\n",
-           sc.sc_info.mci_serial_number,
-           sc.sc_info.mci_hw_present,
-           sc.sc_info.mci_current_fw_time,
-           sc.sc_info.mci_max_cmds,
-           sc.sc_info.mci_max_sg_elements);
+           sc.sc_info.info->mci_serial_number,
+           sc.sc_info.info->mci_hw_present,
+           sc.sc_info.info->mci_current_fw_time,
+           sc.sc_info.info->mci_max_cmds,
+           sc.sc_info.info->mci_max_sg_elements);
     IOPrint("max_rq %d lds_deg %d lds_off %d pd_pres %d\n",
-           sc.sc_info.mci_max_request_size,
-           sc.sc_info.mci_lds_degraded,
-           sc.sc_info.mci_lds_offline,
-           sc.sc_info.mci_pd_present);
+           sc.sc_info.info->mci_max_request_size,
+           sc.sc_info.info->mci_lds_degraded,
+           sc.sc_info.info->mci_lds_offline,
+           sc.sc_info.info->mci_pd_present);
 	IOPrint("pd_dsk_prs %d pd_dsk_pred_fail %d pd_dsk_fail %d\n",
-           sc.sc_info.mci_pd_disks_present,
-           sc.sc_info.mci_pd_disks_pred_failure,
-           sc.sc_info.mci_pd_disks_failed);
+           sc.sc_info.info->mci_pd_disks_present,
+           sc.sc_info.info->mci_pd_disks_pred_failure,
+           sc.sc_info.info->mci_pd_disks_failed);
     IOPrint("nvram %d flash %d\n",
-           sc.sc_info.mci_nvram_size,
-           sc.sc_info.mci_flash_size);
+           sc.sc_info.info->mci_nvram_size,
+           sc.sc_info.info->mci_flash_size);
 	IOPrint("ram_cor %d ram_uncor %d clus_all %d clus_act %d\n",
-           sc.sc_info.mci_ram_correctable_errors,
-           sc.sc_info.mci_ram_uncorrectable_errors,
-           sc.sc_info.mci_cluster_allowed,
-           sc.sc_info.mci_cluster_active);
+           sc.sc_info.info->mci_ram_correctable_errors,
+           sc.sc_info.info->mci_ram_uncorrectable_errors,
+           sc.sc_info.info->mci_cluster_allowed,
+           sc.sc_info.info->mci_cluster_active);
 	IOPrint("max_strps_io %d raid_lvl %#x adapt_ops %#x ld_ops %#x\n",
-           sc.sc_info.mci_max_strips_per_io,
-           sc.sc_info.mci_raid_levels,
-           sc.sc_info.mci_adapter_ops,
-           sc.sc_info.mci_ld_ops);
+           sc.sc_info.info->mci_max_strips_per_io,
+           sc.sc_info.info->mci_raid_levels,
+           sc.sc_info.info->mci_adapter_ops,
+           sc.sc_info.info->mci_ld_ops);
 	IOPrint("strp_sz_min %d strp_sz_max %d pd_ops %#x pd_mix %#x\n",
-           sc.sc_info.mci_stripe_sz_ops.min,
-           sc.sc_info.mci_stripe_sz_ops.max,
-           sc.sc_info.mci_pd_ops,
-           sc.sc_info.mci_pd_mix_support);
+           sc.sc_info.info->mci_stripe_sz_ops.min,
+           sc.sc_info.info->mci_stripe_sz_ops.max,
+           sc.sc_info.info->mci_pd_ops,
+           sc.sc_info.info->mci_pd_mix_support);
 	IOPrint("ecc_bucket %d\n",
-           sc.sc_info.mci_ecc_bucket_count);
+           sc.sc_info.info->mci_ecc_bucket_count);
 	IOPrint("sq_nm %d prd_fail_poll %d intr_thrtl %d intr_thrtl_to %d\n",
-           sc.sc_info.mci_properties.mcp_seq_num,
-           sc.sc_info.mci_properties.mcp_pred_fail_poll_interval,
-           sc.sc_info.mci_properties.mcp_intr_throttle_cnt,
-           sc.sc_info.mci_properties.mcp_intr_throttle_timeout);
+           sc.sc_info.info->mci_properties.mcp_seq_num,
+           sc.sc_info.info->mci_properties.mcp_pred_fail_poll_interval,
+           sc.sc_info.info->mci_properties.mcp_intr_throttle_cnt,
+           sc.sc_info.info->mci_properties.mcp_intr_throttle_timeout);
 	IOPrint("rbld_rate %d patr_rd_rate %d bgi_rate %d cc_rate %d\n",
-           sc.sc_info.mci_properties.mcp_rebuild_rate,
-           sc.sc_info.mci_properties.mcp_patrol_read_rate,
-           sc.sc_info.mci_properties.mcp_bgi_rate,
-           sc.sc_info.mci_properties.mcp_cc_rate);
+           sc.sc_info.info->mci_properties.mcp_rebuild_rate,
+           sc.sc_info.info->mci_properties.mcp_patrol_read_rate,
+           sc.sc_info.info->mci_properties.mcp_bgi_rate,
+           sc.sc_info.info->mci_properties.mcp_cc_rate);
 	IOPrint("rc_rate %d ch_flsh %d spin_cnt %d spin_dly %d clus_en %d\n",
-           sc.sc_info.mci_properties.mcp_recon_rate,
-           sc.sc_info.mci_properties.mcp_cache_flush_interval,
-           sc.sc_info.mci_properties.mcp_spinup_drv_cnt,
-           sc.sc_info.mci_properties.mcp_spinup_delay,
-           sc.sc_info.mci_properties.mcp_cluster_enable);
+           sc.sc_info.info->mci_properties.mcp_recon_rate,
+           sc.sc_info.info->mci_properties.mcp_cache_flush_interval,
+           sc.sc_info.info->mci_properties.mcp_spinup_drv_cnt,
+           sc.sc_info.info->mci_properties.mcp_spinup_delay,
+           sc.sc_info.info->mci_properties.mcp_cluster_enable);
 	IOPrint("coerc %d alarm %d dis_auto_rbld %d dis_bat_wrn %d ecc %d\n",
-           sc.sc_info.mci_properties.mcp_coercion_mode,
-           sc.sc_info.mci_properties.mcp_alarm_enable,
-           sc.sc_info.mci_properties.mcp_disable_auto_rebuild,
-           sc.sc_info.mci_properties.mcp_disable_battery_warn,
-           sc.sc_info.mci_properties.mcp_ecc_bucket_size);
+           sc.sc_info.info->mci_properties.mcp_coercion_mode,
+           sc.sc_info.info->mci_properties.mcp_alarm_enable,
+           sc.sc_info.info->mci_properties.mcp_disable_auto_rebuild,
+           sc.sc_info.info->mci_properties.mcp_disable_battery_warn,
+           sc.sc_info.info->mci_properties.mcp_ecc_bucket_size);
 	IOPrint("ecc_leak %d rest_hs %d exp_encl_dev %d\n",
-           sc.sc_info.mci_properties.mcp_ecc_bucket_leak_rate,
-           sc.sc_info.mci_properties.mcp_restore_hotspare_on_insertion,
-           sc.sc_info.mci_properties.mcp_expose_encl_devices);
+           sc.sc_info.info->mci_properties.mcp_ecc_bucket_leak_rate,
+           sc.sc_info.info->mci_properties.mcp_restore_hotspare_on_insertion,
+           sc.sc_info.info->mci_properties.mcp_expose_encl_devices);
 	IOPrint("Vendor %#x device %#x subvendor %#x subdevice %#x\n",
-           sc.sc_info.mci_pci.mip_vendor,
-           sc.sc_info.mci_pci.mip_device,
-           sc.sc_info.mci_pci.mip_subvendor,
-           sc.sc_info.mci_pci.mip_subdevice);
+           sc.sc_info.info->mci_pci.mip_vendor,
+           sc.sc_info.info->mci_pci.mip_device,
+           sc.sc_info.info->mci_pci.mip_subvendor,
+           sc.sc_info.info->mci_pci.mip_subdevice);
 	IOPrint("Type %#x port_count %d port_addr ",
-           sc.sc_info.mci_host.mih_type,
-           sc.sc_info.mci_host.mih_port_count);
+           sc.sc_info.info->mci_host.mih_type,
+           sc.sc_info.info->mci_host.mih_port_count);
 	for (i = 0; i < 8; i++)
-		IOLog("%.0llx ", sc.sc_info.mci_host.mih_port_addr[i]);
+		IOLog("%.0llx ", sc.sc_info.info->mci_host.mih_port_addr[i]);
 	IOLog("\n");
 	IOPrint("Type %.x port_count %d port_addr ",
-           sc.sc_info.mci_device.mid_type,
-           sc.sc_info.mci_device.mid_port_count);
+           sc.sc_info.info->mci_device.mid_type,
+           sc.sc_info.info->mci_device.mid_port_count);
 	for (i = 0; i < 8; i++)
-		IOLog("%.0llx ", sc.sc_info.mci_device.mid_port_addr[i]);
+		IOLog("%.0llx ", sc.sc_info.info->mci_device.mid_port_addr[i]);
 	IOLog("\n");
 #endif
     
@@ -817,21 +831,21 @@ void SASMegaRAID::ExportInfo()
     OSString *string = NULL;
     char str[33];
     
-    if ((string = OSString::withCString(sc.sc_info.mci_product_name)))
+    if ((string = OSString::withCString(sc.sc_info.info->mci_product_name)))
 	{
 		SetHBAProperty(kIOPropertyProductNameKey, string);
 		string->release();
 		string = NULL;
 	}
-    snprintf(str, sizeof(str), "Firmware %s", sc.sc_info.mci_package_version);
+    snprintf(str, sizeof(str), "Firmware %s", sc.sc_info.info->mci_package_version);
     if ((string = OSString::withCString(str)))
 	{
 		SetHBAProperty(kIOPropertyProductRevisionLevelKey, string);
 		string->release();
 		string = NULL;
 	}
-    if (sc.sc_info.mci_memory_size > 0) {
-        snprintf(str, sizeof(str), "Cache %dMB RAM", sc.sc_info.mci_memory_size);
+    if (sc.sc_info.info->mci_memory_size > 0) {
+        snprintf(str, sizeof(str), "Cache %dMB RAM", sc.sc_info.info->mci_memory_size);
         if ((string = OSString::withCString(str))) {
             SetHBAProperty(kIOPropertyPortDescriptionKey, string);
             string->release();
@@ -840,13 +854,14 @@ void SASMegaRAID::ExportInfo()
     }
 }
 
-int SASMegaRAID::GetBBUInfo(mraid_bbu_status *info)
+int SASMegaRAID::GetBBUInfo(mraid_sgl_mem *&mem, mraid_bbu_status *&info)
 {
     DbgPrint("%s\n", __FUNCTION__);
     
-    if (!Management(MRAID_DCMD_BBU_GET_INFO, MRAID_DATA_IN, sizeof(*info), info, NULL))
+    if (!Management(MRAID_DCMD_BBU_GET_INFO, MRAID_DATA_IN, sizeof(mraid_bbu_status), mem, NULL))
         return MRAID_BBU_UNKNOWN;
     
+    info = (mraid_bbu_status *) mem->bmd->getBytesNoCopy();
 #if defined(DEBUG)
 	IOPrint("BBU voltage %d, current %d, temperature %d, "
            "status 0x%x\n", info->voltage, info->current,
@@ -896,26 +911,41 @@ int SASMegaRAID::GetBBUInfo(mraid_bbu_status *info)
 	}
 }
 
-bool SASMegaRAID::Management(UInt32 opc, UInt32 dir, UInt32 len, void *buf, UInt8 *mbox)
+/* Uglified as preparation for sensors updating: don't do any buffer copying */
+bool SASMegaRAID::Management(UInt32 opc, UInt32 dir, UInt32 len, mraid_sgl_mem *&mem, UInt8 *mbox)
 {
     mraid_ccbCommand* ccb;
     bool res;
     
-    ccb = Getccb();    
-    res = Do_Management(ccb, opc, dir, len, buf, mbox);
+    ccb = Getccb();
+    
+    if (dir == MRAID_DATA_IN) {
+        /* Support 64-bit DMA */
+        if (!(ccb->s.ccb_sglmem.bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(kernel_task,
+            kIOMemoryPhysicallyContiguous /*| kIOMapInhibitCache // No caching */
+            ,len, IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : 0x00000000FFFFF000ULL)))
+            return false;
+        
+#ifdef segmem
+        ccb->s.ccb_sglmem.map = ccb->s.ccb_sglmem.bmd->map();
+#else
+        ccb->s.ccb_sglmem.bmd->prepare();
+#endif
+    }
+    
+    res = Do_Management(ccb, opc, dir, len, mem, mbox);
     Putccb(ccb);
     
     return res;
 }
-bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, UInt32 len, void *buf, UInt8 *mbox)
+bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, UInt32 len, mraid_sgl_mem *&mem, UInt8 *mbox)
 {
     mraid_dcmd_frame *dcmd;
-    IOVirtualAddress addr = 0x1; /* Shut analyzer warn */
     
     DbgPrint("%s: ccb_num: %d, opcode: %#x\n", __FUNCTION__, ccb->s.ccb_frame->mrr_header.mrh_context, opc);
         
     dcmd = &ccb->s.ccb_frame->mrr_dcmd;
-    memset(dcmd->mdf_mbox, 0, MRAID_MBOX_SIZE);
+    bzero(dcmd->mdf_mbox, MRAID_MBOX_SIZE);
     dcmd->mdf_header.mrh_cmd = MRAID_CMD_DCMD;
     dcmd->mdf_header.mrh_timeout = 0;
     
@@ -930,22 +960,8 @@ bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, U
         memcpy(dcmd->mdf_mbox, mbox, MRAID_MBOX_SIZE);
     
     if (dir != MRAID_DATA_NONE) {
-        /* Support 64-bit DMA */
-        if (!(ccb->s.ccb_sglmem.bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(kernel_task,
-            kIOMemoryPhysicallyContiguous /*| kIOMapInhibitCache*/
-            ,len, IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : 0x00000000FFFFF000ULL)))
-            return false;
+        /* dir == MRAID_DATA_OUT: Expected that caller 'll prepare and fill the buffer */
         
-#ifdef segmem
-        ccb->s.ccb_sglmem.map = ccb->s.ccb_sglmem.bmd->map();
-        addr = ccb->s.ccb_sglmem.map->getVirtualAddress();
-#else
-        ccb->s.ccb_sglmem.bmd->prepare();
-        addr = (IOVirtualAddress) ccb->s.ccb_sglmem.bmd->getBytesNoCopy();
-#endif
-        
-        if (dir == MRAID_DATA_OUT)
-            bcopy(buf, (void *) addr, len);
         dcmd->mdf_header.mrh_data_len = len;
         
         ccb->s.ccb_sglmem.len = len;
@@ -964,16 +980,14 @@ bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, U
 
     if (dcmd->mdf_header.mrh_cmd_status != MRAID_STAT_OK)
         goto fail;
-
-    if (ccb->s.ccb_direction == MRAID_DATA_IN)
-        bcopy((void *) addr, buf, len);
     
-    FreeSGL(&ccb->s.ccb_sglmem);
+    mem = &ccb->s.ccb_sglmem;
     return true;
 fail:
     FreeSGL(&ccb->s.ccb_sglmem);
     return false;
 }
+/* */
 
 bool SASMegaRAID::CreateSGL(mraid_ccbCommand *ccb)
 {
@@ -1050,17 +1064,18 @@ bool SASMegaRAID::CreateSGL(mraid_ccbCommand *ccb)
 void SASMegaRAID::MRAID_Shutdown()
 {
     UInt8 mbox[MRAID_MBOX_SIZE];
+    mraid_sgl_mem *p;
     
     DbgPrint("%s\n", __FUNCTION__);
     
     if (FirmwareInitialized) {
         mbox[0] = MRAID_FLUSH_CTRL_CACHE | MRAID_FLUSH_DISK_CACHE;
-        if (!Management(MRAID_DCMD_CTRL_CACHE_FLUSH, MRAID_DATA_NONE, 0, NULL, mbox)) {
+        if (!Management(MRAID_DCMD_CTRL_CACHE_FLUSH, MRAID_DATA_NONE, 0, p, mbox)) {
             DbgPrint("Warning: failed to flush cache\n");
             return;
         }
         mbox[0] = 0;
-        if (!Management(MRAID_DCMD_CTRL_SHUTDOWN, MRAID_DATA_NONE, 0, NULL, mbox)) {
+        if (!Management(MRAID_DCMD_CTRL_SHUTDOWN, MRAID_DATA_NONE, 0, p, mbox)) {
             DbgPrint("Warning: failed to shutdown firmware\n");
             return;
         }
@@ -1068,7 +1083,6 @@ void SASMegaRAID::MRAID_Shutdown()
     }
 }
 
-/* TO-DO: HandlePowerOn/Off() */
 void SASMegaRAID::systemWillShutdown(IOOptionBits spec)
 {
     DbgPrint("%s: spec = %#x\n", __FUNCTION__, spec);
@@ -1104,7 +1118,9 @@ void SASMegaRAID::MRAID_Write(UInt8 offset, uint32_t data)
     DbgPrint("%s: offset %#x data 0x%08x\n", __FUNCTION__, offset, data);
 
     OSWriteLittleInt32(vAddr, offset, data);
+#if defined PPC
     OSSynchronizeIO();
+#endif
     
     /*if(MemDesc.writeBytes(offset, &data, 4) != 4) {
      DbgPrint("%s[%p]::Write(): Unsuccessfull.\n", getName(), this);
@@ -1127,6 +1143,7 @@ void SASMegaRAID::MRAID_Poll(mraid_ccbCommand *ccb)
     
     mraid_post(ccb);
     
+    /* Rework: Freeze is possible */
     while (1) {
         IOSleep(10);
         
@@ -1230,6 +1247,7 @@ void mraid_cmd_done(mraid_ccbCommand *ccb)
             cmd->ts = kSCSITaskStatus_No_Status;
 #if defined(DEBUG)
             IOPrint("Warning: kSCSITaskStatus_No_Status: 0x%02x on 0x%x\n", hdr->mrh_cmd_status,
+                    /* XXX: This one doesn't set */
                     cmd->opcode);
 #endif
             if (hdr->mrh_scsi_status) {
@@ -1294,8 +1312,8 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
     pf->mpf_header.mrh_sense_len = MRAID_SENSE_SIZE;
     
     pf->mpf_sense_addr = htole64(ccb->s.ccb_psense);
-    
-    memset(pf->mpf_cdb, 0, 16);
+
+    bzero(pf->mpf_cdb, 16);
     GetCommandDescriptorBlock(pr, &cdbData);
 	memcpy(pf->mpf_cdb, cdbData, pf->mpf_header.mrh_cdb_len);
     
@@ -1420,6 +1438,7 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
     SCSICommandDescriptorBlock cdbData = { 0 };
     
     mraid_ccbCommand *ccb;
+    mraid_sgl_mem *p;
     UInt8 mbox[MRAID_MBOX_SIZE];
     
     GetCommandDescriptorBlock(parallelRequest, &cdbData);
@@ -1460,7 +1479,7 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
         break;
         case kSCSICmd_SYNCHRONIZE_CACHE:
             mbox[0] = MRAID_FLUSH_CTRL_CACHE | MRAID_FLUSH_DISK_CACHE;
-            if (!Do_Management(ccb, MRAID_DCMD_CTRL_CACHE_FLUSH, MRAID_DATA_NONE, 0, NULL, mbox))
+            if (!Do_Management(ccb, MRAID_DCMD_CTRL_CACHE_FLUSH, MRAID_DATA_NONE, 0, p, mbox))
                 goto fail;
             goto complete;
         default:
