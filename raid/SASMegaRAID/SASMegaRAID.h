@@ -101,22 +101,14 @@ typedef struct {
     
     struct {
         mraid_ctrl_info             *info;
-<<<<<<< HEAD
-        mraid_sgl_mem               *mem;
-=======
         mraid_sgl_mem               mem;
->>>>>>> 82bd552beb78d7e17346a6e3558a5132652579fa
     } sc_info;
 
 #define MRAID_BBU_GOOD              0
 #define MRAID_BBU_BAD               1
 #define MRAID_BBU_UNKNOWN           2
 #define MRAID_BBU_ERROR             3
-<<<<<<< HEAD
-    bool                            sc_bbuok;
-=======
     //bool                            sc_bbuok;
->>>>>>> 82bd552beb78d7e17346a6e3558a5132652579fa
 } mraid_softc;
 
 typedef struct {
@@ -188,15 +180,9 @@ private:
     bool Initialize_Firmware();
     bool GetInfo();
     void ExportInfo();
-<<<<<<< HEAD
-    int GetBBUInfo(mraid_sgl_mem *&, mraid_bbu_status *&);
-    bool Management(UInt32, UInt32, UInt32, mraid_sgl_mem *&, UInt8 *);
-    bool Do_Management(mraid_ccbCommand *, UInt32, UInt32, UInt32, mraid_sgl_mem *&, UInt8 *);
-=======
     int GetBBUInfo(mraid_sgl_mem *, mraid_bbu_status *);
     bool Management(UInt32, UInt32, UInt32, mraid_sgl_mem *, UInt8 *);
     bool Do_Management(mraid_ccbCommand *, UInt32, UInt32, UInt32, mraid_sgl_mem *, UInt8 *);
->>>>>>> 82bd552beb78d7e17346a6e3558a5132652579fa
     mraid_mem *AllocMem(vm_size_t);
     void FreeMem(mraid_mem *);
     bool CreateSGL(mraid_ccbCommand *);
