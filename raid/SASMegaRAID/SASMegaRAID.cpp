@@ -1,6 +1,6 @@
 /* Notes for code reader:
  - Syncs are bogus and not in all places they ough to be
- - Segments support bits aren't in all places they should to be */
+ - Segments support bits aren't in all places they should be */
 
 #include "SASMegaRAID.h"
 #include "Registers.h"
@@ -25,8 +25,9 @@ bool SASMegaRAID::init (OSDictionary* dict)
     sc.sc_iop = IONew(mraid_iop_ops, 1);
     
     sc.sc_pcq = sc.sc_frames = sc.sc_sense = NULL;
-    sc.sc_bbuok = false;
-    memset(sc.sc_ld_present, 0, MRAID_MAX_LD);
+    //sc.sc_bbuok = false;
+    sc.sc_info_new.info = NULL;
+    bzero(sc.sc_ld_present, MRAID_MAX_LD);
 
     return true;
 }
@@ -103,7 +104,7 @@ bool SASMegaRAID::InitializeController(void)
             }
         break;
         case PCI_MAPREG_MEM_TYPE_64BIT:
-#ifdef notyet
+#if 1
             IOPrint("PCI-X support to be implemented\n");
             return false;
 #else
@@ -178,7 +179,8 @@ void SASMegaRAID::free(void)
     
     DbgPrint("IOService->free\n");
     
-    if(map) map->release();
+    if (map) map->release();
+    if (sc.sc_info_new.info) FreeSGL(sc.sc_info_new.mem);
     if (ccb_inited) {
         IODelete(sc.sc_ccb, addr64_t, sc.sc_max_cmds);
         for (int i = 0; i < sc.sc_max_cmds; i++)
@@ -383,10 +385,16 @@ bool SASMegaRAID::Attach()
     }
     ExportInfo();
     
-    if (sc.sc_info.mci_hw_present & MRAID_INFO_HW_BBU) {
+    status = true;
+    do {
         mraid_bbu_status bbu_stat;
-        /* Retrieve battery info */
-        int mraid_bbu_status = GetBBUInfo(&bbu_stat);
+        int mraid_bbu_status;
+
+        if (!(sc.sc_info.mci_hw_present & MRAID_INFO_HW_BBU) ||
+            (mraid_bbu_status = GetBBUInfo(&bbu_stat) == MRAID_BBU_ERROR)) {
+            status = false;
+            break;
+        }
         IOPrint("BBU type: ");
 		switch (bbu_stat.battery_type) {
             case MRAID_BBU_TYPE_BBU:
@@ -402,7 +410,7 @@ bool SASMegaRAID::Attach()
 		switch(mraid_bbu_status) {
             case MRAID_BBU_GOOD:
                 IOLog("good");
-                sc.sc_bbuok = true;
+                //sc.sc_bbuok = true;
                 break;
             case MRAID_BBU_BAD:
                 IOLog("bad");
@@ -411,8 +419,9 @@ bool SASMegaRAID::Attach()
                 IOLog("unknown");
                 break;
 		}
-    } else
-        IOPrint("BBU not present");
+    } while (0);
+    if (!status)
+        IOPrint("BBU not present/read error");
     IOLog("\n");
     
     sc.sc_ld_cnt = sc.sc_info.mci_lds_present;
@@ -423,15 +432,14 @@ bool SASMegaRAID::Attach()
     mraid_intr_enable();
     /* XXX: Is it possible to get intrs enabled info from controller? */
     InterruptsActivated = true;
-    /* Rework: InitializePowerManagement() */
+
     PMinit();
     getProvider()->joinPMtree(this);
     registerPowerDriver(this, PowerStates, 1);
-    /* */
     
 #if test
     /* Ensure that interrupts work */
-    memset(&sc.sc_info, 0, sizeof(sc.sc_info));
+    bzero(&sc.sc_info, sizeof(sc.sc_info));
     if (!GetInfo()) {
         IOPrint("Unable to get controller info\n");
         return false;
@@ -455,7 +463,7 @@ mraid_mem *SASMegaRAID::AllocMem(vm_size_t size)
     if (!(mm = IONew(mraid_mem, 1)))
         return NULL;
     
-    /* Hardware requirement: Page aligned */
+    /* Hardware requirement: Page size aligned */
     if (!(mm->bmd = IOBufferMemoryDescriptor::inTaskWithOptions(kernel_task, kIOMemoryPhysicallyContiguous, size, PAGE_SIZE))) {
         goto free;
     }
@@ -464,7 +472,7 @@ mraid_mem *SASMegaRAID::AllocMem(vm_size_t size)
     mm->vaddr = (IOVirtualAddress) mm->bmd->getBytesNoCopy();
     mm->paddr = mm->bmd->getPhysicalSegment(0, &length);
     /* Zero the whole region for easy */
-    memset((void *) mm->vaddr, 0, size);
+    bzero((void *) mm->vaddr, size);
     
     return mm;
 #else
@@ -485,7 +493,7 @@ mraid_mem *SASMegaRAID::AllocMem(vm_size_t size)
     }
     if (st == kIOReturnSuccess) {
         mm->map = mm->bmd->map();
-        memset((void *) mm->map->getVirtualAddress(), 0, size);
+        bzero((void *) mm->map->getVirtualAddress(), size);
         return mm;
     }
     
@@ -645,6 +653,7 @@ bool SASMegaRAID::Transition_Firmware()
                 IOPrint("Unknown firmware state\n");
                 return false;
         }
+        /* Rework: Freeze is possible */
         for(int i = 0; i < (max_wait * 10); i++) {
             fw_state = mraid_fw_state() & MRAID_STATE_MASK;
             if(fw_state == cur_state)
@@ -675,7 +684,7 @@ bool SASMegaRAID::Initialize_Firmware()
     /* Skip header */
     qinfo = (mraid_init_qinfo *)((UInt8 *) init + MRAID_FRAME_SIZE);
     
-    memset(qinfo, 0, sizeof(mraid_init_qinfo));
+    bzero(qinfo, sizeof(mraid_init_qinfo));
     qinfo->miq_rq_entries = htole32(sc.sc_max_cmds + 1);
     
     qinfo->miq_rq_addr = htole64(MRAID_DVA(sc.sc_pcq) + offsetof(mraid_prod_cons, mpc_reply_q));
@@ -705,8 +714,10 @@ bool SASMegaRAID::GetInfo()
 {
     DbgPrint("%s\n", __FUNCTION__);
     
-    if (!Management(MRAID_DCMD_CTRL_GET_INFO, MRAID_DATA_IN, sizeof(sc.sc_info), &sc.sc_info, NULL))
+    if (!Management(MRAID_DCMD_CTRL_GET_INFO, MRAID_DATA_IN, sizeof(mraid_ctrl_info), &sc.sc_info, NULL)) {
+        sc.sc_info_new.info = NULL;
         return false;
+    }
 
 #if defined(DEBUG)
     int i;
@@ -844,7 +855,7 @@ int SASMegaRAID::GetBBUInfo(mraid_bbu_status *info)
 {
     DbgPrint("%s\n", __FUNCTION__);
     
-    if (!Management(MRAID_DCMD_BBU_GET_INFO, MRAID_DATA_IN, sizeof(*info), info, NULL))
+    if (!Management(MRAID_DCMD_BBU_GET_INFO, MRAID_DATA_IN, sizeof(mraid_bbu_status), info, NULL))
         return MRAID_BBU_UNKNOWN;
     
 #if defined(DEBUG)
@@ -915,7 +926,7 @@ bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, U
     DbgPrint("%s: ccb_num: %d, opcode: %#x\n", __FUNCTION__, ccb->s.ccb_frame->mrr_header.mrh_context, opc);
         
     dcmd = &ccb->s.ccb_frame->mrr_dcmd;
-    memset(dcmd->mdf_mbox, 0, MRAID_MBOX_SIZE);
+    bzero(dcmd->mdf_mbox, MRAID_MBOX_SIZE);
     dcmd->mdf_header.mrh_cmd = MRAID_CMD_DCMD;
     dcmd->mdf_header.mrh_timeout = 0;
     
@@ -944,8 +955,8 @@ bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, U
         addr = (IOVirtualAddress) ccb->s.ccb_sglmem.bmd->getBytesNoCopy();
 #endif
         
-        if (dir == MRAID_DATA_OUT)
-            bcopy(buf, (void *) addr, len);
+        /* dir == MRAID_DATA_OUT: Expected that caller 'll prepare and fill the buffer */
+        
         dcmd->mdf_header.mrh_data_len = len;
         
         ccb->s.ccb_sglmem.len = len;
@@ -983,7 +994,6 @@ bool SASMegaRAID::CreateSGL(mraid_ccbCommand *ccb)
     
     DbgPrint("%s\n", __FUNCTION__);
     
-    /* Rework: Remove this bottleneck, we should preallocate memory beforehand */
     ccb->s.ccb_sglmem.paddr = ccb->s.ccb_sglmem.bmd->getPhysicalSegment(0, &length);
 #ifdef segmem
     if (!GenerateSegments(ccb)) {
@@ -1068,7 +1078,6 @@ void SASMegaRAID::MRAID_Shutdown()
     }
 }
 
-/* TO-DO: HandlePowerOn/Off() */
 void SASMegaRAID::systemWillShutdown(IOOptionBits spec)
 {
     DbgPrint("%s: spec = %#x\n", __FUNCTION__, spec);
@@ -1104,7 +1113,9 @@ void SASMegaRAID::MRAID_Write(UInt8 offset, uint32_t data)
     DbgPrint("%s: offset %#x data 0x%08x\n", __FUNCTION__, offset, data);
 
     OSWriteLittleInt32(vAddr, offset, data);
+#if defined PPC
     OSSynchronizeIO();
+#endif
     
     /*if(MemDesc.writeBytes(offset, &data, 4) != 4) {
      DbgPrint("%s[%p]::Write(): Unsuccessfull.\n", getName(), this);
@@ -1127,6 +1138,7 @@ void SASMegaRAID::MRAID_Poll(mraid_ccbCommand *ccb)
     
     mraid_post(ccb);
     
+    /* Rework: Freeze is possible */
     while (1) {
         IOSleep(10);
         
@@ -1230,6 +1242,7 @@ void mraid_cmd_done(mraid_ccbCommand *ccb)
             cmd->ts = kSCSITaskStatus_No_Status;
 #if defined(DEBUG)
             IOPrint("Warning: kSCSITaskStatus_No_Status: 0x%02x on 0x%x\n", hdr->mrh_cmd_status,
+                    /* XXX: This one doesn't set */
                     cmd->opcode);
 #endif
             if (hdr->mrh_scsi_status) {
@@ -1295,7 +1308,7 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
     
     pf->mpf_sense_addr = htole64(ccb->s.ccb_psense);
     
-    memset(pf->mpf_cdb, 0, 16);
+    bzero(pf->mpf_cdb, 16);
     GetCommandDescriptorBlock(pr, &cdbData);
 	memcpy(pf->mpf_cdb, cdbData, pf->mpf_header.mrh_cdb_len);
     

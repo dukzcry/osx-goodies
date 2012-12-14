@@ -40,14 +40,14 @@ public:
         s.ccb_extra_frames = 0;
         s.ccb_sgl = NULL;
         
-        memset(&s.ccb_sglmem, 0, sizeof(mraid_sgl_mem));
+        bzero(&s.ccb_sglmem, sizeof(mraid_sgl_mem));
     }
 protected:
     virtual bool init() {
         if(!super::init())
             return false;
         
-        memset(&s, 0, sizeof(struct st));
+        bzero(&s, sizeof(struct st));
         
         return true;
     }

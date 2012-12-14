@@ -100,11 +100,16 @@ typedef struct {
     addr64_t                        *sc_ccb;
     
     mraid_ctrl_info                 sc_info;
+    struct {
+        mraid_ctrl_info             *info;
+        mraid_sgl_mem               *mem;
+    } sc_info_new;
 
 #define MRAID_BBU_GOOD              0
 #define MRAID_BBU_BAD               1
 #define MRAID_BBU_UNKNOWN           2
-    bool                            sc_bbuok;
+#define MRAID_BBU_ERROR             3
+    //bool                            sc_bbuok;
 } mraid_softc;
 
 typedef struct {
