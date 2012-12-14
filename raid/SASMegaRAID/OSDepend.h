@@ -1,8 +1,8 @@
 #include <IOKit/IOLib.h>
 
-#define MAXPHYS             (64 * 1024)
-
 #define drvid               "[SASMegaRAID] "
+
+#define MAXPHYS             (64 * 1024)
 
 #define IOPrint(arg...)     IOLog(drvid arg)
 #if defined(DEBUG)
@@ -10,7 +10,7 @@
 #else
 #define DbgPrint(arg...)
 #endif
-#define my_assert(x) (x ? (void) 0 : Assert(__FILE__, __LINE__, # x))
+#define my_assert(x)        (x ? (void) 0 : Assert(__FILE__, __LINE__, # x))
 
 #define nitems(_a)          (sizeof((_a)) / sizeof((_a)[0]))
 

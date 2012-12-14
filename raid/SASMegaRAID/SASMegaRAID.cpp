@@ -25,7 +25,11 @@ bool SASMegaRAID::init (OSDictionary* dict)
     sc.sc_iop = IONew(mraid_iop_ops, 1);
     
     sc.sc_pcq = sc.sc_frames = sc.sc_sense = NULL;
+<<<<<<< HEAD
     sc.sc_bbuok = false;
+=======
+    //sc.sc_bbuok = false;
+>>>>>>> 82bd552beb78d7e17346a6e3558a5132652579fa
     sc.sc_info.info = NULL;
     bzero(sc.sc_ld_present, MRAID_MAX_LD);
 
@@ -104,7 +108,7 @@ bool SASMegaRAID::InitializeController(void)
             }
         break;
         case PCI_MAPREG_MEM_TYPE_64BIT:
-#ifdef notyet
+#if 1
             IOPrint("PCI-X support to be implemented\n");
             return false;
 #else
@@ -179,8 +183,13 @@ void SASMegaRAID::free(void)
     
     DbgPrint("IOService->free\n");
     
+<<<<<<< HEAD
     if(map) map->release();
     if (sc.sc_info.info) FreeSGL(sc.sc_info.mem);
+=======
+    if (map) map->release();
+    if (sc.sc_info.info) FreeSGL(&sc.sc_info.mem);
+>>>>>>> 82bd552beb78d7e17346a6e3558a5132652579fa
     if (ccb_inited) {
         IODelete(sc.sc_ccb, addr64_t, sc.sc_max_cmds);
         for (int i = 0; i < sc.sc_max_cmds; i++)
@@ -387,6 +396,7 @@ bool SASMegaRAID::Attach()
     
     status = true;
     do {
+<<<<<<< HEAD
         mraid_bbu_status *bbu_stat;
         mraid_sgl_mem *mem;
         int mraid_bbu_stat;
@@ -398,6 +408,19 @@ bool SASMegaRAID::Attach()
         }
         
         IOPrint("BBU type: ");
+=======
+        mraid_bbu_status *bbu_stat = NULL;
+        mraid_sgl_mem mem;
+        int mraid_bbu_stat;
+
+        if (!(sc.sc_info.info->mci_hw_present & MRAID_INFO_HW_BBU) ||
+            (mraid_bbu_stat = GetBBUInfo(&mem, bbu_stat) == MRAID_BBU_ERROR)) {
+            status = false;
+            break;
+        }
+        IOPrint("BBU type: ");
+        /* Analyzer warn is wrong */
+>>>>>>> 82bd552beb78d7e17346a6e3558a5132652579fa
 		switch (bbu_stat->battery_type) {
             case MRAID_BBU_TYPE_BBU:
                 IOLog("BBU");
@@ -408,12 +431,16 @@ bool SASMegaRAID::Attach()
             default:
                 IOLog("unknown type %d", bbu_stat->battery_type);
 		}
+<<<<<<< HEAD
         FreeSGL(mem);
+=======
+        FreeSGL(&mem);
+>>>>>>> 82bd552beb78d7e17346a6e3558a5132652579fa
         IOLog(", status ");
 		switch(mraid_bbu_stat) {
             case MRAID_BBU_GOOD:
                 IOLog("good");
-                sc.sc_bbuok = true;
+                //sc.sc_bbuok = true;
                 break;
             case MRAID_BBU_BAD:
                 IOLog("bad");
@@ -426,7 +453,11 @@ bool SASMegaRAID::Attach()
     if (!status)
         IOPrint("BBU not present/read error");
     IOLog("\n");
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> 82bd552beb78d7e17346a6e3558a5132652579fa
     sc.sc_ld_cnt = sc.sc_info.info->mci_lds_present;
     for (int i = 0; i < sc.sc_ld_cnt; i++) {
         sc.sc_ld_present[i] = true;
@@ -435,13 +466,21 @@ bool SASMegaRAID::Attach()
     mraid_intr_enable();
     /* XXX: Is it possible to get intrs enabled info from controller? */
     InterruptsActivated = true;
+<<<<<<< HEAD
+=======
+
+>>>>>>> 82bd552beb78d7e17346a6e3558a5132652579fa
     PMinit();
     getProvider()->joinPMtree(this);
     registerPowerDriver(this, PowerStates, 1);
     
 #if test
     /* Ensure that interrupts work */
+<<<<<<< HEAD
     bzero(sc.sc_info.info, sizeof(mraid_ctrl_info));
+=======
+    bzero(&sc.sc_info, sizeof(sc.sc_info));
+>>>>>>> 82bd552beb78d7e17346a6e3558a5132652579fa
     if (!GetInfo()) {
         IOPrint("Unable to get controller info\n");
         return false;
@@ -716,12 +755,21 @@ bool SASMegaRAID::GetInfo()
 {
     DbgPrint("%s\n", __FUNCTION__);
     
+<<<<<<< HEAD
     if (!Management(MRAID_DCMD_CTRL_GET_INFO, MRAID_DATA_IN, sizeof(mraid_ctrl_info), sc.sc_info.mem, NULL)) {
         sc.sc_info.info = NULL;
         return false;
     }
     sc.sc_info.info = (mraid_ctrl_info *) sc.sc_info.mem->bmd->getBytesNoCopy();
     
+=======
+    if (!Management(MRAID_DCMD_CTRL_GET_INFO, MRAID_DATA_IN, sizeof(mraid_ctrl_info), &sc.sc_info.mem, NULL)) {
+        sc.sc_info.info = NULL;
+        return false;
+    }
+    sc.sc_info.info = (mraid_ctrl_info *) sc.sc_info.mem.bmd->getBytesNoCopy();
+
+>>>>>>> 82bd552beb78d7e17346a6e3558a5132652579fa
 #if defined(DEBUG)
     int i;
 	for (i = 0; i < sc.sc_info.info->mci_image_component_count; i++) {
@@ -854,7 +902,11 @@ void SASMegaRAID::ExportInfo()
     }
 }
 
+<<<<<<< HEAD
 int SASMegaRAID::GetBBUInfo(mraid_sgl_mem *&mem, mraid_bbu_status *&info)
+=======
+int SASMegaRAID::GetBBUInfo(mraid_sgl_mem *mem, mraid_bbu_status *info)
+>>>>>>> 82bd552beb78d7e17346a6e3558a5132652579fa
 {
     DbgPrint("%s\n", __FUNCTION__);
     
@@ -912,7 +964,11 @@ int SASMegaRAID::GetBBUInfo(mraid_sgl_mem *&mem, mraid_bbu_status *&info)
 }
 
 /* Uglified as preparation for sensors updating: don't do any buffer copying */
+<<<<<<< HEAD
 bool SASMegaRAID::Management(UInt32 opc, UInt32 dir, UInt32 len, mraid_sgl_mem *&mem, UInt8 *mbox)
+=======
+bool SASMegaRAID::Management(UInt32 opc, UInt32 dir, UInt32 len, mraid_sgl_mem *mem, UInt8 *mbox)
+>>>>>>> 82bd552beb78d7e17346a6e3558a5132652579fa
 {
     mraid_ccbCommand* ccb;
     bool res;
@@ -921,6 +977,7 @@ bool SASMegaRAID::Management(UInt32 opc, UInt32 dir, UInt32 len, mraid_sgl_mem *
     
     if (dir == MRAID_DATA_IN) {
         /* Support 64-bit DMA */
+<<<<<<< HEAD
         if (!(ccb->s.ccb_sglmem.bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(kernel_task,
             kIOMemoryPhysicallyContiguous /*| kIOMapInhibitCache // No caching */
             ,len, IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : 0x00000000FFFFF000ULL)))
@@ -930,6 +987,17 @@ bool SASMegaRAID::Management(UInt32 opc, UInt32 dir, UInt32 len, mraid_sgl_mem *
         ccb->s.ccb_sglmem.map = ccb->s.ccb_sglmem.bmd->map();
 #else
         ccb->s.ccb_sglmem.bmd->prepare();
+=======
+        if (!(mem->bmd = ccb->s.ccb_sglmem.bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(kernel_task,
+            kIOMemoryPhysicallyContiguous /*| kIOMapInhibitCache // No caching */,
+            len, IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : 0x00000000FFFFF000ULL)))
+            return false;
+        
+#ifdef segmem
+    mem->map = ccb->s.ccb_sglmem.map = ccb->s.ccb_sglmem.bmd->map();
+#else
+    ccb->s.ccb_sglmem.bmd->prepare();
+>>>>>>> 82bd552beb78d7e17346a6e3558a5132652579fa
 #endif
     }
     
@@ -938,7 +1006,11 @@ bool SASMegaRAID::Management(UInt32 opc, UInt32 dir, UInt32 len, mraid_sgl_mem *
     
     return res;
 }
+<<<<<<< HEAD
 bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, UInt32 len, mraid_sgl_mem *&mem, UInt8 *mbox)
+=======
+bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, UInt32 len, mraid_sgl_mem *mem, UInt8 *mbox)
+>>>>>>> 82bd552beb78d7e17346a6e3558a5132652579fa
 {
     mraid_dcmd_frame *dcmd;
     
@@ -959,17 +1031,25 @@ bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, U
     if (mbox)
         memcpy(dcmd->mdf_mbox, mbox, MRAID_MBOX_SIZE);
     
+<<<<<<< HEAD
     if (dir != MRAID_DATA_NONE) {
+=======
+    if (dir != MRAID_DATA_NONE) {        
+>>>>>>> 82bd552beb78d7e17346a6e3558a5132652579fa
         /* dir == MRAID_DATA_OUT: Expected that caller 'll prepare and fill the buffer */
         
         dcmd->mdf_header.mrh_data_len = len;
         
         ccb->s.ccb_sglmem.len = len;
-        
         ccb->s.ccb_sgl = &dcmd->mdf_sgl;
         
         if (!CreateSGL(ccb))
             goto fail;
+        
+#ifdef segmem
+        mem->cmd = ccb->s.ccb_sglmem.cmd;
+        mem->segments = ccb->s.ccb_sglmem.segments;
+#endif
     }
 
     if (!InterruptsActivated) {
@@ -981,7 +1061,10 @@ bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, U
     if (dcmd->mdf_header.mrh_cmd_status != MRAID_STAT_OK)
         goto fail;
     
+<<<<<<< HEAD
     mem = &ccb->s.ccb_sglmem;
+=======
+>>>>>>> 82bd552beb78d7e17346a6e3558a5132652579fa
     return true;
 fail:
     FreeSGL(&ccb->s.ccb_sglmem);
@@ -997,7 +1080,6 @@ bool SASMegaRAID::CreateSGL(mraid_ccbCommand *ccb)
     
     DbgPrint("%s\n", __FUNCTION__);
     
-    /* Rework: Remove this bottleneck, we should preallocate memory beforehand */
     ccb->s.ccb_sglmem.paddr = ccb->s.ccb_sglmem.bmd->getPhysicalSegment(0, &length);
 #ifdef segmem
     if (!GenerateSegments(ccb)) {
@@ -1312,7 +1394,11 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
     pf->mpf_header.mrh_sense_len = MRAID_SENSE_SIZE;
     
     pf->mpf_sense_addr = htole64(ccb->s.ccb_psense);
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> 82bd552beb78d7e17346a6e3558a5132652579fa
     bzero(pf->mpf_cdb, 16);
     GetCommandDescriptorBlock(pr, &cdbData);
 	memcpy(pf->mpf_cdb, cdbData, pf->mpf_header.mrh_cdb_len);
@@ -1438,7 +1524,11 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
     SCSICommandDescriptorBlock cdbData = { 0 };
     
     mraid_ccbCommand *ccb;
+<<<<<<< HEAD
     mraid_sgl_mem *p;
+=======
+    mraid_sgl_mem *p = NULL;
+>>>>>>> 82bd552beb78d7e17346a6e3558a5132652579fa
     UInt8 mbox[MRAID_MBOX_SIZE];
     
     GetCommandDescriptorBlock(parallelRequest, &cdbData);
