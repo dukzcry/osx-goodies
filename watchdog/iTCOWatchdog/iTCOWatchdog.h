@@ -42,7 +42,7 @@ private:
     
     MyLPC *LPCNub;
     bool SelfFeeding, WorkaroundBug; UInt32 Timeout;
-    bool SMIWereEnabled, first_run, is_active, entered_sleep;
+    bool SMIWereEnabled, first_run, is_active; //entered_sleep
     
     void clearStatus();
     bool enableReboots();
@@ -68,5 +68,5 @@ protected:
     
     virtual IOReturn setProperties(OSObject *);
     virtual void systemWillShutdown(IOOptionBits);
-    virtual IOReturn setPowerState(unsigned long, IOService *);
+    //virtual IOReturn setPowerState(unsigned long, IOService *);
 };

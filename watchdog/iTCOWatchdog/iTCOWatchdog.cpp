@@ -30,7 +30,7 @@ bool iTCOWatchdog::init (OSDictionary* dict)
     first_run = true;
     is_active = false;
     SMIWereEnabled = false;
-    entered_sleep = false;
+    //entered_sleep = false;
     
     GCSMem.range = NULL; GCSMem.map = NULL;
     
@@ -91,6 +91,7 @@ void iTCOWatchdog::systemWillShutdown(IOOptionBits spec)
     super::systemWillShutdown(spec);
 }
 
+#ifdef sleepfixed
 IOReturn iTCOWatchdog::setPowerState(unsigned long state, IOService *dev __unused)
 {
     DbgPrint(drvid, "%s: spec = %lu\n", __FUNCTION__, state);
@@ -107,6 +108,7 @@ IOReturn iTCOWatchdog::setPowerState(unsigned long state, IOService *dev __unuse
     
     return kIOPMAckImplied;
 }
+#endif
 
 IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
 {

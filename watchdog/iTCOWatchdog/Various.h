@@ -164,6 +164,7 @@ class MyLPC: public super {
     OSDeclareDefaultStructors(MyLPC)
 private:
     //SInt32 AcpiReg;
+#ifdef sleepfixed
     struct {
         /* Check sizes */
         UInt32 PIRQ[2];
@@ -175,9 +176,10 @@ private:
         bool entered_sleep;
     } store;
     
-    bool InitWatchdog();
     void Sleep();
     void WakeUp();
+#endif
+    bool InitWatchdog();
     void free_common();
 public:
     IOPCIDevice *fPCIDevice;
@@ -198,7 +200,7 @@ protected:
     virtual void stop(IOService *provider) { super::stop(provider); }
     
     virtual void systemWillShutdown(IOOptionBits);
-    virtual IOReturn setPowerState(unsigned long, IOService *);
+    //virtual IOReturn setPowerState(unsigned long, IOService *);
 };
 
 bool MyLPC::init (OSDictionary* dict)
@@ -208,7 +210,7 @@ bool MyLPC::init (OSDictionary* dict)
 
     //AcpiReg = -1;
     lpc = NULL;
-    store.entered_sleep = false;
+    //store.entered_sleep = false;
     
     return res;
 }
@@ -248,7 +250,7 @@ void MyLPC::systemWillShutdown(IOOptionBits spec)
     super::systemWillShutdown(spec);
 }
 
-#if timer
+#ifdef timer
 void MyLPC::free_common()
 {
     if (AcpiReg >= 0) {
@@ -258,6 +260,7 @@ void MyLPC::free_common()
 }
 #endif
 
+#ifdef sleepfixed
 IOReturn MyLPC::setPowerState(unsigned long state, IOService *dev __unused)
 {
     DbgPrint(lpcid, "%s: spec = %lu\n", __FUNCTION__, state);
@@ -276,6 +279,7 @@ IOReturn MyLPC::setPowerState(unsigned long state, IOService *dev __unused)
     
     return kIOPMAckImplied;
 }
+#endif
 
 IOService *MyLPC::probe (IOService* provider, SInt32* score)
 {
@@ -356,7 +360,7 @@ bool MyLPC::InitWatchdog()
     acpi_smi.start = bar + ACPI_BASE_OFFSMI;
     acpi_smi.end = bar + ACPI_BASE_ENDSMI;
 
-#if timer
+#ifdef timer
     /* XXX: How to make this RTC available to system? */
     /* TO-DO: Write readTime() */
     /* Init power management timer */
@@ -382,6 +386,7 @@ bool MyLPC::InitWatchdog()
     return true;
 }
 
+#ifdef sleepfixed
 void MyLPC::Sleep()
 {
     store.PIRQ[0] = fPCIDevice->configRead32(LPC_PIRQA_ROUTE);
@@ -410,3 +415,4 @@ void MyLPC::WakeUp()
             fPCIDevice->configWrite32(RCBA_BASE, store.rcba);
     }
 }
+#endif
