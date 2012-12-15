@@ -378,7 +378,7 @@ bool SASMegaRAID::Attach()
         return false;
     }
     FirmwareInitialized = true;
-    
+
     if (!GetInfo()) {
         IOPrint("Unable to get controller info\n");
         return false;
@@ -387,17 +387,16 @@ bool SASMegaRAID::Attach()
     
     status = true;
     do {
-        mraid_bbu_status *bbu_stat = NULL;
+        mraid_bbu_status *bbu_stat;
         mraid_sgl_mem mem;
         int mraid_bbu_stat;
 
         if (!(sc.sc_info.info->mci_hw_present & MRAID_INFO_HW_BBU) ||
-            (mraid_bbu_stat = GetBBUInfo(&mem, bbu_stat) == MRAID_BBU_ERROR)) {
+            ((mraid_bbu_stat = GetBBUInfo(&mem, bbu_stat)) == MRAID_BBU_ERROR)) {
             status = false;
             break;
         }
         IOPrint("BBU type: ");
-        /* Analyzer warn is wrong */
 		switch (bbu_stat->battery_type) {
             case MRAID_BBU_TYPE_BBU:
                 IOLog("BBU");
@@ -442,7 +441,7 @@ bool SASMegaRAID::Attach()
     
 #if test
     /* Ensure that interrupts work */
-    bzero(sc.sc_info.info, sizeof(mraid_ctrl_info));
+    bzero(sc.info, sizeof(mraid_ctrl_info));
     if (!GetInfo()) {
         IOPrint("Unable to get controller info\n");
         return false;
@@ -628,10 +627,10 @@ bool SASMegaRAID::Transition_Firmware()
     
     DbgPrint("Firmware state %#x\n", fw_state);
     
-    while(fw_state != MRAID_STATE_READY) {
+    while (fw_state != MRAID_STATE_READY) {
         DbgPrint("Waiting for firmware to become ready\n");
         cur_state = fw_state;
-        switch(fw_state) {
+        switch (fw_state) {
             case MRAID_STATE_FAULT:
                 IOPrint("Firmware fault\n");
                 return false;
@@ -657,13 +656,13 @@ bool SASMegaRAID::Transition_Firmware()
                 return false;
         }
         /* Rework: Freeze is possible */
-        for(int i = 0; i < (max_wait * 10); i++) {
+        for (int i = 0; i < (max_wait * 10); i++) {
             fw_state = mraid_fw_state() & MRAID_STATE_MASK;
             if(fw_state == cur_state)
                 IOSleep(100);
             else break;
         }
-        if(fw_state == cur_state) {
+        if (fw_state == cur_state) {
             IOPrint("Firmware stuck in state: %#x\n", fw_state);
             return false;
         }
@@ -855,14 +854,15 @@ void SASMegaRAID::ExportInfo()
     }
 }
 
-int SASMegaRAID::GetBBUInfo(mraid_sgl_mem *mem, mraid_bbu_status *info)
+int SASMegaRAID::GetBBUInfo(mraid_sgl_mem *mem, mraid_bbu_status *&info)
 {
     DbgPrint("%s\n", __FUNCTION__);
     
     if (!Management(MRAID_DCMD_BBU_GET_INFO, MRAID_DATA_IN, sizeof(mraid_bbu_status), mem, NULL))
-        return MRAID_BBU_UNKNOWN;
+        return MRAID_BBU_ERROR;
     
     info = (mraid_bbu_status *) mem->bmd->getBytesNoCopy();
+    
 #if defined(DEBUG)
 	IOPrint("BBU voltage %d, current %d, temperature %d, "
            "status 0x%x\n", info->voltage, info->current,
@@ -962,7 +962,7 @@ bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, U
     
     if (dir != MRAID_DATA_NONE) {
         /* dir == MRAID_DATA_OUT: Expected that caller 'll prepare and fill the buffer */
-        
+
         dcmd->mdf_header.mrh_data_len = len;
         
         ccb->s.ccb_sglmem.len = len;
@@ -971,7 +971,7 @@ bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, U
         if (!CreateSGL(ccb))
             goto fail;
         
-#ifdef segmem
+#if defined segmem
         mem->cmd = ccb->s.ccb_sglmem.cmd;
         mem->segments = ccb->s.ccb_sglmem.segments;
 #endif
@@ -985,6 +985,8 @@ bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, U
 
     if (dcmd->mdf_header.mrh_cmd_status != MRAID_STAT_OK)
         goto fail;
+    
+    //mem->bmd->complete();
     
     return true;
 fail:
