@@ -11,7 +11,7 @@
 
 typedef struct {
     IOBufferMemoryDescriptor *bmd;
-#if segmem
+#if multiseg
     IODMACommand *cmd; /* synchronize() */
     IOMemoryMap *map;
     IODMACommand::Segment32 segment;
@@ -25,7 +25,7 @@ typedef struct {
 
     IOBufferMemoryDescriptor *bmd;
     IOPhysicalAddress paddr;
-#ifdef segmem
+#ifdef multiseg
     UInt32 numSeg; /* For FreeSGL() */
     
     IODMACommand *cmd;
@@ -39,7 +39,7 @@ typedef struct {
 } mraid_sgl_mem;
 void FreeSGL(mraid_sgl_mem *mm)
 {
-#ifdef segmem
+#ifdef multiseg
     if (mm->map) {
         mm->map->release();
         mm->map = NULL;
@@ -56,7 +56,7 @@ void FreeSGL(mraid_sgl_mem *mm)
         mm->bmd->release();
         mm->bmd = NULL;
     }
-#ifdef segmem
+#ifdef multiseg
     if (mm->segments) {
         IODelete(mm->segments,
 #if IOPhysSize == 64
@@ -70,7 +70,7 @@ void FreeSGL(mraid_sgl_mem *mm)
 #endif
 }
 
-#ifdef segmem
+#ifdef multiseg
 #define MRAID_DVA(_am) ((_am)->segment.fIOVMAddr)
 #define MRAID_KVA(_am) ((_am)->map->getVirtualAddress())
 #else
@@ -185,7 +185,7 @@ private:
     bool Do_Management(mraid_ccbCommand *, UInt32, UInt32, UInt32, mraid_sgl_mem *, UInt8 *);
     mraid_mem *AllocMem(vm_size_t);
     void FreeMem(mraid_mem *);
-    bool CreateSGL(mraid_ccbCommand *);
+    bool CreateSGL(mraid_ccbCommand *, IOMemoryDescriptor* = NULL);
     //bool GenerateSegments(mraid_ccbCommand *);
     void Initccb();
     mraid_ccbCommand *Getccb();
