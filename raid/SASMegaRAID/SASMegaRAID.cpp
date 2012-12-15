@@ -1003,13 +1003,9 @@ bool SASMegaRAID::CreateSGL(mraid_ccbCommand *ccb, IOMemoryDescriptor *desc)
     
     DbgPrint("%s\n", __FUNCTION__);
     
-    if (desc) {
-        IOPrint("desc getPhysicalSegment: 0x%llx\n", desc->getPhysicalSegment(0, &length));
-        //desc->map();
-        //IOPrint("map getPhysicalAddress: 0x%llx\n", map->getPhysicalAddress());
-        ccb->s.ccb_sglmem.paddr = desc->getPhysicalSegment(0, &length);
-    } else 
-        ccb->s.ccb_sglmem.paddr = ccb->s.ccb_sglmem.bmd->getPhysicalSegment(0, &length);
+    ccb->s.ccb_sglmem.paddr = desc ? desc->getPhysicalSegment(0, &length) :
+        ccb->s.ccb_sglmem.bmd->getPhysicalSegment(0, &length);
+
 #ifdef multiseg
     if (!GenerateSegments(ccb)) {
         IOPrint("Unable to generate segments\n");
@@ -1279,13 +1275,11 @@ void SASMegaRAID::CompleteTask(mraid_ccbCommand *ccb, cmd_context *cmd)
 {
     if (ccb->s.ccb_direction != MRAID_DATA_NONE) {
     	if (cmd->ts == kSCSITaskStatus_GOOD) {
-#if 1
+#ifndef nobufcpy
         	if (ccb->s.ccb_direction == MRAID_DATA_IN)
-                    /* Rework */
             		GetDataBuffer(cmd->pr)->writeBytes(cmd->instance->GetDataBufferOffset(cmd->pr),
                                    (void *) ccb->s.ccb_sglmem.bmd->getBytesNoCopy(),
                                     ccb->s.ccb_sglmem.len);
-                    /* */
 #endif
             SetRealizedDataTransferCount(cmd->pr, ccb->s.ccb_sglmem.len);
     	} else
@@ -1355,23 +1349,24 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
     }
 
     if ((transferMemDesc = GetDataBuffer(pr))) {
-#if 1
-        /* Rework */
+        transferLen = transferMemDesc->getLength();
+#ifndef nobufcpy
         if (!(ccb->s.ccb_sglmem.bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(
                                                     kernel_task,
                                                     kIOMemoryPhysicallyContiguous,
-                                                    (transferLen = transferMemDesc->getLength()),
+                                                    transferLen,
                                                     IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : 0x00000000FFFFFFFFULL)))
             return false;
         ccb->s.ccb_sglmem.bmd->prepare();
 
-        ccb->s.ccb_sglmem.len = (UInt32) transferLen;
         if (ccb->s.ccb_direction == MRAID_DATA_OUT)
             transferMemDesc->readBytes(GetDataBufferOffset(pr), (void *) ccb->s.ccb_sglmem.bmd->getBytesNoCopy(), transferLen);
-        /* */
-#endif
         
-        if (!CreateSGL(ccb))
+        transferMemDesc = NULL;
+#endif
+        ccb->s.ccb_sglmem.len = (UInt32) transferLen;
+        
+        if (!CreateSGL(ccb, transferMemDesc))
             return false;
     }
     
@@ -1427,23 +1422,24 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
     ccb->s.ccb_frame_size = MRAID_PASS_FRAME_SIZE;
     ccb->s.ccb_sgl = &io->mif_sgl;
 
-#if 1
-    /* Rework */
+    transferLen = transferMemDesc->getLength();
+#ifndef nobufcpy
     if (!(ccb->s.ccb_sglmem.bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(
-                                                                                    kernel_task,
-                                                                                    kIOMemoryPhysicallyContiguous,
-                                                                                    (transferLen = transferMemDesc->getLength()),
-                                                                                    IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : 0x00000000FFFFFFFFULL)))
+        kernel_task,
+        kIOMemoryPhysicallyContiguous,
+        transferLen,
+        IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : 0x00000000FFFFFFFFULL)))
         return false;
     ccb->s.ccb_sglmem.bmd->prepare();
         
-    ccb->s.ccb_sglmem.len = (UInt32) transferLen;
     if (ccb->s.ccb_direction == MRAID_DATA_OUT)
         transferMemDesc->readBytes(GetDataBufferOffset(pr), (void *) ccb->s.ccb_sglmem.bmd->getBytesNoCopy(), transferLen);
-    /* */
-#endif
     
-    if (!CreateSGL(ccb))
+    transferMemDesc = NULL;
+#endif
+    ccb->s.ccb_sglmem.len = (UInt32) transferLen;
+    
+    if (!CreateSGL(ccb, transferMemDesc))
         return false;
     
     return true;
@@ -1574,12 +1570,11 @@ void SASMegaRAID::ReportHBAConstraints(OSDictionary *constraints)
     
     val->setValue(IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : 0x00000000FFFFFFFFULL);
     constraints->setObject(kIOMinimumHBADataAlignmentMaskKey, val);
-
+    val->setValue(IOPhysSize);
+    constraints->setObject(kIOMaximumSegmentAddressableBitCountKey, val);
 #if 0
     val->setValue(PAGE_SIZE / 1024);
     constraints->setObject(kIOMinimumSegmentAlignmentByteCountKey, val);
-    val->setValue(IOPhysSize);
-    constraints->setObject(kIOMaximumSegmentAddressableBitCountKey, val);
 #endif
     val->release();
 }
