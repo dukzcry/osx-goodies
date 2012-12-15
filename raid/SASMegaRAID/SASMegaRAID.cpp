@@ -1570,12 +1570,13 @@ void SASMegaRAID::ReportHBAConstraints(OSDictionary *constraints)
     
     val->setValue(IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : 0x00000000FFFFFFFFULL);
     constraints->setObject(kIOMinimumHBADataAlignmentMaskKey, val);
+#if 0
     val->setValue(IOPhysSize);
     constraints->setObject(kIOMaximumSegmentAddressableBitCountKey, val);
-#if 0
-    val->setValue(PAGE_SIZE / 1024);
+    val->setValue();
     constraints->setObject(kIOMinimumSegmentAlignmentByteCountKey, val);
 #endif
+
     val->release();
 }
 
