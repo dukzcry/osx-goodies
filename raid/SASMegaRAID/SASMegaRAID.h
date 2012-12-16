@@ -144,12 +144,13 @@ private:
     
     IOPCIDevice *fPCIDevice;
     IOMemoryMap *map;
-    void *vAddr;
+    mach_vm_address_t addr_mask;
     IOWorkLoop *MyWorkLoop;
     IOInterruptEventSource *fInterruptSrc;
     OSDictionary *conf;
     IOCommandPool *ccbCommandPool;
     
+    void *vAddr;
     bool fMSIEnabled;
     bool InterruptsActivated;
     bool FirmwareInitialized;

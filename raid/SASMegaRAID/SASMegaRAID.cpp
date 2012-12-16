@@ -18,6 +18,7 @@ bool SASMegaRAID::init (OSDictionary* dict)
     MyWorkLoop = NULL; fInterruptSrc = NULL;
     InterruptsActivated = FirmwareInitialized = fMSIEnabled = ccb_inited = false;
     conf = OSDynamicCast(OSDictionary, getProperty("Settings"));
+    addr_mask = IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : MASK_32BIT;
     
 	/* Create an instance of PCI class from Helper Library */
 	PCIHelperP = new PCIHelper<SASMegaRAID>;
@@ -924,7 +925,7 @@ bool SASMegaRAID::Management(UInt32 opc, UInt32 dir, UInt32 len, mraid_sgl_mem *
         /* Support 64-bit DMA */
         if (!(mem->bmd = ccb->s.ccb_sglmem.bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(kernel_task,
             kIOMemoryPhysicallyContiguous /*| kIOMapInhibitCache // No caching */,
-            len, IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : 0x00000000FFFFFFFFULL)))
+            len, addr_mask)))
             return false;
         
 #ifdef multiseg
@@ -1028,7 +1029,7 @@ bool SASMegaRAID::CreateSGL(mraid_ccbCommand *ccb)
         } else {
             sgl->sg32[0].addr = (UInt32) htole32(ccb->s.ccb_sglmem.paddr
 #ifndef PPC
-                & 0x00000000ffffffff
+                & MASK_32BIT
 #endif
             );
             sgl->sg32[0].len = htole32(ccb->s.ccb_sglmem.len);
@@ -1040,7 +1041,7 @@ bool SASMegaRAID::CreateSGL(mraid_ccbCommand *ccb)
     } else {
         sgl->sg32[0].addr = (UInt32) htole32(sgd[i].fIOVMAddr
 #ifndef PPC
-        & 0x00000000ffffffff
+        & MASK_32BIT
 #endif
         );
         sgl->sg32[0].len = (UInt32) htole32(sgd[i].fLength);
@@ -1276,7 +1277,7 @@ void SASMegaRAID::CompleteTask(mraid_ccbCommand *ccb, cmd_context *cmd)
     	if (cmd->ts == kSCSITaskStatus_GOOD) {
         	if (ccb->s.ccb_direction == MRAID_DATA_IN)
             		GetDataBuffer(cmd->pr)->writeBytes(cmd->instance->GetDataBufferOffset(cmd->pr),
-                                   ccb->s.ccb_sglmem.bmd->getBytesNoCopy(),
+                                   (void *) ccb->s.ccb_sglmem.bmd->getBytesNoCopy(),
                                     ccb->s.ccb_sglmem.len);
             SetRealizedDataTransferCount(cmd->pr, ccb->s.ccb_sglmem.len);
     	} else
@@ -1351,12 +1352,12 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
                                                     kernel_task,
                                                     kIOMemoryPhysicallyContiguous,
                                                     transferLen,
-                                                    IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : 0x00000000FFFFFFFFULL)))
+                                                    addr_mask)))
             return false;
         ccb->s.ccb_sglmem.bmd->prepare();
 
         if (ccb->s.ccb_direction == MRAID_DATA_OUT)
-            transferMemDesc->readBytes(GetDataBufferOffset(pr), ccb->s.ccb_sglmem.bmd->getBytesNoCopy(), transferLen);
+            transferMemDesc->readBytes(GetDataBufferOffset(pr), (void *) ccb->s.ccb_sglmem.bmd->getBytesNoCopy(), transferLen);
         
         ccb->s.ccb_sglmem.len = (UInt32) transferLen;
         
@@ -1422,12 +1423,12 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
         kernel_task,
         kIOMemoryPhysicallyContiguous,
         transferLen,
-        IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : 0x00000000FFFFFFFFULL)))
+        addr_mask)))
         return false;
     ccb->s.ccb_sglmem.bmd->prepare();
         
     if (ccb->s.ccb_direction == MRAID_DATA_OUT)
-        transferMemDesc->readBytes(GetDataBufferOffset(pr), ccb->s.ccb_sglmem.bmd->getBytesNoCopy(), transferLen);
+        transferMemDesc->readBytes(GetDataBufferOffset(pr), (void *) ccb->s.ccb_sglmem.bmd->getBytesNoCopy(), transferLen);
 
     ccb->s.ccb_sglmem.len = (UInt32) transferLen;
     
@@ -1560,7 +1561,7 @@ void SASMegaRAID::ReportHBAConstraints(OSDictionary *constraints)
     constraints->setObject(kIOMaximumSegmentByteCountReadKey, val);
     constraints->setObject(kIOMaximumSegmentByteCountWriteKey, val);
     
-    val->setValue(IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : 0x00000000FFFFFFFFULL);
+    val->setValue(addr_mask);
     constraints->setObject(kIOMinimumHBADataAlignmentMaskKey, val);
 #if 0
     val->setValue(IOPhysSize);
