@@ -185,7 +185,7 @@ private:
     bool Do_Management(mraid_ccbCommand *, UInt32, UInt32, UInt32, mraid_sgl_mem *, UInt8 *);
     mraid_mem *AllocMem(vm_size_t);
     void FreeMem(mraid_mem *);
-    bool CreateSGL(mraid_ccbCommand *, IOMemoryDescriptor* = NULL);
+    bool CreateSGL(mraid_ccbCommand *);
     //bool GenerateSegments(mraid_ccbCommand *);
     void Initccb();
     mraid_ccbCommand *Getccb();
