@@ -912,7 +912,7 @@ int SASMegaRAID::GetBBUInfo(mraid_sgl_mem *mem, mraid_bbu_status *&info)
 	}
 }
 
-/* Uglified as preparation for sensors updating: don't do any buffer copying */
+/* Uglified as preparation for sensors updating: don't do DMA buffer copying */
 bool SASMegaRAID::Management(UInt32 opc, UInt32 dir, UInt32 len, mraid_sgl_mem *mem, UInt8 *mbox)
 {
     mraid_ccbCommand* ccb;
@@ -1276,7 +1276,7 @@ void SASMegaRAID::CompleteTask(mraid_ccbCommand *ccb, cmd_context *cmd)
     	if (cmd->ts == kSCSITaskStatus_GOOD) {
         	if (ccb->s.ccb_direction == MRAID_DATA_IN)
             		GetDataBuffer(cmd->pr)->writeBytes(cmd->instance->GetDataBufferOffset(cmd->pr),
-                                   (void *) ccb->s.ccb_sglmem.bmd->getBytesNoCopy(),
+                                   ccb->s.ccb_sglmem.bmd->getBytesNoCopy(),
                                     ccb->s.ccb_sglmem.len);
             SetRealizedDataTransferCount(cmd->pr, ccb->s.ccb_sglmem.len);
     	} else
@@ -1356,7 +1356,7 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
         ccb->s.ccb_sglmem.bmd->prepare();
 
         if (ccb->s.ccb_direction == MRAID_DATA_OUT)
-            transferMemDesc->readBytes(GetDataBufferOffset(pr), (void *) ccb->s.ccb_sglmem.bmd->getBytesNoCopy(), transferLen);
+            transferMemDesc->readBytes(GetDataBufferOffset(pr), ccb->s.ccb_sglmem.bmd->getBytesNoCopy(), transferLen);
         
         ccb->s.ccb_sglmem.len = (UInt32) transferLen;
         
@@ -1427,7 +1427,7 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
     ccb->s.ccb_sglmem.bmd->prepare();
         
     if (ccb->s.ccb_direction == MRAID_DATA_OUT)
-        transferMemDesc->readBytes(GetDataBufferOffset(pr), (void *) ccb->s.ccb_sglmem.bmd->getBytesNoCopy(), transferLen);
+        transferMemDesc->readBytes(GetDataBufferOffset(pr), ccb->s.ccb_sglmem.bmd->getBytesNoCopy(), transferLen);
 
     ccb->s.ccb_sglmem.len = (UInt32) transferLen;
     
@@ -1568,7 +1568,6 @@ void SASMegaRAID::ReportHBAConstraints(OSDictionary *constraints)
     val->setValue();
     constraints->setObject(kIOMinimumSegmentAlignmentByteCountKey, val);
 #endif
-
     val->release();
 }
 
