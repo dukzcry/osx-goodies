@@ -238,7 +238,7 @@ protected:
     
     virtual SCSILogicalUnitNumber	ReportHBAHighestLogicalUnitNumber ( void ) {return MRAID_MAX_LUN;};
     virtual SCSIDeviceIdentifier	ReportHighestSupportedDeviceID ( void ) {return MRAID_MAX_LD;};
-    virtual bool                    DoesHBAPerformDeviceManagement ( void ) {return true;};
+    virtual bool                    DoesHBAPerformDeviceManagement ( void ) {return false;};
     virtual UInt32                  ReportMaximumTaskCount ( void ) {/*temp*/return 1;};
     /* We're not a real SCSI controller */
     virtual SCSIInitiatorIdentifier	ReportInitiatorIdentifier ( void ) {return MRAID_MAX_LD+1;};

@@ -399,30 +399,32 @@ bool SASMegaRAID::Attach()
         return false;
     }
     if (sc.sc_info.info->mci_pd_present)
-        IOPrint("%d of physical disk(s) present\n", sc.sc_info.info->mci_pd_disks_present);
+        IOPrint("%d of physical drive(s) present\n", sc.sc_info.info->mci_pd_disks_present);
     if (sc.sc_info.info->mci_pd_disks_pred_failure)
-        IOPrint("Predicated failure of %d physical disk(s)\n", sc.sc_info.info->mci_pd_disks_pred_failure);
+        IOPrint("Predicated failure of %d physical drive(s)\n", sc.sc_info.info->mci_pd_disks_pred_failure);
     if (sc.sc_info.info->mci_pd_disks_failed)
-        IOPrint("%d of physical disks failed\n", sc.sc_info.info->mci_pd_disks_failed);
+        IOPrint("%d of physical drives failed\n", sc.sc_info.info->mci_pd_disks_failed);
     if (sc.sc_info.info->mci_lds_degraded)
-        IOPrint("%d of virtual disks degraded\n", sc.sc_info.info->mci_lds_degraded);
+        IOPrint("%d of virtual drives degraded\n", sc.sc_info.info->mci_lds_degraded);
     if (sc.sc_info.info->mci_lds_offline)
-        IOPrint("%d of virtual disks offline\n", sc.sc_info.info->mci_lds_offline);
+        IOPrint("%d of virtual drives offline\n", sc.sc_info.info->mci_lds_offline);
     if (sc.sc_info.info->mci_properties.mcp_coercion_mode || sc.sc_info.info->mci_properties.mcp_alarm_enable ||
         !sc.sc_info.info->mci_properties.mcp_disable_auto_rebuild || !sc.sc_info.info->mci_properties.mcp_disable_battery_warn) {
         IOPrint("Enabled options: ");
         if (sc.sc_info.info->mci_properties.mcp_coercion_mode)
-            IOLog("coercion mode  ");
+            IOLog("Physical Drive Coercion Mode  ");
         if (sc.sc_info.info->mci_properties.mcp_alarm_enable)
-            IOLog("alarm  ");
+            IOLog("Alarm  ");
         if (!sc.sc_info.info->mci_properties.mcp_disable_auto_rebuild)
-            IOLog("auto rebuild  ");
+            IOLog("Auto Rebuild  ");
         if (!sc.sc_info.info->mci_properties.mcp_disable_battery_warn)
-            IOLog("battery warning  ");
+            IOLog("Battery Warning  ");
         if (sc.sc_info.info->mci_properties.mcp_restore_hotspare_on_insertion)
-            IOLog("restore hotspare on insertion  ");
+            IOLog("Restore HotSpare on Insertion  ");
         if (sc.sc_info.info->mci_properties.mcp_expose_encl_devices)
-            IOLog("expose enclosure devices");
+            IOLog("Expose Enclosure Devices  ");
+        if (sc.sc_info.info->mci_properties.mcp_cluster_enable)
+            IOLog("Cluster Mode");
         IOLog("\n");
     }
     ExportInfo();
@@ -449,7 +451,6 @@ bool SASMegaRAID::Attach()
             default:
                 IOLog("unknown type %d", bbu_stat->battery_type);
 		}
-        FreeSGL(&mem);
         IOLog(", status ");
 		switch(mraid_bbu_stat) {
             case MRAID_BBU_GOOD:
@@ -464,6 +465,7 @@ bool SASMegaRAID::Attach()
                 IOLog("unknown");
                 break;
 		}
+        FreeSGL(&mem);
     } while (0);
     if (!status)
         IOPrint("BBU not present/read error");
@@ -781,7 +783,7 @@ bool SASMegaRAID::GetInfo()
                sc.sc_info.info->mci_pending_image_component[i].mic_build_date,
                sc.sc_info.info->mci_pending_image_component[i].mic_build_time);
 	}
-    IOPrint("max_arms %d max_spans %d max_arrs %d max_lds %d\n",
+    IOPrint("Max Arms Per VD %d Max Spans Per VD %d Max Arrays %d Max Number of VDs %d\n",
            sc.sc_info.info->mci_max_arms,
            sc.sc_info.info->mci_max_spans,
            sc.sc_info.info->mci_max_arrays,
@@ -792,48 +794,47 @@ bool SASMegaRAID::GetInfo()
            sc.sc_info.info->mci_current_fw_time
            /*,sc.sc_info.info->mci_max_cmds*/);
 #ifdef multiseg
-    IOPrint("max_sg %d", sc.sc_info.info->mci_max_sg_elements);
+    IOPrint("Max SGE Count %d", sc.sc_info.info->mci_max_sg_elements);
 #endif
     IOLog("\n");
-    IOPrint("max_rq %d\n", sc.sc_info.info->mci_max_request_size);
-    IOPrint("nvram %d flash %d\n",
+    IOPrint("Max Data Transfer Size: %d sectors\n", sc.sc_info.info->mci_max_request_size);
+    IOPrint("NVRAM %d flash %d\n",
            sc.sc_info.info->mci_nvram_size,
            sc.sc_info.info->mci_flash_size);
-	IOPrint("ram_cor %d ram_uncor %d clus_all %d clus_act %d\n",
+	IOPrint("Memory Correctable Errors %d Memory Uncorrectable Errors %d Cluster Permitted %d Cluster Active %d\n",
            sc.sc_info.info->mci_ram_correctable_errors,
            sc.sc_info.info->mci_ram_uncorrectable_errors,
            sc.sc_info.info->mci_cluster_allowed,
            sc.sc_info.info->mci_cluster_active);
-	IOPrint("max_strps_io %d raid_lvl %#x adapt_ops %#x ld_ops %#x\n",
+	IOPrint("Max Strips PerIO %d raid_lvl %#x adapt_ops %#x ld_ops %#x\n",
            sc.sc_info.info->mci_max_strips_per_io,
            sc.sc_info.info->mci_raid_levels,
            sc.sc_info.info->mci_adapter_ops,
            sc.sc_info.info->mci_ld_ops);
-	IOPrint("strp_sz_min %d strp_sz_max %d pd_ops %#x pd_mix %#x\n",
+	IOPrint("Min Stripe Size %d Max Stripe Size %d pd_ops %#x pd_mix %#x\n",
            sc.sc_info.info->mci_stripe_sz_ops.min,
            sc.sc_info.info->mci_stripe_sz_ops.max,
            sc.sc_info.info->mci_pd_ops,
            sc.sc_info.info->mci_pd_mix_support);
-	IOPrint("ecc_bucket %d\n",
+	IOPrint("ECC Bucket Count %d\n",
            sc.sc_info.info->mci_ecc_bucket_count);
-	IOPrint("sq_nm %d prd_fail_poll %d intr_thrtl %d intr_thrtl_to %d\n",
+	IOPrint("sq_nm %d Predictive Fail Poll Interval: %dsec Interrupt Throttle Active Count %d Interrupt Throttle Completion: %dus\n",
            sc.sc_info.info->mci_properties.mcp_seq_num,
            sc.sc_info.info->mci_properties.mcp_pred_fail_poll_interval,
            sc.sc_info.info->mci_properties.mcp_intr_throttle_cnt,
            sc.sc_info.info->mci_properties.mcp_intr_throttle_timeout);
-	IOPrint("rbld_rate %d patr_rd_rate %d bgi_rate %d cc_rate %d\n",
+	IOPrint("Rebuild Rate: %d%% PR Rate: %d%% Background Rate %d Check Consistency Rate: %d%%\n",
            sc.sc_info.info->mci_properties.mcp_rebuild_rate,
            sc.sc_info.info->mci_properties.mcp_patrol_read_rate,
            sc.sc_info.info->mci_properties.mcp_bgi_rate,
            sc.sc_info.info->mci_properties.mcp_cc_rate);
-	IOPrint("rc_rate %d ch_flsh %d spin_cnt %d spin_dly %d clus_en %d\n",
+	IOPrint("Reconstruction Rate: %d%% Cache Flush Interval: %ds Max Drives to Spinup at One Time %d Delay Among Spinup Groups: %ds\n",
            sc.sc_info.info->mci_properties.mcp_recon_rate,
            sc.sc_info.info->mci_properties.mcp_cache_flush_interval,
            sc.sc_info.info->mci_properties.mcp_spinup_drv_cnt,
-           sc.sc_info.info->mci_properties.mcp_spinup_delay,
-           sc.sc_info.info->mci_properties.mcp_cluster_enable);
-	IOPrint("ecc %d\n", sc.sc_info.info->mci_properties.mcp_ecc_bucket_size);
-	IOPrint("ecc_leak %d\n", sc.sc_info.info->mci_properties.mcp_ecc_bucket_leak_rate);
+           sc.sc_info.info->mci_properties.mcp_spinup_delay);
+	IOPrint("Ecc Bucket Size %d\n", sc.sc_info.info->mci_properties.mcp_ecc_bucket_size);
+	IOPrint("Ecc Bucket Leak Rate: %d Minutes\n", sc.sc_info.info->mci_properties.mcp_ecc_bucket_leak_rate);
 	IOPrint("Vendor %#x device %#x subvendor %#x subdevice %#x\n",
            sc.sc_info.info->mci_pci.mip_vendor,
            sc.sc_info.info->mci_pci.mip_device,
