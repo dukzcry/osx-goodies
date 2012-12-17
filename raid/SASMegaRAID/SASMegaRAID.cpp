@@ -783,11 +783,9 @@ bool SASMegaRAID::GetInfo()
                sc.sc_info.info->mci_pending_image_component[i].mic_build_date,
                sc.sc_info.info->mci_pending_image_component[i].mic_build_time);
 	}
-    IOPrint("Max Arms Per VD %d Max Spans Per VD %d Max Arrays %d Max Number of VDs %d\n",
+    IOPrint("Max Arms Per VD %d Max Arrays %d\n",
            sc.sc_info.info->mci_max_arms,
-           sc.sc_info.info->mci_max_spans,
-           sc.sc_info.info->mci_max_arrays,
-           sc.sc_info.info->mci_max_lds);
+           sc.sc_info.info->mci_max_arrays);
     IOPrint("Serial %s present %#x fw time %d",
            sc.sc_info.info->mci_serial_number,
            sc.sc_info.info->mci_hw_present,
@@ -840,13 +838,13 @@ bool SASMegaRAID::GetInfo()
            sc.sc_info.info->mci_pci.mip_device,
            sc.sc_info.info->mci_pci.mip_subvendor,
            sc.sc_info.info->mci_pci.mip_subdevice);
-	IOPrint("Type %#x port_count %d port_addr ",
+	IOPrint("Type %#x (frontend) port_count %d Addresses ",
            sc.sc_info.info->mci_host.mih_type,
            sc.sc_info.info->mci_host.mih_port_count);
 	for (i = 0; i < 8; i++)
 		IOLog("%.0llx ", sc.sc_info.info->mci_host.mih_port_addr[i]);
 	IOLog("\n");
-	IOPrint("Type %.x port_count %d port_addr ",
+	IOPrint("Type %.x (backend) port_count %d Addresses ",
            sc.sc_info.info->mci_device.mid_type,
            sc.sc_info.info->mci_device.mid_port_count);
 	for (i = 0; i < 8; i++)
@@ -1590,6 +1588,9 @@ void SASMegaRAID::ReportHBAConstraints(OSDictionary *constraints)
     val = OSNumber::withNumber((num = 1), 64);
     constraints->setObject(kIOMaximumSegmentCountReadKey, val);
     constraints->setObject(kIOMaximumSegmentCountWriteKey, val);
+    /* Size of datalen field, will be probably always < actual hw limit:
+        min((1 << sc.sc_info.info->mci_stripe_sz_ops.max) * sc.sc_info.info->mci_max_strips_per_io,
+        sc.sc_info.info->mci_max_request_size) * 512? sectors */
     val->setValue(INTSIZE);
     constraints->setObject(kIOMaximumSegmentByteCountReadKey, val);
     constraints->setObject(kIOMaximumSegmentByteCountWriteKey, val);
