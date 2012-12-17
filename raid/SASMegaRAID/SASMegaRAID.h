@@ -9,6 +9,10 @@
 #include "Hardware.h"
 #include "HelperLib.h"
 
+#ifndef OSReadBigInt32
+#warning "Install private headers"
+#endif
+
 typedef struct {
     IOBufferMemoryDescriptor *bmd;
 #if multiseg
@@ -217,7 +221,7 @@ private:
     void mraid_skinny_post(mraid_ccbCommand *);
     
     bool LogicalDiskCmd(mraid_ccbCommand *, SCSIParallelTaskIdentifier);
-    bool IOCmd(mraid_ccbCommand *, SCSIParallelTaskIdentifier, UInt32, UInt16);
+    bool IOCmd(mraid_ccbCommand *, SCSIParallelTaskIdentifier, UInt64, UInt32);
 protected:
     virtual bool init(OSDictionary *);
     
@@ -234,7 +238,7 @@ protected:
     
     virtual SCSILogicalUnitNumber	ReportHBAHighestLogicalUnitNumber ( void ) {return MRAID_MAX_LUN;};
     virtual SCSIDeviceIdentifier	ReportHighestSupportedDeviceID ( void ) {return MRAID_MAX_LD;};
-    virtual bool                    DoesHBAPerformDeviceManagement ( void ) {return false;};
+    virtual bool                    DoesHBAPerformDeviceManagement ( void ) {return true;};
     virtual UInt32                  ReportMaximumTaskCount ( void ) {/*temp*/return 1;};
     /* We're not a real SCSI controller */
     virtual SCSIInitiatorIdentifier	ReportInitiatorIdentifier ( void ) {return MRAID_MAX_LD+1;};

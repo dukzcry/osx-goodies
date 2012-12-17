@@ -2,7 +2,7 @@
 
 #define drvid               "[SASMegaRAID] "
 
-#define MAXPHYS             (64 * 1024)
+#define INTSIZE             (64 * 1024)
 
 #define IOPrint(arg...)     IOLog(drvid arg)
 #if defined(DEBUG)

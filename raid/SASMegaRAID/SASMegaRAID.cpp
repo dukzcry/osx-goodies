@@ -175,7 +175,7 @@ void SASMegaRAID::TerminateController(void)
 }
 
 void SASMegaRAID::free(void)
-{
+{  
     mraid_ccbCommand *command;
     
     DbgPrint("IOService->free\n");
@@ -322,10 +322,24 @@ bool SASMegaRAID::Attach()
     /* Get constraints forming frames pool contiguous memory */
     status = mraid_fw_state();
     sc.sc_max_cmds = status & MRAID_STATE_MAXCMD_MASK;
-    max_sgl = (status & MRAID_STATE_MAXSGL_MASK) >> 16;
+#if IOPhysSize == 32
+    max_sgl =
+#ifdef multiseg
+    (status & MRAID_STATE_MAXSGL_MASK) >> 16
+#else
+    1
+#endif
+    ;
+#endif
     /* FW can accept 64-bit SGLs */
     if(IOPhysSize == 64) {
-        sc.sc_max_sgl = min(max_sgl, (128 * 1024) / PAGE_SIZE + 1);
+        sc.sc_max_sgl =
+#ifdef multiseg
+        min(max_sgl, (128 * 1024) / PAGE_SIZE + 1)
+#else
+        1
+#endif
+        ;
         sc.sc_sgl_size = sizeof(mraid_sg64);
         sc.sc_sgl_flags = MRAID_FRAME_SGL64;
     } else {
@@ -384,6 +398,33 @@ bool SASMegaRAID::Attach()
         IOPrint("Unable to get controller info\n");
         return false;
     }
+    if (sc.sc_info.info->mci_pd_present)
+        IOPrint("%d of physical disk(s) present\n", sc.sc_info.info->mci_pd_disks_present);
+    if (sc.sc_info.info->mci_pd_disks_pred_failure)
+        IOPrint("Predicated failure of %d physical disk(s)\n", sc.sc_info.info->mci_pd_disks_pred_failure);
+    if (sc.sc_info.info->mci_pd_disks_failed)
+        IOPrint("%d of physical disks failed\n", sc.sc_info.info->mci_pd_disks_failed);
+    if (sc.sc_info.info->mci_lds_degraded)
+        IOPrint("%d of virtual disks degraded\n", sc.sc_info.info->mci_lds_degraded);
+    if (sc.sc_info.info->mci_lds_offline)
+        IOPrint("%d of virtual disks offline\n", sc.sc_info.info->mci_lds_offline);
+    if (sc.sc_info.info->mci_properties.mcp_coercion_mode || sc.sc_info.info->mci_properties.mcp_alarm_enable ||
+        !sc.sc_info.info->mci_properties.mcp_disable_auto_rebuild || !sc.sc_info.info->mci_properties.mcp_disable_battery_warn) {
+        IOPrint("Enabled options: ");
+        if (sc.sc_info.info->mci_properties.mcp_coercion_mode)
+            IOLog("coercion mode  ");
+        if (sc.sc_info.info->mci_properties.mcp_alarm_enable)
+            IOLog("alarm  ");
+        if (!sc.sc_info.info->mci_properties.mcp_disable_auto_rebuild)
+            IOLog("auto rebuild  ");
+        if (!sc.sc_info.info->mci_properties.mcp_disable_battery_warn)
+            IOLog("battery warning  ");
+        if (sc.sc_info.info->mci_properties.mcp_restore_hotspare_on_insertion)
+            IOLog("restore hotspare on insertion  ");
+        if (sc.sc_info.info->mci_properties.mcp_expose_encl_devices)
+            IOLog("expose enclosure devices");
+        IOLog("\n");
+    }
     ExportInfo();
     
     status = true;
@@ -412,7 +453,8 @@ bool SASMegaRAID::Attach()
         IOLog(", status ");
 		switch(mraid_bbu_stat) {
             case MRAID_BBU_GOOD:
-                IOLog("good");
+                IOLog("good, %d%% charged", MRAID_BBU_TYPE_IBBU ? bbu_stat->detail.ibbu.relative_charge :
+                                                                 bbu_stat->detail.bbu.relative_charge);
                 //sc.sc_bbuok = true;
                 break;
             case MRAID_BBU_BAD:
@@ -534,8 +576,8 @@ bool SASMegaRAID::GenerateSegments(mraid_ccbCommand *ccb)
     if (!(ccb->s.ccb_sglmem.cmd = IODMACommand::withSpecification(IOPhysSize == 64 ?
                                                                       kIODMACommandOutputHost64:
                                                                       kIODMACommandOutputHost32,
-                                                                      IOPhysSize, MAXPHYS,
-                                                                      IODMACommand::kMapped, MAXPHYS)))
+                                                                      IOPhysSize, INTSIZE,
+                                                                      IODMACommand::kMapped, INTSIZE)))
         return false;
     
     /* TO-DO: Set kIOMemoryMapperNone or ~kIOMemoryMapperNone */
@@ -744,21 +786,16 @@ bool SASMegaRAID::GetInfo()
            sc.sc_info.info->mci_max_spans,
            sc.sc_info.info->mci_max_arrays,
            sc.sc_info.info->mci_max_lds);
-    IOPrint("Serial %s present %#x fw time %d max_cmds %d max_sg %d\n",
+    IOPrint("Serial %s present %#x fw time %d",
            sc.sc_info.info->mci_serial_number,
            sc.sc_info.info->mci_hw_present,
-           sc.sc_info.info->mci_current_fw_time,
-           sc.sc_info.info->mci_max_cmds,
-           sc.sc_info.info->mci_max_sg_elements);
-    IOPrint("max_rq %d lds_deg %d lds_off %d pd_pres %d\n",
-           sc.sc_info.info->mci_max_request_size,
-           sc.sc_info.info->mci_lds_degraded,
-           sc.sc_info.info->mci_lds_offline,
-           sc.sc_info.info->mci_pd_present);
-	IOPrint("pd_dsk_prs %d pd_dsk_pred_fail %d pd_dsk_fail %d\n",
-           sc.sc_info.info->mci_pd_disks_present,
-           sc.sc_info.info->mci_pd_disks_pred_failure,
-           sc.sc_info.info->mci_pd_disks_failed);
+           sc.sc_info.info->mci_current_fw_time
+           /*,sc.sc_info.info->mci_max_cmds*/);
+#ifdef multiseg
+    IOPrint("max_sg %d", sc.sc_info.info->mci_max_sg_elements);
+#endif
+    IOLog("\n");
+    IOPrint("max_rq %d\n", sc.sc_info.info->mci_max_request_size);
     IOPrint("nvram %d flash %d\n",
            sc.sc_info.info->mci_nvram_size,
            sc.sc_info.info->mci_flash_size);
@@ -795,16 +832,8 @@ bool SASMegaRAID::GetInfo()
            sc.sc_info.info->mci_properties.mcp_spinup_drv_cnt,
            sc.sc_info.info->mci_properties.mcp_spinup_delay,
            sc.sc_info.info->mci_properties.mcp_cluster_enable);
-	IOPrint("coerc %d alarm %d dis_auto_rbld %d dis_bat_wrn %d ecc %d\n",
-           sc.sc_info.info->mci_properties.mcp_coercion_mode,
-           sc.sc_info.info->mci_properties.mcp_alarm_enable,
-           sc.sc_info.info->mci_properties.mcp_disable_auto_rebuild,
-           sc.sc_info.info->mci_properties.mcp_disable_battery_warn,
-           sc.sc_info.info->mci_properties.mcp_ecc_bucket_size);
-	IOPrint("ecc_leak %d rest_hs %d exp_encl_dev %d\n",
-           sc.sc_info.info->mci_properties.mcp_ecc_bucket_leak_rate,
-           sc.sc_info.info->mci_properties.mcp_restore_hotspare_on_insertion,
-           sc.sc_info.info->mci_properties.mcp_expose_encl_devices);
+	IOPrint("ecc %d\n", sc.sc_info.info->mci_properties.mcp_ecc_bucket_size);
+	IOPrint("ecc_leak %d\n", sc.sc_info.info->mci_properties.mcp_ecc_bucket_leak_rate);
 	IOPrint("Vendor %#x device %#x subvendor %#x subdevice %#x\n",
            sc.sc_info.info->mci_pci.mip_vendor,
            sc.sc_info.info->mci_pci.mip_device,
@@ -871,27 +900,25 @@ int SASMegaRAID::GetBBUInfo(mraid_sgl_mem *mem, mraid_bbu_status *&info)
 	IOPrint("Details: ");
 	switch(info->battery_type) {
         case MRAID_BBU_TYPE_IBBU:
-            IOLog("guage %d relative charge %d charger state %d "
+            IOLog("guage %d charger state %d "
                    "charger ctrl %d\n", info->detail.ibbu.gas_guage_status,
-                   info->detail.ibbu.relative_charge ,
-                   info->detail.ibbu.charger_system_state ,
+                   info->detail.ibbu.charger_system_state,
                    info->detail.ibbu.charger_system_ctrl);
             IOLog("\tcurrent %d abs charge %d max error %d\n",
-                   info->detail.ibbu.charging_current ,
-                   info->detail.ibbu.absolute_charge ,
+                   info->detail.ibbu.charging_current,
+                   info->detail.ibbu.absolute_charge,
                    info->detail.ibbu.max_error);
             break;
         case MRAID_BBU_TYPE_BBU:
-            IOLog("guage %d relative charge %d charger state %d\n",
+            IOLog("guage %d charger state %d\n",
                    info->detail.ibbu.gas_guage_status,
-                   info->detail.bbu.relative_charge ,
-                   info->detail.bbu.charger_status );
+                   info->detail.bbu.charger_status);
             IOLog("\trem capacity %d full capacity %d\n",
                    info->detail.bbu.remaining_capacity,
                    info->detail.bbu.full_charge_capacity);
             break;
         default:
-            IOPrint("\n");
+            IOLog("\n");
 	}
 #endif
 	switch(info->battery_type) {
@@ -1027,9 +1054,9 @@ bool SASMegaRAID::CreateSGL(mraid_ccbCommand *ccb)
             sgl->sg64[0].addr = htole64(ccb->s.ccb_sglmem.paddr);
             sgl->sg64[0].len = htole32(ccb->s.ccb_sglmem.len);
         } else {
-            sgl->sg32[0].addr = (UInt32) htole32(ccb->s.ccb_sglmem.paddr
+            sgl->sg32[0].addr = (UInt32) (htole32(ccb->s.ccb_sglmem.paddr
 #ifndef PPC
-                & MASK_32BIT
+                & MASK_32BIT)
 #endif
             );
             sgl->sg32[0].len = htole32(ccb->s.ccb_sglmem.len);
@@ -1361,14 +1388,16 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
         
         ccb->s.ccb_sglmem.len = (UInt32) transferLen;
         
-        if (!CreateSGL(ccb))
+        if (!CreateSGL(ccb)) {
+            FreeSGL(&ccb->s.ccb_sglmem);
             return false;
+        }
     }
     
     return true;
 }
 
-bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UInt32 lba, UInt16 len)
+bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UInt64 lba, UInt32 len)
 {
 #if defined(DEBUG)
     SCSICommandDescriptorBlock cdbData = { 0 };
@@ -1432,8 +1461,10 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
 
     ccb->s.ccb_sglmem.len = (UInt32) transferLen;
     
-    if (!CreateSGL(ccb))
+    if (!CreateSGL(ccb)) {
+        FreeSGL(&ccb->s.ccb_sglmem);
         return false;
+    }
     
     return true;
 }
@@ -1461,8 +1492,10 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
     ccb = Getccb();
     
     switch (cdbData[0]) {
+        /* Optional */
         case kSCSICmd_READ_12:
         case kSCSICmd_WRITE_12:
+        /* */
 #if 0
             if (!IOCmd(ccb, parallelRequest, OSReadBigInt32(cdbData, 2),
                        /* XXX: Check me */
@@ -1472,12 +1505,12 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
         break;
         case kSCSICmd_READ_10:
         case kSCSICmd_WRITE_10:
-            if (!IOCmd(ccb, parallelRequest, OSReadBigInt32(cdbData, 2), OSReadBigInt16(cdbData, 7)))
+            if (!IOCmd(ccb, parallelRequest, (UInt64) OSReadBigInt32(cdbData, 2), (UInt32) OSReadBigInt16(cdbData, 7)))
                 goto fail;
         break;
         case kSCSICmd_READ_6:
         case kSCSICmd_WRITE_6:
-            if (!IOCmd(ccb, parallelRequest, OSSwapBigToHostConstInt32(*((UInt32 *)cdbData)) & kSCSICmdFieldMask21Bit,
+            if (!IOCmd(ccb, parallelRequest, (UInt64) (OSSwapBigToHostConstInt32(*((UInt32 *) cdbData)) & kSCSICmdFieldMask21Bit),
                        cdbData[4] ? cdbData[4] : 256))
                 goto fail;
         break;
@@ -1556,8 +1589,7 @@ void SASMegaRAID::ReportHBAConstraints(OSDictionary *constraints)
     val = OSNumber::withNumber((num = 1), 64);
     constraints->setObject(kIOMaximumSegmentCountReadKey, val);
     constraints->setObject(kIOMaximumSegmentCountWriteKey, val);
-    /* XXX: There is restriction on single chunk size, but this value is bogus */
-    val->setValue(MAXPHYS);
+    val->setValue(INTSIZE);
     constraints->setObject(kIOMaximumSegmentByteCountReadKey, val);
     constraints->setObject(kIOMaximumSegmentByteCountWriteKey, val);
     
