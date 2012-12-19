@@ -126,7 +126,7 @@ static IOPMPowerState PowerStates[] = {
 
 class SASMegaRAID;
 typedef struct {
-#ifdef scsi_debug
+#if defined DEBUG || defined scsi_debug
     UInt8 opcode;
 #endif
     SCSIParallelTaskIdentifier pr;
