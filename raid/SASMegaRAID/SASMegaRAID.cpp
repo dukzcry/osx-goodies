@@ -240,7 +240,9 @@ void SASMegaRAID::interruptHandler(OSObject *owner, void *src, IOService *nub, i
             IOPrint("Invalid context, Prod: %d Cons: %d\n", Producer, Consumer);
         else {
             ccb = (mraid_ccbCommand *) sc.sc_ccb[Context];
-            DbgPrint("ccb: %#x\n", Context);
+#if defined DEBUG || defined scsi_debug
+            IOPrint("ccb: %d\n", Context);
+#endif
 #ifdef multiseg
             /*if (ccb->s.ccb_sglmem.len > 0)
                 ccb->s.ccb_sglmem.cmd->synchronize((ccb->s.ccb_direction & MRAID_DATA_IN) ?
@@ -970,7 +972,7 @@ bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, U
 {
     mraid_dcmd_frame *dcmd;
     
-    DbgPrint("%s: ccb_num: %d, opcode: %#x\n", __FUNCTION__, ccb->s.ccb_frame->mrr_header.mrh_context, opc);
+    DbgPrint("%s: opcode: %#x\n", __FUNCTION__, opc);
         
     dcmd = &ccb->s.ccb_frame->mrr_dcmd;
     bzero(dcmd->mdf_mbox, MRAID_MBOX_SIZE);
