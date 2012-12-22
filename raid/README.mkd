@@ -1,6 +1,6 @@
 I/O Kit driver for LSI MegaRAID SAS family of hardware RAID controllers, which isn't supported by proprietary MegaRAID.kext (PPC) and AppleLSIFusionMPT.kext or  AppleRAIDCard.kext (Intel). This driver is Xcode project, for OS X.
 
-This family of controllers uses SCSI protocol for data passing, so it will be presented as parallel SCSI controller to system.
+This family of controllers uses SCSI protocol for data passing, so it will be presented as parallel SCSI controller to the system.
 
 Note, that probably almost every card from this family requires x86 host to get access to device firmware's management utility (maybe such card will work on PPC machine, without booting capatibility, but you'll not be able to do initial setup of things outside of OS, i.e. you'll need to insert card inside of PC to create virtual disks and so on...). Also most of devices don't have EFI-compatible firmware, so you'll have problem not only on PPC hosts, but on original Macs with EFI firmware too. The ideal box to play with is a hackintosh with BIOS.
 
