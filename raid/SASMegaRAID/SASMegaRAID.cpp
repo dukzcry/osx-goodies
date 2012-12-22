@@ -1599,8 +1599,8 @@ void SASMegaRAID::ReportHBAConstraints(OSDictionary *constraints)
     constraints->setObject(kIOMaximumSegmentByteCountWriteKey, val);*/
     val->setValue(addr_mask);
     constraints->setObject(kIOMinimumHBADataAlignmentMaskKey, val);
-    /* Rework: We have limit on block count */
-    val->setValue(64);
+    /* We have limit on block count */
+    val->setValue(IOPhysSize);
     constraints->setObject(kIOMaximumSegmentAddressableBitCountKey, val);
     /* TO-DO: Use min((1 << sc.sc_info.info->mci_stripe_sz_ops.max) * 
      sc.sc_info.info->mci_max_strips_per_io,
