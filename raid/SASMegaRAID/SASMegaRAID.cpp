@@ -2,6 +2,8 @@
  - Syncs are bogus and not in all places they ough to be
  - Segments support bits aren't in all places they should be */
 
+#define scsi_debug
+
 #include "SASMegaRAID.h"
 #include "Registers.h"
 
@@ -1400,7 +1402,7 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
 
 bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UInt64 lba, UInt32 len)
 {
-#if defined DEBUG || scsi_debug
+#if defined DEBUG || defined scsi_debug
     SCSICommandDescriptorBlock cdbData = { 0 };
 #endif
     IOMemoryDescriptor* transferMemDesc;
@@ -1439,7 +1441,7 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
     cmd = IONew(cmd_context, 1);
     cmd->instance = this;
     cmd->pr = pr;
-#if defined DEBUG || scsi_debug
+#if defined DEBUG || defined scsi_debug
     GetCommandDescriptorBlock(pr, &cdbData);
     cmd->opcode = cdbData[0];
 #endif
@@ -1505,6 +1507,11 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
 #endif
                 goto fail;
         break;
+        /* No support for them */
+        case kSCSICmd_MODE_SENSE_6:
+        case kSCSICmd_MODE_SENSE_10:
+        /* */
+            goto fail;
         case kSCSICmd_READ_10:
         case kSCSICmd_WRITE_10:
             if (!IOCmd(ccb, parallelRequest, (UInt64) OSReadBigInt32(cdbData, 2), (UInt32) OSReadBigInt16(cdbData, 7)))
