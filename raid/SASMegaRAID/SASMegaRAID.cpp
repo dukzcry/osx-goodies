@@ -2,8 +2,6 @@
  - Syncs are bogus and not in all places they ough to be
  - Segments support bits aren't in all places they should be */
 
-#define scsi_debug
-
 #include "SASMegaRAID.h"
 #include "Registers.h"
 
@@ -580,8 +578,8 @@ bool SASMegaRAID::GenerateSegments(mraid_ccbCommand *ccb)
     if (!(ccb->s.ccb_sglmem.cmd = IODMACommand::withSpecification(IOPhysSize == 64 ?
                                                                       kIODMACommandOutputHost64:
                                                                       kIODMACommandOutputHost32,
-                                                                      IOPhysSize, INTSIZE,
-                                                                      IODMACommand::kMapped, INTSIZE)))
+                                                                      IOPhysSize, UINT_MAX,
+                                                                      IODMACommand::kMapped, UINT_MAX)))
         return false;
     
     /* TO-DO: Set kIOMemoryMapperNone or ~kIOMemoryMapperNone */
@@ -1413,8 +1411,11 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
     
     if (!(transferMemDesc = GetDataBuffer(pr)))
         return false;
-    
-    DbgPrint("%s: Transfer length: %lld\n", __FUNCTION__, transferMemDesc->getLength());
+
+#if defined DEBUG || defined scsi_debug
+    IOPrint("%s: trlen: %lld, lba: %lld, blkcnt: %d\n", __FUNCTION__, transferMemDesc->getLength(),
+            lba, len);
+#endif
     
     io = &ccb->s.ccb_frame->mrr_io;
     switch (GetDataTransferDirection(pr)) {
@@ -1481,13 +1482,9 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
     UInt8 mbox[MRAID_MBOX_SIZE];
     
     GetCommandDescriptorBlock(parallelRequest, &cdbData);
-    
-#if defined(DEBUG)
-    SCSITargetIdentifier targetID = GetTargetIdentifier(parallelRequest);
-    SCSILogicalUnitNumber logicalUnitNumber = GetLogicalUnitNumber(parallelRequest);
-    IOPrint("%s: Opcode 0x%x, Target %d, LUN %d\n", __FUNCTION__, cdbData[0],
-            int(targetID << 32), int(logicalUnitNumber << 32));
-#endif
+
+    DbgPrint("%s: Opcode 0x%x, Target %llu\n", __FUNCTION__, cdbData[0],
+            GetTargetIdentifier(parallelRequest));
     
     /* TO-DO: We need batt status refreshing for this */
     /*if (cdbData[0] == kSCSICmd_SYNCHRONIZE_CACHE && sc.sc_bbuok)
@@ -1507,11 +1504,6 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
 #endif
                 goto fail;
         break;
-        /* No support for them */
-        case kSCSICmd_MODE_SENSE_6:
-        case kSCSICmd_MODE_SENSE_10:
-        /* */
-            goto fail;
         case kSCSICmd_READ_10:
         case kSCSICmd_WRITE_10:
             if (!IOCmd(ccb, parallelRequest, (UInt64) OSReadBigInt32(cdbData, 2), (UInt32) OSReadBigInt16(cdbData, 7)))
@@ -1528,6 +1520,11 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
             if (!Do_Management(ccb, MRAID_DCMD_CTRL_CACHE_FLUSH, MRAID_DATA_NONE, 0, NULL, mbox))
                 goto fail;
             goto complete;
+        /* No support for them */
+        case kSCSICmd_MODE_SENSE_6:
+        case kSCSICmd_MODE_SENSE_10:
+        /* */
+            goto fail;
         default:
             if (!LogicalDiskCmd(ccb, parallelRequest))
                 goto fail;
@@ -1592,24 +1589,23 @@ bool SASMegaRAID::DoesHBASupportSCSIParallelFeature(SCSIParallelFeature theFeatu
 
 void SASMegaRAID::ReportHBAConstraints(OSDictionary *constraints)
 {
-    UInt64 num;
     OSNumber *val;
-    
-    val = OSNumber::withNumber((num = 1), 64);
+
+    val = OSNumber::withNumber(1, 64);
     constraints->setObject(kIOMaximumSegmentCountReadKey, val);
     constraints->setObject(kIOMaximumSegmentCountWriteKey, val);
-    /* Size of datalen field, will be probably always < actual hw limit:
-        min((1 << sc.sc_info.info->mci_stripe_sz_ops.max) * sc.sc_info.info->mci_max_strips_per_io,
-        sc.sc_info.info->mci_max_request_size) * 512? sectors */
-    val->setValue(INTSIZE);
+    /*val->setValue(UINT_MAX);
     constraints->setObject(kIOMaximumSegmentByteCountReadKey, val);
-    constraints->setObject(kIOMaximumSegmentByteCountWriteKey, val);
-    
+    constraints->setObject(kIOMaximumSegmentByteCountWriteKey, val);*/
     val->setValue(addr_mask);
     constraints->setObject(kIOMinimumHBADataAlignmentMaskKey, val);
-#if 0
-    val->setValue(IOPhysSize);
+    /* Rework: We have limit on block count */
+    val->setValue(64);
     constraints->setObject(kIOMaximumSegmentAddressableBitCountKey, val);
+    /* TO-DO: Use min((1 << sc.sc_info.info->mci_stripe_sz_ops.max) * 
+     sc.sc_info.info->mci_max_strips_per_io,
+     sc.sc_info.info->mci_max_request_size) */
+#if 0
     val->setValue();
     constraints->setObject(kIOMinimumSegmentAlignmentByteCountKey, val);
 #endif

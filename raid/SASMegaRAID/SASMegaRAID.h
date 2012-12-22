@@ -6,6 +6,8 @@
 #include <IOKit/scsi/SCSICommandDefinitions.h>
 #include <IOKit/IOKitKeys.h>
 
+#include <machine/limits.h>
+
 #include "Hardware.h"
 #include "HelperLib.h"
 
