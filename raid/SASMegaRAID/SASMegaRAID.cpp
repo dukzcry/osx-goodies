@@ -1599,6 +1599,8 @@ void SASMegaRAID::ReportHBAConstraints(OSDictionary *constraints)
     /*val->setValue(UINT_MAX);
     constraints->setObject(kIOMaximumSegmentByteCountReadKey, val);
     constraints->setObject(kIOMaximumSegmentByteCountWriteKey, val);*/
+    val->setValue(addr_mask);
+    constraints->setObject(kIOMinimumHBADataAlignmentMaskKey, val);
     /* We have limit on block count */
     val->setValue(IOPhysSize);
     constraints->setObject(kIOMaximumSegmentAddressableBitCountKey, val);
@@ -1608,8 +1610,6 @@ void SASMegaRAID::ReportHBAConstraints(OSDictionary *constraints)
 #if 0
     val->setValue();
     constraints->setObject(kIOMinimumSegmentAlignmentByteCountKey, val);
-    val->setValue(addr_mask);
-    constraints->setObject(kIOMinimumHBADataAlignmentMaskKey, val);
 #endif
     val->release();
 }
