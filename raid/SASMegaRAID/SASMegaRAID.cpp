@@ -240,7 +240,7 @@ void SASMegaRAID::interruptHandler(OSObject *owner, void *src, IOService *nub, i
             IOPrint("Invalid context, Prod: %d Cons: %d\n", Producer, Consumer);
         else {
             ccb = (mraid_ccbCommand *) sc.sc_ccb[Context];
-#if defined DEBUG || defined scsi_debug
+#if defined DEBUG /*|| defined scsi_debug*/
             IOPrint("ccb: %d\n", Context);
 #endif
 #ifdef multiseg
@@ -1279,11 +1279,15 @@ void mraid_cmd_done(mraid_ccbCommand *ccb)
         break;
         default:
             cmd->ts = kSCSITaskStatus_No_Status;
-#if defined DEBUG || defined scsi_debug
+#if defined DEBUG /*|| defined scsi_debug*/
             IOPrint("Warning: kSCSITaskStatus_No_Status: cmd 0x%02x\n", hdr->mrh_cmd_status);
 #endif
-            if (hdr->mrh_scsi_status) {
 #if defined DEBUG || defined scsi_debug
+            if (cmd->blkcnt > 0)
+                IOPrint("Warning: command failed with blkcnt %d\n", cmd->blkcnt);
+#endif
+            if (hdr->mrh_scsi_status) {
+#if defined DEBUG /*|| defined scsi_debug*/
                 IOPrint("SCSI status: %#x Sense addr: %p\n", hdr->mrh_scsi_status, ccb->s.ccb_sense);
 #endif
                 cmd->ts = kSCSITaskStatus_CHECK_CONDITION;
@@ -1293,7 +1297,7 @@ void mraid_cmd_done(mraid_ccbCommand *ccb)
         break;
     }
     
-#if defined DEBUG || defined scsi_debug
+#if defined DEBUG /*|| defined scsi_debug*/
     if (cmd->ts != kSCSITaskStatus_GOOD)
         IOPrint("Warning: command failed with ts 0x%x on opc 0x%x\n", cmd->ts, cmd->opcode);
 #endif
@@ -1356,8 +1360,11 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
     cmd = IONew(cmd_context, 1);
     cmd->instance = this;
     cmd->pr = pr;
-#if defined DEBUG || defined scsi_debug
+#if defined DEBUG /*|| defined scsi_debug*/
     cmd->opcode = cdbData[0];
+#endif
+#if defined DEBUG || defined scsi_debug
+    cmd->blkcnt = 0;
 #endif
     ccb->s.ccb_context = cmd;
     
@@ -1402,7 +1409,7 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
 
 bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UInt64 lba, UInt32 len)
 {
-#if defined DEBUG || defined scsi_debug
+#if defined DEBUG /*|| defined scsi_debug*/
     SCSICommandDescriptorBlock cdbData = { 0 };
 #endif
     IOMemoryDescriptor* transferMemDesc;
@@ -1414,9 +1421,8 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
     if (!(transferMemDesc = GetDataBuffer(pr)))
         return false;
 
-#if defined DEBUG || defined scsi_debug
-    IOPrint("%s: trlen: %lld, lba: %lld, blkcnt: %d\n", __FUNCTION__, transferMemDesc->getLength(),
-            lba, len);
+#if defined DEBUG /*|| defined scsi_debug*/
+    IOPrint("%s: trlen: %lld, lba: %lld\n", __FUNCTION__, transferMemDesc->getLength(), lba);
 #endif
     
     io = &ccb->s.ccb_frame->mrr_io;
@@ -1444,9 +1450,12 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
     cmd = IONew(cmd_context, 1);
     cmd->instance = this;
     cmd->pr = pr;
-#if defined DEBUG || defined scsi_debug
+#if defined DEBUG /*|| defined scsi_debug*/
     GetCommandDescriptorBlock(pr, &cdbData);
     cmd->opcode = cdbData[0];
+#endif
+#if defined DEBUG || defined scsi_debug
+    cmd->blkcnt = len;
 #endif
     ccb->s.ccb_context = cmd;
     
