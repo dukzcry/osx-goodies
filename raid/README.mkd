@@ -2,10 +2,15 @@ I/O Kit driver for LSI MegaRAID SAS family of hardware RAID controllers, which i
 
 This family of controllers uses SCSI protocol for data passing, so your device will be presented as parallel SCSI controller to the system.
 
-Here's rough list of cards which should be supported (if yours doesn't get recognized, add PCI DevID of your card into Info.plist). Fusion I/II cards will not be supported:
+Here's rough list of cards which should be supported (if yours doesn't get recognized, add PCI DevID of card into Info.plist):
 - LSI MegaRAID SAS 8xxx, 92xx
-- Dell PERC 5, 6, Hxx. Dell SAS cards aren't supported.
+- Dell PERC 5, 6, Hxx
+- IBM ServeRAID M1015, M5014
 - Intel RAID SRCSAS18E, SRCSAS144E
+Definitely unsupported:
+- Fusion I/II-based controllers
+- Cards based on SAS2208 (Thunderbolt) chip
+- Dell SAS cards (not RAIDs)
 
 Note, that probably almost every card from this family requires x86 host to get access to device firmware's management utility (maybe such card will work on PPC machine, without booting capatibility, but you'll not be able to do initial setup of things outside of OS, i.e. you'll need to insert card inside of PC to create virtual disks and so on...). Also most of devices don't have EFI-compatible firmware, so you'll have problem not only on PPC hosts, but on original Macs with EFI firmware too. The ideal box to play with is a hackintosh with BIOS.
 
