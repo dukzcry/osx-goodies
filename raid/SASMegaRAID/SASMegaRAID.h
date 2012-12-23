@@ -249,10 +249,10 @@ protected:
     virtual bool                    DoesHBASupportSCSIParallelFeature ( SCSIParallelFeature theFeature );
     
     virtual void                    HandleInterruptRequest ( void ) {};
-    /* We don't need it, we use our own cmds pool, and we're rely on it much before service starting */
-    virtual UInt32                  ReportHBASpecificDeviceDataSize ( void ) {return 0;};
-    /* This one is a must for starting, but we don't need this one too */
+    /* We don't need 'em, we use our own cmds pool, and we're rely on it much before service starting */
     virtual UInt32                  ReportHBASpecificTaskDataSize ( void ) {/*must be > 0*/return 1;};
+    virtual UInt32                  ReportHBASpecificDeviceDataSize ( void ) {return 0;};
+    /* */
     /* Implement us */
     virtual SCSIServiceResponse     AbortTaskRequest ( SCSITargetIdentifier theT, SCSILogicalUnitNumber theL,
                                                       SCSITaggedTaskIdentifier theQ ) {
