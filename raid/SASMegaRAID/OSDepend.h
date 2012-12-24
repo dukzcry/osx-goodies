@@ -12,6 +12,7 @@
 
 #define nitems(_a)          (sizeof((_a)) / sizeof((_a)[0]))
 #define MASK_32BIT          0x00000000FFFFFFFFULL
+#define SECTOR_LEN          512
 
 #if defined PPC
 #include <libkern/OSByteOrder.h>

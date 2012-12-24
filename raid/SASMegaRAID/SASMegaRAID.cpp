@@ -1,6 +1,11 @@
+/* Written by Artem Falcon <lomka@gero.in> */
+
 /* Notes for code reader:
  - Syncs are bogus and not in all places they ough to be
- - Segments support bits aren't in all places they should be */
+ - Segments support bits aren't in all places they should be 
+ - Rework: beat crap, use segments */
+
+//#define io_debug
 
 #include "SASMegaRAID.h"
 #include "Registers.h"
@@ -240,7 +245,7 @@ void SASMegaRAID::interruptHandler(OSObject *owner, void *src, IOService *nub, i
             IOPrint("Invalid context, Prod: %d Cons: %d\n", Producer, Consumer);
         else {
             ccb = (mraid_ccbCommand *) sc.sc_ccb[Context];
-#if defined DEBUG /*|| defined scsi_debug*/
+#if defined DEBUG || defined io_debug
             IOPrint("ccb: %d\n", Context);
 #endif
 #ifdef multiseg
@@ -797,7 +802,6 @@ bool SASMegaRAID::GetInfo()
     IOPrint("Max SGE Count %d", sc.sc_info.info->mci_max_sg_elements);
 #endif
     IOLog("\n");
-    IOPrint("Max Data Transfer Size: %d sectors\n", sc.sc_info.info->mci_max_request_size);
     IOPrint("NVRAM %d flash %d\n",
            sc.sc_info.info->mci_nvram_size,
            sc.sc_info.info->mci_flash_size);
@@ -806,14 +810,12 @@ bool SASMegaRAID::GetInfo()
            sc.sc_info.info->mci_ram_uncorrectable_errors,
            sc.sc_info.info->mci_cluster_allowed,
            sc.sc_info.info->mci_cluster_active);
-	IOPrint("Max Strips PerIO %d raid_lvl %#x adapt_ops %#x ld_ops %#x\n",
-           sc.sc_info.info->mci_max_strips_per_io,
+	IOPrint("raid_lvl %#x adapt_ops %#x ld_ops %#x\n",
            sc.sc_info.info->mci_raid_levels,
            sc.sc_info.info->mci_adapter_ops,
            sc.sc_info.info->mci_ld_ops);
-	IOPrint("Min Stripe Size %d Max Stripe Size %d pd_ops %#x pd_mix %#x\n",
+	IOPrint("Min Stripe Size %d pd_ops %#x pd_mix %#x\n",
            sc.sc_info.info->mci_stripe_sz_ops.min,
-           sc.sc_info.info->mci_stripe_sz_ops.max,
            sc.sc_info.info->mci_pd_ops,
            sc.sc_info.info->mci_pd_mix_support);
 	IOPrint("ECC Bucket Count %d\n",
@@ -1140,6 +1142,7 @@ UInt32 SASMegaRAID::MRAID_Read(UInt8 offset)
      }*/
     data = OSReadLittleInt32(vAddr, offset);
 #if defined (DEBUG)
+    /* Because of flood coming from filter routine */
     if (fMSIEnabled)
         IOPrint("%s: offset %#x data 0x%08x\n", __FUNCTION__, offset, data);
 #endif
@@ -1279,17 +1282,14 @@ void mraid_cmd_done(mraid_ccbCommand *ccb)
         break;
         default:
             cmd->ts = kSCSITaskStatus_No_Status;
-#if defined DEBUG /*|| defined scsi_debug*/
+#if defined DEBUG /*|| defined io_debug*/
             IOPrint("Warning: kSCSITaskStatus_No_Status: cmd 0x%02x\n", hdr->mrh_cmd_status);
 #endif
-#if defined DEBUG || defined scsi_debug
+#if defined io_debug
             if (cmd->blkcnt > 0)
-                IOPrint("Warning: command failed with blkcnt %d\n", cmd->blkcnt);
+                IOPrint("Warning: cmd failed with blkcnt %d\n", cmd->blkcnt);
 #endif
             if (hdr->mrh_scsi_status) {
-#if defined DEBUG /*|| defined scsi_debug*/
-                IOPrint("SCSI status: %#x Sense addr: %p\n", hdr->mrh_scsi_status, ccb->s.ccb_sense);
-#endif
                 cmd->ts = kSCSITaskStatus_CHECK_CONDITION;
                 cmd->sense = &sense;
                 memcpy(&sense, ccb->s.ccb_sense, sizeof(SCSI_Sense_Data));
@@ -1297,9 +1297,9 @@ void mraid_cmd_done(mraid_ccbCommand *ccb)
         break;
     }
     
-#if defined DEBUG /*|| defined scsi_debug*/
+#if defined DEBUG /*|| defined io_debug*/
     if (cmd->ts != kSCSITaskStatus_GOOD)
-        IOPrint("Warning: command failed with ts 0x%x on opc 0x%x\n", cmd->ts, cmd->opcode);
+        IOPrint("Warning: cmd failed with ts 0x%x on opc 0x%x\n", cmd->ts, cmd->opcode);
 #endif
     
     cmd->instance->CompleteTask(ccb, cmd);
@@ -1311,9 +1311,11 @@ void SASMegaRAID::CompleteTask(mraid_ccbCommand *ccb, cmd_context *cmd)
     if (ccb->s.ccb_direction != MRAID_DATA_NONE) {
     	if (cmd->ts == kSCSITaskStatus_GOOD) {
         	if (ccb->s.ccb_direction == MRAID_DATA_IN)
+                    /* Rework: bottleneck */
             		GetDataBuffer(cmd->pr)->writeBytes(cmd->instance->GetDataBufferOffset(cmd->pr),
                                    (void *) ccb->s.ccb_sglmem.bmd->getBytesNoCopy(),
                                     ccb->s.ccb_sglmem.len);
+                    /* */
             SetRealizedDataTransferCount(cmd->pr, ccb->s.ccb_sglmem.len);
     	} else
     		SetRealizedDataTransferCount(cmd->pr, 0);
@@ -1360,10 +1362,10 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
     cmd = IONew(cmd_context, 1);
     cmd->instance = this;
     cmd->pr = pr;
-#if defined DEBUG /*|| defined scsi_debug*/
+#if defined DEBUG /*|| defined io_debug*/
     cmd->opcode = cdbData[0];
 #endif
-#if defined DEBUG || defined scsi_debug
+#if defined DEBUG || defined io_debug
     cmd->blkcnt = 0;
 #endif
     ccb->s.ccb_context = cmd;
@@ -1383,6 +1385,7 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
         break;
     }
 
+    /* Rework: bottleneck */
     if ((transferMemDesc = GetDataBuffer(pr))) {
         transferLen = transferMemDesc->getLength();
         if (!(ccb->s.ccb_sglmem.bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(
@@ -1403,13 +1406,14 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
             return false;
         }
     }
+    /* */
     
     return true;
 }
 
 bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UInt64 lba, UInt32 len)
 {
-#if defined DEBUG /*|| defined scsi_debug*/
+#if defined DEBUG /*|| defined io_debug*/
     SCSICommandDescriptorBlock cdbData = { 0 };
 #endif
     IOMemoryDescriptor* transferMemDesc;
@@ -1421,8 +1425,8 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
     if (!(transferMemDesc = GetDataBuffer(pr)))
         return false;
 
-#if defined DEBUG /*|| defined scsi_debug*/
-    IOPrint("%s: trlen: %lld, lba: %lld\n", __FUNCTION__, transferMemDesc->getLength(), lba);
+#if defined DEBUG || defined io_debug
+    IOPrint("%s: trlen: %lld, lba: %lld, blkcnt: %d\n", __FUNCTION__, transferMemDesc->getLength(), lba, len);
 #endif
     
     io = &ccb->s.ccb_frame->mrr_io;
@@ -1450,11 +1454,11 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
     cmd = IONew(cmd_context, 1);
     cmd->instance = this;
     cmd->pr = pr;
-#if defined DEBUG /*|| defined scsi_debug*/
+#if defined DEBUG /*|| defined io_debug*/
     GetCommandDescriptorBlock(pr, &cdbData);
     cmd->opcode = cdbData[0];
 #endif
-#if defined DEBUG || defined scsi_debug
+#if defined DEBUG || defined io_debug
     cmd->blkcnt = len;
 #endif
     ccb->s.ccb_context = cmd;
@@ -1464,6 +1468,7 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
 
     transferLen = transferMemDesc->getLength();
     
+    /* Rework: bottleneck */
     if (!(ccb->s.ccb_sglmem.bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(
         kernel_task,
         kIOMemoryPhysicallyContiguous,
@@ -1481,6 +1486,7 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
         FreeSGL(&ccb->s.ccb_sglmem);
         return false;
     }
+    /* */
     
     return true;
 }
@@ -1601,24 +1607,45 @@ bool SASMegaRAID::DoesHBASupportSCSIParallelFeature(SCSIParallelFeature theFeatu
 void SASMegaRAID::ReportHBAConstraints(OSDictionary *constraints)
 {
     OSNumber *val;
+    
+    /* HW constraints: on block count, on transfer size */
 
     val = OSNumber::withNumber(1, 64);
     constraints->setObject(kIOMaximumSegmentCountReadKey, val);
     constraints->setObject(kIOMaximumSegmentCountWriteKey, val);
-    /*val->setValue(UINT_MAX);
-    constraints->setObject(kIOMaximumSegmentByteCountReadKey, val);
-    constraints->setObject(kIOMaximumSegmentByteCountWriteKey, val);*/
     val->setValue(addr_mask);
     constraints->setObject(kIOMinimumHBADataAlignmentMaskKey, val);
-    /* We have limit on block count */
-    val->setValue(IOPhysSize);
+    
+    /* Hack: sets limit on block count */
+    val->setValue(32);
     constraints->setObject(kIOMaximumSegmentAddressableBitCountKey, val);
-    /* TO-DO: Use min((1 << sc.sc_info.info->mci_stripe_sz_ops.max) * 
-     sc.sc_info.info->mci_max_strips_per_io,
-     sc.sc_info.info->mci_max_request_size) */
+    /* */
 #if 0
-    val->setValue();
+    /* Hack: not setting of these allows big chunks for transfer */
+    constraints->setObject(kIOMaximumSegmentByteCountReadKey, val);
+    constraints->setObject(kIOMaximumSegmentByteCountWriteKey, val);
+    /* */
+    /* Set by base class */
+    val->setValue(4);
     constraints->setObject(kIOMinimumSegmentAlignmentByteCountKey, val);
+    /* */
+#endif
+    
+#if 0
+#if defined DEBUG || defined io_debug
+    IOPrint("Forming constraints of: Max Stripe Size: %d, "
+            "Max Strips PerIO %d, Max Data Transfer Size: %d sectors\n",
+            1 << sc.sc_info.info->mci_stripe_sz_ops.max,
+            sc.sc_info.info->mci_max_strips_per_io,
+            sc.sc_info.info->mci_max_request_size);
+#endif
+    val->setValue(min((1 << sc.sc_info.info->mci_stripe_sz_ops.max) *
+                      sc.sc_info.info->mci_max_strips_per_io,
+                      sc.sc_info.info->mci_max_request_size) * SECTOR_LEN);
+#endif
+#if defined DEBUG || defined io_debug
+    IOPrint("kIOMaximumSegmentByteKey = %lld, UINT_MAX = %u\n", val->unsigned64BitValue(),
+            UINT_MAX);
 #endif
     val->release();
 }

@@ -6,7 +6,9 @@
 #include <IOKit/scsi/SCSICommandDefinitions.h>
 #include <IOKit/IOKitKeys.h>
 
-//#include <machine/limits.h>
+#if defined multiseg || defined io_debug
+#include <machine/limits.h>
+#endif
 
 #include "Hardware.h"
 #include "HelperLib.h"
@@ -128,10 +130,10 @@ static IOPMPowerState PowerStates[] = {
 
 class SASMegaRAID;
 typedef struct {
-#if defined DEBUG /*|| defined scsi_debug*/
+#if defined DEBUG /*|| defined io_debug*/
     UInt8 opcode;
 #endif
-#if defined DEBUG || defined scsi_debug
+#if defined DEBUG || defined io_debug
     UInt32 blkcnt;
 #endif
     SCSIParallelTaskIdentifier pr;

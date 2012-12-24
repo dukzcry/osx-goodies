@@ -1,3 +1,5 @@
+/* Written by Artem Falcon <lomka@gero.in> */
+
 #define PCI_MAPREG_MEM_ADDR_MASK        0xfffffff0
 
 #define	PCI_MAPREG_TYPE_MASK            0x00000001
