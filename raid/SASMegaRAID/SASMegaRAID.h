@@ -6,7 +6,7 @@
 #include <IOKit/scsi/SCSICommandDefinitions.h>
 #include <IOKit/IOKitKeys.h>
 
-#if defined multiseg || defined io_debug
+#if defined multiseg || defined DEBUG || defined io_debug
 #include <machine/limits.h>
 #endif
 
