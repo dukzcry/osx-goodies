@@ -1659,7 +1659,7 @@ bool SASMegaRAID::mraid_xscale_intr()
     /* Write status back to acknowledge interrupt */
     /*if(!MRAID_Write(MRAID_OSTS, Status))
      return false;*/
-    MRAID_Write(MRAID_OSTS, Status);
+    //MRAID_Write(MRAID_OSTS, Status);
     
     return true;
 }
