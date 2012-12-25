@@ -1143,8 +1143,7 @@ UInt32 SASMegaRAID::MRAID_Read(UInt8 offset)
     data = OSReadLittleInt32(vAddr, offset);
 #if defined (DEBUG)
     /* Because of flood coming from filter routine */
-    if (fMSIEnabled)
-        IOPrint("%s: offset %#x data 0x%08x\n", __FUNCTION__, offset, data);
+    //IOPrint("%s: offset %#x data 0x%08x\n", __FUNCTION__, offset, data);
 #endif
     
     return data;
@@ -1229,7 +1228,6 @@ void SASMegaRAID::MRAID_Exec(mraid_ccbCommand *ccb)
     
     DbgPrint("%s\n", __FUNCTION__);
     
-    my_assert(!ccb->s.ccb_context);
 #if defined(DEBUG)
     if (ccb->s.ccb_done)
         IOPrint("Warning: ccb_done set\n");

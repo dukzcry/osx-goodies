@@ -8,7 +8,6 @@
 #else
 #define DbgPrint(arg...)
 #endif
-#define my_assert(x)        (x ? (void) 0 : Assert(__FILE__, __LINE__, # x))
 
 #define nitems(_a)          (sizeof((_a)) / sizeof((_a)[0]))
 #define MASK_32BIT          0x00000000FFFFFFFFULL
