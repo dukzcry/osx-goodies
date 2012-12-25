@@ -1135,35 +1135,19 @@ void SASMegaRAID::systemWillShutdown(IOOptionBits spec)
 
 UInt32 SASMegaRAID::MRAID_Read(UInt8 offset)
 {
-    UInt32 data;
-    /*if(MemDesc.readBytes(offset, &data, 4) != 4) {
-     DbgPrint("%s[%p]::Read(): Unsuccessfull.\n", getName(), this);
-     return(0);
-     }*/
-    data = OSReadLittleInt32(vAddr, offset);
-#if defined (DEBUG)
     /* Because of flood coming from filter routine */
     //IOPrint("%s: offset %#x data 0x%08x\n", __FUNCTION__, offset, data);
-#endif
     
-    return data;
+    return OSReadLittleInt32(vAddr, offset);
 }
-/*bool*/
 void SASMegaRAID::MRAID_Write(UInt8 offset, uint32_t data)
 {
-    DbgPrint("%s: offset %#x data 0x%08x\n", __FUNCTION__, offset, data);
+    //DbgPrint("%s: offset %#x data 0x%08x\n", __FUNCTION__, offset, data);
 
     OSWriteLittleInt32(vAddr, offset, data);
 #if defined PPC
     OSSynchronizeIO();
 #endif
-    
-    /*if(MemDesc.writeBytes(offset, &data, 4) != 4) {
-     DbgPrint("%s[%p]::Write(): Unsuccessfull.\n", getName(), this);
-     return FALSE;
-     }
-     
-     return true;*/
 }
 
 void SASMegaRAID::MRAID_Poll(mraid_ccbCommand *ccb)
@@ -1655,11 +1639,9 @@ bool SASMegaRAID::mraid_xscale_intr()
     Status = MRAID_Read(MRAID_OSTS);
     if(!(Status & MRAID_OSTS_INTR_VALID))
         return false;
-    
+     
     /* Write status back to acknowledge interrupt */
-    /*if(!MRAID_Write(MRAID_OSTS, Status))
-     return false;*/
-    //MRAID_Write(MRAID_OSTS, Status);
+    MRAID_Write(MRAID_OSTS, Status);
     
     return true;
 }
@@ -1687,9 +1669,6 @@ bool SASMegaRAID::mraid_ppc_intr()
     if(!(Status & MRAID_OSTS_PPC_INTR_VALID))
         return false;
     
-    /* Write status back to acknowledge interrupt */
-    /*if(!MRAID_Write(MRAID_ODC, Status))
-     return false;*/
     MRAID_Write(MRAID_ODC, Status);
     
     return true;
@@ -1721,9 +1700,6 @@ bool SASMegaRAID::mraid_gen2_intr()
     if(!(Status & MRAID_OSTS_GEN2_INTR_VALID))
         return false;
     
-    /* Write status back to acknowledge interrupt */
-    /*if(!MRAID_Write(MRAID_ODC, Status))
-     return false;*/
     MRAID_Write(MRAID_ODC, Status);
     
     return true;
@@ -1749,11 +1725,6 @@ bool SASMegaRAID::mraid_skinny_intr()
     Status = MRAID_Read(MRAID_OSTS);
     if(!(Status & MRAID_OSTS_SKINNY_INTR_VALID))
         return false;
-    
-    /* Write status back to acknowledge interrupt */
-    /*if(!MRAID_Write(MRAID_ODC, Status))
-     return false;*/
-    MRAID_Write(MRAID_ODC, Status);
     
     return true;
 }
