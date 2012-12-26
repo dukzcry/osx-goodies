@@ -66,8 +66,10 @@ bool PCIHelper<UserClass>::CreateDeviceInterrupt(UserClass *CPtr, IOService *pro
     int intr_type, msi_index, legacy_index, intr_index;
     IOReturn intr_ret;
     
+#if defined DEBUG
     if(CPtr->fPCIDevice->findPCICapability(kIOPCIMSICapability)) /* MCR */
-        DbgPrint("[Helper] Looks like MSI interrupts are supported\n");
+        IOPrint("[Helper] Looks like MSI interrupts are supported\n");
+#endif
 
     /* Search for the indexes for legacy and MSI interrupts */
     /* From http://lists.apple.com/archives/darwin-drivers/2011/Mar/msg00024.html */
@@ -93,7 +95,7 @@ bool PCIHelper<UserClass>::CreateDeviceInterrupt(UserClass *CPtr, IOService *pro
     }
     
     if(CPtr->fMSIEnabled) {
-        IOPrint("[Helper] MSI interrupt index: %d\n", msi_index);
+        IOPrint("[Helper] MSI IR line: %d\n", msi_index);
         /* MSI interrupts can't be shared, so we don't use a filter. */
         CPtr->fInterruptSrc = IOInterruptEventSource::interruptEventSource(CPtr, 
             OSMemberFunctionCast(IOInterruptEventSource::Action, CPtr, InterruptHandler), 

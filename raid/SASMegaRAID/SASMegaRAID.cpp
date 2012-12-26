@@ -1140,7 +1140,7 @@ UInt32 SASMegaRAID::MRAID_Read(UInt8 offset)
     
     return OSReadLittleInt32(vAddr, offset);
 }
-void SASMegaRAID::MRAID_Write(UInt8 offset, uint32_t data)
+void SASMegaRAID::MRAID_Write(UInt8 offset, UInt32 data)
 {
     //DbgPrint("%s: offset %#x data 0x%08x\n", __FUNCTION__, offset, data);
 
@@ -1229,8 +1229,10 @@ void SASMegaRAID::MRAID_Exec(mraid_ccbCommand *ccb)
     ret = IOLockSleepDeadline(ccb_lock.holder, &ccb_lock.event, deadline, THREAD_INTERRUPTIBLE);
     ccb_lock.event = false;
     IOLockUnlock(ccb_lock.holder);
+#if defined DEBUG
     if (ret != THREAD_AWAKENED)
-        DbgPrint("Warning: interrupt didn't come while expected\n");
+        IOPrint("Warning: interrupt didn't come while expected\n");
+#endif
     
     IOLockFree(ccb_lock.holder);
 }

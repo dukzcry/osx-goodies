@@ -66,7 +66,9 @@ bool Andigilog::start(IOService *provider)
     OSDictionary *conf = NULL, *sconf = OSDynamicCast(OSDictionary, getProperty("Sensors Configuration")), *dict;
     IOService *fRoot = getServiceRoot();
     OSString *str, *vendor = NULL;
-    char *key; char tempkey[] = "temp ", fankey[] = "tach ";
+    char *key;
+    char tempkey[] = "_temp ", /* Ugly hack to keep keys in order for auto-generated plist */
+    fankey[] = "tach ";
 
     
     res = super::start(provider);
@@ -112,12 +114,12 @@ bool Andigilog::start(IOService *provider)
             if(str)
                 conf = OSDynamicCast(OSDictionary, link->getObject(str));
     if (sconf && !conf)
-        conf = OSDynamicCast(OSDictionary, sconf->getObject("Default"));
+        conf = OSDynamicCast(OSDictionary, sconf->getObject("Active"));
     i = 0;
     for (int s = 0, j = 0, k = 0; i < NUM_SENSORS; i++) {
         if (conf) {
                 if (Measures[i].fan < 0) {
-                    snprintf(&tempkey[4], 2, "%d", j++);
+                    snprintf(&tempkey[5], 2, "%d", j++);
                     key = tempkey;
                 } else {
                     snprintf(&fankey[4], 2, "%d", k++);
@@ -126,14 +128,14 @@ bool Andigilog::start(IOService *provider)
                 if ((dict = OSDynamicCast(OSDictionary, conf->getObject(key)))) {
                     str = OSDynamicCast(OSString, dict->getObject("id"));
                     memcpy(Measures[i].hwsensor.key, str->getCStringNoCopy(), str->getLength()+1);
+                    if (Measures[i].fan > -1)
+                        Measures[i].hwsensor.pwm = ((OSNumber *)OSDynamicCast(OSNumber, dict->getObject("pwm")))->
+                        unsigned8BitValue();
+                    Measures[i].hwsensor.size = ((OSNumber *)OSDynamicCast(OSNumber, dict->getObject("size")))->
+                    unsigned8BitValue();
                     str = OSDynamicCast(OSString, dict->getObject("type"));
                     memcpy(Measures[i].hwsensor.type, str->getCStringNoCopy(), str->getLength()+1);
-                    Measures[i].hwsensor.size = ((OSNumber *)OSDynamicCast(OSNumber, dict->getObject("size")))->
-                        unsigned8BitValue();
                 }
-            if (Measures[i].fan > -1)
-                    Measures[i].hwsensor.pwm = ((OSNumber *)OSDynamicCast(OSNumber, dict->getObject("pwm")))->
-                    unsigned8BitValue();
         }
         if (Measures[i].hwsensor.key[0]) {
             if (Measures[i].fan < 0) {
