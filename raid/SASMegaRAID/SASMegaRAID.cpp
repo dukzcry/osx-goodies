@@ -3,7 +3,7 @@
 /* Notes for code reader:
  - Syncs are bogus and not in all places they ough to be
  - Segments support bits aren't in all places they should be 
- - Rework: beat crap, use segments */
+ - Rework: beat crap - use segments */
 
 //#define io_debug
 

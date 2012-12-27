@@ -203,7 +203,7 @@ private:
     mraid_ccbCommand *Getccb();
     void Putccb(mraid_ccbCommand *);
     UInt32 MRAID_Read(UInt8);
-    /*bool*/ void MRAID_Write(UInt8, UInt32);
+    void MRAID_Write(UInt8, UInt32);
     void MRAID_Poll(mraid_ccbCommand *);
     void MRAID_Exec(mraid_ccbCommand *);
     void MRAID_Shutdown();
