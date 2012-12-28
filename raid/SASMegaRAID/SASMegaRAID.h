@@ -6,7 +6,7 @@
 #include <IOKit/scsi/SCSICommandDefinitions.h>
 #include <IOKit/IOKitKeys.h>
 
-#if defined multiseg || defined DEBUG || defined io_debug
+#if defined DEBUG || defined io_debug
 #include <machine/limits.h>
 #endif
 
@@ -28,43 +28,38 @@ typedef struct {
     IOPhysicalAddress paddr;
 #endif
 } mraid_mem;
+
 typedef struct {
     UInt32 len;
 
     IOBufferMemoryDescriptor *bmd;
     IOPhysicalAddress paddr;
-#ifdef multiseg
-    UInt32 numSeg; /* For FreeSGL() */
+} mraid_data_mem;
+typedef struct {
+    UInt32 len;
+    UInt32 numSeg;
     
     IODMACommand *cmd;
-    IOMemoryMap *map;
     union {
         IODMACommand::Segment32 *seg32;
         IODMACommand::Segment64 *seg64;
     } segs;
     void *segments;
-#endif
 } mraid_sgl_mem;
-void FreeSGL(mraid_sgl_mem *mm)
+void FreeDataMem(mraid_data_mem *mm)
 {
-#ifdef multiseg
-    if (mm->map) {
-        mm->map->release();
-        mm->map = NULL;
-    }
-    if (mm->cmd) {
-        mm->cmd->clearMemoryDescriptor(/*autoComplete*/false);
-        mm->cmd->complete(true, /*synchronize*/false);
-        mm->cmd->release();
-        mm->cmd = NULL;
-    }
-#endif
     if (mm->bmd) {
         mm->bmd->complete();
         mm->bmd->release();
         mm->bmd = NULL;
     }
-#ifdef multiseg
+}
+void FreeSGL(mraid_sgl_mem *mm)
+{
+    if (mm->cmd) {
+        mm->cmd->complete(false, false);
+        mm->cmd = NULL;
+    }
     if (mm->segments) {
         IODelete(mm->segments,
 #if IOPhysSize == 64
@@ -75,7 +70,6 @@ void FreeSGL(mraid_sgl_mem *mm)
                  , mm->numSeg);
         mm->segments = NULL;
     }
-#endif
 }
 
 #ifdef multiseg
@@ -109,7 +103,7 @@ typedef struct {
    
     struct {
         mraid_ctrl_info             *info;
-        mraid_sgl_mem               mem;
+        mraid_data_mem               mem;
     } sc_info;
     
 #define MRAID_BBU_GOOD              0
@@ -192,13 +186,14 @@ private:
     bool Initialize_Firmware();
     bool GetInfo();
     void ExportInfo();
-    int GetBBUInfo(mraid_sgl_mem *, mraid_bbu_status *&);
-    bool Management(UInt32, UInt32, UInt32, mraid_sgl_mem *, UInt8 *);
-    bool Do_Management(mraid_ccbCommand *, UInt32, UInt32, UInt32, mraid_sgl_mem *, UInt8 *);
+    int GetBBUInfo(mraid_data_mem *, mraid_bbu_status *&);
+    bool Management(UInt32, UInt32, UInt32, mraid_data_mem *, UInt8 *);
+    bool Do_Management(mraid_ccbCommand *, UInt32, UInt32, UInt32, mraid_data_mem *, UInt8 *);
     mraid_mem *AllocMem(vm_size_t);
     void FreeMem(mraid_mem *);
+    void PointToData(mraid_ccbCommand *, mraid_data_mem *);
     bool CreateSGL(mraid_ccbCommand *);
-    //bool GenerateSegments(mraid_ccbCommand *);
+    bool GenerateSegments(mraid_ccbCommand *);
     void Initccb();
     mraid_ccbCommand *Getccb();
     void Putccb(mraid_ccbCommand *);
@@ -255,7 +250,7 @@ protected:
     
     virtual void                    HandleInterruptRequest ( void ) {};
     /* We don't need 'em, we use our own cmds pool, and we're rely on it much before service starting */
-    virtual UInt32                  ReportHBASpecificTaskDataSize ( void ) {/*must be > 0*/return 1;};
+    virtual UInt32                  ReportHBASpecificTaskDataSize ( void ) {/*must be > 0*/return sc.sc_max_sgl;};
     virtual UInt32                  ReportHBASpecificDeviceDataSize ( void ) {return 0;};
     /* */
     /* Implement us */
