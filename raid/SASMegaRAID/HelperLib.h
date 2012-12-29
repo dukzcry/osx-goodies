@@ -10,7 +10,6 @@
 #define PCI_MAPREG_MEM_TYPE_32BIT_1M    0x00000002
 #define PCI_MAPREG_MEM_TYPE_64BIT       0x00000004
 
-
 /* Templates are allowed in non-IOKit classes */
 template <typename UserClass> class PCIHelper
 {

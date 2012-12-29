@@ -329,6 +329,7 @@ bool SASMegaRAID::Attach()
     max_sgl = (status & MRAID_STATE_MAXSGL_MASK) >> 16;
     /* FW can accept 64-bit SGLs */
     if(IOPhysSize == 64) {
+        /* Be paranoid on max SGL */
         sc.sc_max_sgl = min(max_sgl, (128 * 1024) / PAGE_SIZE + 1);
         sc.sc_sgl_size = sizeof(mraid_sg64);
         sc.sc_sgl_flags = MRAID_FRAME_SGL64;
@@ -559,24 +560,25 @@ bool SASMegaRAID::GenerateSegments(mraid_ccbCommand *ccb)
 {
     IOReturn st = kIOReturnSuccess;
     UInt64 offset = 0;
+    int i = 0;
     
     ccb->s.ccb_sglmem.numSeg = sc.sc_max_sgl;
+#if IOPhysSize == 64
+    ccb->s.ccb_sglmem.segs.seg64 = IONew(IODMACommand::Segment64, ccb->s.ccb_sglmem.numSeg);
+    ccb->s.ccb_sglmem.segments = (void *) ccb->s.ccb_sglmem.segs.seg64;
+#else
+    ccb->s.ccb_sglmem.segs.seg32 = IONew(IODMACommand::Segment32, ccb->s.ccb_sglmem.numSeg);
+    ccb->s.ccb_sglmem.segments = (void *) ccb->s.ccb_sglmem.segs.seg32;
+#endif
     while ((st == kIOReturnSuccess) && (offset < ccb->s.ccb_sglmem.len))
     {
-#if IOPhysSize == 64
-        ccb->s.ccb_sglmem.segs.seg64 = IONew(IODMACommand::Segment64, sc.sc_max_sgl);
-        ccb->s.ccb_sglmem.segments = (void *) ccb->s.ccb_sglmem.segs.seg64;
-#else
-        ccb->s.ccb_sglmem.segs.seg32 = IONew(IODMACommand::Segment32, sc.sc_max_sgl);
-        ccb->s.ccb_sglmem.segments = (void *) ccb->s.ccb_sglmem.segs.seg32;
-#endif
-        
         st = (IOPhysSize == 64) ?
             ccb->s.ccb_sglmem.cmd->gen64IOVMSegments(&offset,
-                (IODMACommand::Segment64 *) ccb->s.ccb_sglmem.segments, &ccb->s.ccb_sglmem.numSeg)
+                &ccb->s.ccb_sglmem.segs.seg64[i], &ccb->s.ccb_sglmem.numSeg)
         :
             ccb->s.ccb_sglmem.cmd->gen32IOVMSegments(&offset,
-                (IODMACommand::Segment32 *) ccb->s.ccb_sglmem.segments, &ccb->s.ccb_sglmem.numSeg);
+                &ccb->s.ccb_sglmem.segs.seg32[i], &ccb->s.ccb_sglmem.numSeg);
+        i++;
     }
     if (st != kIOReturnSuccess)
         return false;
@@ -998,7 +1000,7 @@ void SASMegaRAID::PointToData(mraid_ccbCommand *ccb, mraid_data_mem *mem)
                                           );
         sgl->sg32[0].len = htole32(ccb->s.ccb_sglmem.len);
     }
-        DbgPrint("Paddr: %#llx\n", mem->paddr);
+    DbgPrint("Paddr: %#llx\n", mem->paddr);
 
     hdr->mrh_flags |= (ccb->s.ccb_direction == MRAID_DATA_IN) ?
         MRAID_FRAME_DIR_READ : MRAID_FRAME_DIR_WRITE;
@@ -1042,6 +1044,13 @@ bool SASMegaRAID::CreateSGL(mraid_ccbCommand *ccb)
             sgl->sg32[i].len = (UInt32) htole32(sgd[i].fLength);
         }
     }
+#if defined DEBUG
+#if IOPhysSize == 64
+    IOPrint("Paddr[0]: %#llx\n", sgd[0].fIOVMAddr);
+#else
+    IOPrint("Paddr[0]: %#x\n", sgd[0].fIOVMAddr);
+#endif
+#endif
 
     if (ccb->s.ccb_direction == MRAID_DATA_IN) {
         hdr->mrh_flags |= MRAID_FRAME_DIR_READ;
@@ -1056,9 +1065,7 @@ bool SASMegaRAID::CreateSGL(mraid_ccbCommand *ccb)
     ccb->s.ccb_frame_size += sc.sc_sgl_size * ccb->s.ccb_sglmem.numSeg;
     ccb->s.ccb_extra_frames = (ccb->s.ccb_frame_size - 1) / MRAID_FRAME_SIZE;
     
-    DbgPrint("Paddr of sgd[0]: 0x%llx, frame_size: %d extra_frames: %d\n",
-             sgd[0].fIOVMAddr,
-             ccb->s.ccb_frame_size, ccb->s.ccb_extra_frames);
+    DbgPrint("frame_size: %d extra_frames: %d\n", ccb->s.ccb_frame_size, ccb->s.ccb_extra_frames);
     
     return true;
 }
@@ -1274,7 +1281,6 @@ void SASMegaRAID::CompleteTask(mraid_ccbCommand *ccb, cmd_context *cmd)
 bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr)
 {
     SCSICommandDescriptorBlock cdbData = { 0 };
-    IOMemoryDescriptor *transferMemDesc;
     
     mraid_pass_frame *pf;
     cmd_context *cmd;
@@ -1324,8 +1330,8 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
         break;
     }
 
-    if ((transferMemDesc = GetDataBuffer(pr))) {
-        ccb->s.ccb_sglmem.len = (UInt32) transferMemDesc->getLength();
+    if (GetDataBuffer(pr)) {
+        ccb->s.ccb_sglmem.len = (UInt32) GetRequestedDataTransferCount(pr);
         if (!(ccb->s.ccb_sglmem.cmd = GetDMACommand(pr)))
             return false;
         ccb->s.ccb_sglmem.cmd->prepare(GetDataBufferOffset(pr), ccb->s.ccb_sglmem.len, false, false);
@@ -1343,16 +1349,15 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
 #if defined DEBUG /*|| defined io_debug*/
     SCSICommandDescriptorBlock cdbData = { 0 };
 #endif
-    IOMemoryDescriptor* transferMemDesc;
     
     mraid_io_frame *io;
     cmd_context *cmd;
     
-    if (!(transferMemDesc = GetDataBuffer(pr)))
+    if (!GetDataBuffer(pr))
         return false;
 
 #if defined DEBUG || defined io_debug
-    IOPrint("%s: trlen: %lld, lba: %lld, blkcnt: %d\n", __FUNCTION__, transferMemDesc->getLength(), lba, len);
+    IOPrint("%s: trlen: %lld, lba: %lld, blkcnt: %d\n", __FUNCTION__, GetRequestedDataTransferCount(pr), lba, len);
 #endif
     
     io = &ccb->s.ccb_frame->mrr_io;
@@ -1392,7 +1397,7 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
     ccb->s.ccb_frame_size = MRAID_PASS_FRAME_SIZE;
     ccb->s.ccb_sgl = &io->mif_sgl;
 
-    ccb->s.ccb_sglmem.len = (UInt32) transferMemDesc->getLength();
+    ccb->s.ccb_sglmem.len = (UInt32) GetRequestedDataTransferCount(pr);
     if (!(ccb->s.ccb_sglmem.cmd = GetDMACommand(pr)))
         return false;
     ccb->s.ccb_sglmem.cmd->prepare(GetDataBufferOffset(pr), ccb->s.ccb_sglmem.len, false, false);
@@ -1535,22 +1540,22 @@ void SASMegaRAID::ReportHBAConstraints(OSDictionary *constraints)
             sc.sc_info.info->mci_max_strips_per_io,
             sc.sc_info.info->mci_max_request_size);
 #endif
-    val->setValue((min((1 << sc.sc_info.info->mci_stripe_sz_ops.max) *
+    /*val->setValue((min((1 << sc.sc_info.info->mci_stripe_sz_ops.max) *
                       sc.sc_info.info->mci_max_strips_per_io,
-                      sc.sc_info.info->mci_max_request_size) * SECTOR_LEN) / sc.sc_max_sgl);
+                      sc.sc_info.info->mci_max_request_size) * SECTOR_LEN) / sc.sc_max_sgl);*/
+    val->setValue((sc.sc_info.info->mci_max_request_size * SECTOR_LEN) / sc.sc_max_sgl);
 #if defined DEBUG || defined io_debug
     IOPrint("kIOMaximumSegmentByteKey = %lld, UINT_MAX = %u\n", val->unsigned64BitValue(),
             UINT_MAX);
 #endif
     constraints->setObject(kIOMaximumSegmentByteCountReadKey, val);
     constraints->setObject(kIOMaximumSegmentByteCountWriteKey, val);
-    
+    val->setValue(1);
+    constraints->setObject(kIOMinimumSegmentAlignmentByteCountKey, val);
     /* No alignment restriction, we don't use HBA data from stack */
     val->setValue(addr_mask);
     constraints->setObject(kIOMinimumHBADataAlignmentMaskKey, val);
     /* */
-    val->setValue(0);
-    constraints->setObject(kIOMinimumSegmentAlignmentByteCountKey, val);
     val->release();
 }
 
