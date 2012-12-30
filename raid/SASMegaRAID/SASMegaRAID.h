@@ -6,9 +6,9 @@
 #include <IOKit/scsi/SCSICommandDefinitions.h>
 #include <IOKit/IOKitKeys.h>
 
-#if defined DEBUG || defined io_debug
+//#if defined DEBUG || defined io_debug
 #include <machine/limits.h>
-#endif
+//#endif
 
 #include "Hardware.h"
 #include "HelperLib.h"
@@ -277,6 +277,7 @@ protected:
     
     virtual bool DoesHBAPerformAutoSense(void) {return true;}
     virtual void ReportHBAConstraints(OSDictionary *);
+    virtual bool InitializeDMASpecification(IODMACommand *);
 public:
     void CompleteTask(mraid_ccbCommand *, cmd_context *);
 };

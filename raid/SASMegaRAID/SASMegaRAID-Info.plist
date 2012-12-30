@@ -58,5 +58,7 @@
 		<key>com.apple.kpi.libkern</key>
 		<string>10.0.0</string>
 	</dict>
+	<key>OSBundleRequired</key>
+	<string>Local-Root</string>
 </dict>
 </plist>
