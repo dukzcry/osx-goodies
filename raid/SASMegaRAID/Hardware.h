@@ -74,6 +74,7 @@
 
 /* Driver defs */
 #define MRAID_MAX_LD                            64
+#define MRAID_MAXPHYS                           (128 * 1024)
 
 typedef enum {
     MRAID_IOP_XSCALE,
