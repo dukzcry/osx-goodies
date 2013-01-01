@@ -39,12 +39,15 @@ typedef struct {
     UInt32 len;
     UInt32 numSeg;
     
+    IOPhysicalAddress paddr;
     IODMACommand *cmd;
+#if reworkme
     union {
         IODMACommand::Segment32 *seg32;
         IODMACommand::Segment64 *seg64;
     } segs;
     void *segments;
+#endif
 } mraid_sgl_mem;
 void FreeDataMem(mraid_data_mem *mm)
 {
@@ -60,6 +63,7 @@ void FreeSGL(mraid_sgl_mem *mm)
         mm->cmd->complete(false, false);
         mm->cmd = NULL;
     }
+#if reworkme
     if (mm->segments) {
         IODelete(mm->segments,
 #if IOPhysSize == 64
@@ -70,6 +74,7 @@ void FreeSGL(mraid_sgl_mem *mm)
                  , mm->numSeg);
         mm->segments = NULL;
     }
+#endif
 }
 
 #ifdef multiseg
@@ -193,7 +198,7 @@ private:
     void FreeMem(mraid_mem *);
     void PointToData(mraid_ccbCommand *, mraid_data_mem *);
     bool CreateSGL(mraid_ccbCommand *);
-    bool GenerateSegments(mraid_ccbCommand *);
+    //bool GenerateSegments(mraid_ccbCommand *);
     void Initccb();
     mraid_ccbCommand *Getccb();
     void Putccb(mraid_ccbCommand *);
