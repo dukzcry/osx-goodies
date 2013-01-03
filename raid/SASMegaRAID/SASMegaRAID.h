@@ -6,10 +6,6 @@
 #include <IOKit/scsi/SCSICommandDefinitions.h>
 #include <IOKit/IOKitKeys.h>
 
-//#if defined DEBUG || defined io_debug
-#include <machine/limits.h>
-//#endif
-
 #include "Hardware.h"
 #include "HelperLib.h"
 
@@ -19,14 +15,8 @@
 
 typedef struct {
     IOBufferMemoryDescriptor *bmd;
-#if multiseg
-    IODMACommand *cmd; /* synchronize() */
-    IOMemoryMap *map;
-    IODMACommand::Segment32 segment;
-#else
     IOVirtualAddress vaddr;
     IOPhysicalAddress paddr;
-#endif
 } mraid_mem;
 
 typedef struct {
@@ -39,15 +29,12 @@ typedef struct {
     UInt32 len;
     UInt32 numSeg;
     
-    IOPhysicalAddress paddr;
     IODMACommand *cmd;
-#if reworkme
     union {
         IODMACommand::Segment32 *seg32;
         IODMACommand::Segment64 *seg64;
     } segs;
     void *segments;
-#endif
 } mraid_sgl_mem;
 void FreeDataMem(mraid_data_mem *mm)
 {
@@ -63,7 +50,6 @@ void FreeSGL(mraid_sgl_mem *mm)
         mm->cmd->complete(false, false);
         mm->cmd = NULL;
     }
-#if reworkme
     if (mm->segments) {
         IODelete(mm->segments,
 #if IOPhysSize == 64
@@ -74,16 +60,10 @@ void FreeSGL(mraid_sgl_mem *mm)
                  , mm->numSeg);
         mm->segments = NULL;
     }
-#endif
 }
 
-#ifdef multiseg
-#define MRAID_DVA(_am) ((_am)->segment.fIOVMAddr)
-#define MRAID_KVA(_am) ((_am)->map->getVirtualAddress())
-#else
 #define MRAID_DVA(_am) ((_am)->paddr)
 #define MRAID_KVA(_am) ((_am)->vaddr)
-#endif
 
 typedef struct {
     struct mraid_iop_ops            *sc_iop;
@@ -161,6 +141,7 @@ private:
     IOCommandPool *ccbCommandPool;
     
     void *vAddr;
+    UInt32 MaxTransferSize;
     bool fMSIEnabled;
     bool InterruptsActivated;
     bool FirmwareInitialized;
@@ -198,7 +179,7 @@ private:
     void FreeMem(mraid_mem *);
     void PointToData(mraid_ccbCommand *, mraid_data_mem *);
     bool CreateSGL(mraid_ccbCommand *);
-    //bool GenerateSegments(mraid_ccbCommand *);
+    bool GenerateSegments(mraid_ccbCommand *);
     void Initccb();
     mraid_ccbCommand *Getccb();
     void Putccb(mraid_ccbCommand *);
@@ -255,7 +236,7 @@ protected:
     
     virtual void                    HandleInterruptRequest ( void ) {};
     /* We don't need 'em, we use our own cmds pool, and we're rely on it much before service starting */
-    virtual UInt32                  ReportHBASpecificTaskDataSize ( void ) {/*must be > 0*/return sc.sc_max_sgl;};
+    virtual UInt32                  ReportHBASpecificTaskDataSize ( void ) {/*must be > 0*/return 1;};
     virtual UInt32                  ReportHBASpecificDeviceDataSize ( void ) {return 0;};
     /* */
     /* Implement us */
@@ -291,7 +272,7 @@ public:
 #define mraid_intr_enable() ((this->*sc.sc_iop->mio_intr_ena)())
 #define mraid_intr_disable() ((this->*sc.sc_iop->mio_intr_dis)())
 #define mraid_fw_state() ((this->*sc.sc_iop->mio_fw_state)())
-#define mraid_post(_c) {/*sc->sc_frames->cmd->synchronize(kIODirectionInOut);*/ (this->*sc.sc_iop->mio_post)(_c);};
+#define mraid_post(_c) ((this->*sc.sc_iop->mio_post)(_c))
 /* Different IOPs means different bunch of handling. Covered things: firmware, interrupts, POST. */
 typedef struct mraid_iop_ops {
     mraid_iop_ops() : mio_intr(NULL) {}

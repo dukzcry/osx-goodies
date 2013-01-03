@@ -20,7 +20,6 @@ public:
         UInt32          ccb_extra_frames;
         
         addr64_t        ccb_pframe;
-        //UInt32        ccb_pframe_offset;
         
         mraid_sense     *ccb_sense;
         addr64_t        ccb_psense;

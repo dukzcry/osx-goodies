@@ -25,3 +25,4 @@ Notes for coder:
 - Templates are used for interaction with project-independend helper library
 - Structures, enumerations and unions are typedefined to raise 'pointer to incomplete type' invisible errors
 - Incapsulation ignored
+- Checks for DMA buffers bouncing aren't required on OS X, and hence, you'll see no synchronize() in code
