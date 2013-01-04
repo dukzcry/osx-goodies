@@ -126,7 +126,7 @@ private:
     IOCommandPool *ccbCommandPool;
     
     void *vAddr;
-    UInt32 MaxTransferSize;
+    UInt32 MaxXferSize;
     bool fMSIEnabled;
     bool InterruptsActivated;
     bool FirmwareInitialized;
