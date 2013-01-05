@@ -126,6 +126,7 @@ private:
     IOCommandPool *ccbCommandPool;
     
     void *vAddr;
+    static UInt32 MaxXferSizePerSeg;
     UInt32 MaxXferSize;
     bool fMSIEnabled;
     bool InterruptsActivated;
@@ -213,7 +214,7 @@ protected:
     virtual SCSILogicalUnitNumber	ReportHBAHighestLogicalUnitNumber ( void ) {return 1;};
     virtual SCSIDeviceIdentifier	ReportHighestSupportedDeviceID ( void ) {return min(MRAID_MAX_LD, sc.sc_info.info->mci_max_lds);};
     virtual bool                    DoesHBAPerformDeviceManagement ( void ) {return false;};
-    virtual UInt32                  ReportMaximumTaskCount ( void ) {return sc.sc_max_cmds-1;};
+    virtual UInt32                  ReportMaximumTaskCount ( void ) {/*temp*/return 1/*sc.sc_max_cmds-1*/;};
     /* We're not a real SCSI controller */
     virtual SCSIInitiatorIdentifier	ReportInitiatorIdentifier ( void ) {return min(MRAID_MAX_LD, sc.sc_info.info->mci_max_lds)+1;};
     virtual bool                    InitializeTargetForID ( SCSITargetIdentifier targetID );

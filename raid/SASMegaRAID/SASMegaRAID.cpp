@@ -241,6 +241,7 @@ void SASMegaRAID::interruptHandler(OSObject *owner, void *src, IOService *nub, i
 #if defined DEBUG || defined io_debug
             IOPrint("ccb: %d\n", Context);
 #endif
+            my_assert(ccb->s.ccb_done);
             ccb->s.ccb_done(ccb);
         }
         Consumer++;
@@ -295,6 +296,7 @@ void mraid_empty_done(mraid_ccbCommand *)
 
 bool SASMegaRAID::Attach()
 {
+    OSNumber *val;
     UInt32 status, frames;
     
     DbgPrint("%s\n", __FUNCTION__);
@@ -466,6 +468,26 @@ bool SASMegaRAID::Attach()
     }
 #endif
     
+#if defined DEBUG || defined io_debug
+    IOPrint("Forming constraints of: Max Stripe Size: %d, "
+            "Max Strips PerIO %d, Max Data Transfer Size: %d sectors\n",
+            1 << sc.sc_info.info->mci_stripe_sz_ops.max,
+            sc.sc_info.info->mci_max_strips_per_io,
+            sc.sc_info.info->mci_max_request_size);
+#endif
+    val = OSNumber::withNumber(MaxXferSize =
+#if 1
+                               MaxXferSizePerSeg = min((1 << sc.sc_info.info->mci_stripe_sz_ops.max) *
+                                    sc.sc_info.info->mci_max_strips_per_io,
+                                    sc.sc_info.info->mci_max_request_size) * SECTOR_LEN, 64);
+#else
+                               PAGE_SIZE * sc.sc_max_sgl, 64);
+                                MaxXferSizePerSeg = PAGE_SIZE;
+#endif
+    setProperty(kIOMaximumByteCountReadKey, val);
+    setProperty(kIOMaximumByteCountWriteKey, val);
+    val->release();
+    
     return true;
 }
 
@@ -508,11 +530,9 @@ bool SASMegaRAID::GenerateSegments(mraid_ccbCommand *ccb)
     
     ccb->s.ccb_sglmem.numSeg = sc.sc_max_sgl;
 
-    while (offset < ccb->s.ccb_sglmem.len) {
-        if (ccb->s.ccb_sglmem.cmd->genIOVMSegments(&offset,
-            ccb->s.ccb_sgl, &ccb->s.ccb_sglmem.numSeg) != kIOReturnSuccess)
-            return false;
-    }
+    if (ccb->s.ccb_sglmem.cmd->genIOVMSegments(&offset,
+        ccb->s.ccb_sgl, &ccb->s.ccb_sglmem.numSeg) != kIOReturnSuccess)
+        return false;
     
     DbgPrint("genIOVMSegments: nseg %d\n", ccb->s.ccb_sglmem.numSeg);
 
@@ -936,9 +956,12 @@ void SASMegaRAID::PointToData(mraid_ccbCommand *ccb, mraid_data_mem *mem)
     hdr->mrh_sg_count = 1;
     ccb->s.ccb_frame_size += sc.sc_sgl_size;
 }
+UInt32 SASMegaRAID::MaxXferSizePerSeg;
 bool SASMegaRAID::OutputSegment(IODMACommand * __unused, IODMACommand::Segment64 sgd, void *context, UInt32 i)
 {
     mraid_sgl *sgl = (mraid_sgl *) context;
+    
+    my_assert(sgd.fLength <= SASMegaRAID::MaxXferSizePerSeg);
     
     if (IOPhysSize == 64) {
         sgl->sg64[i].addr = htole64(sgd.fIOVMAddr);
@@ -968,13 +991,13 @@ bool SASMegaRAID::CreateSGL(mraid_ccbCommand *ccb)
     
     DbgPrint("%s\n", __FUNCTION__);
     
-    /* Kaboom! */
     my_assert(ccb->s.ccb_sglmem.len <= MaxXferSize);
 
     if (!GenerateSegments(ccb)) {
         IOPrint("Unable to generate segments\n");
         return false;
     }
+    my_assert(ccb->s.ccb_sglmem.numSeg <= sc.sc_max_sgl);
 
     hdr->mrh_flags |= (ccb->s.ccb_direction == MRAID_DATA_IN) ?
         MRAID_FRAME_DIR_READ : MRAID_FRAME_DIR_WRITE;
@@ -1162,6 +1185,7 @@ void mraid_cmd_done(mraid_ccbCommand *ccb)
         break;
     }
     
+    my_assert(cmd->ts == kSCSITaskStatus_GOOD);
 #if defined DEBUG /*|| defined io_debug*/
     if (cmd->ts != kSCSITaskStatus_GOOD)
         IOPrint("Warning: cmd failed with ts 0x%x on opc 0x%x\n", cmd->ts, cmd->opcode);
@@ -1398,6 +1422,11 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
     DbgPrint("Command queued\n");
     return kSCSIServiceResponse_Request_In_Process;
 fail:
+    my_assert(cdbData[0] == kSCSICmd_MODE_SENSE_6 || cdbData[0] == kSCSICmd_MODE_SENSE_10
+#if 1
+              || cdbData[0] == kSCSICmd_READ_12 || cdbData[0] == kSCSICmd_WRITE_12
+#endif
+              );
     Putccb(ccb);
     return kSCSIServiceResponse_SERVICE_DELIVERY_OR_TARGET_FAILURE;
 complete:
@@ -1444,24 +1473,9 @@ void SASMegaRAID::ReportHBAConstraints(OSDictionary *constraints)
     constraints->setObject(kIOMaximumSegmentCountReadKey, val);
     constraints->setObject(kIOMaximumSegmentCountWriteKey, val);
     
-#if defined DEBUG || defined io_debug
-    IOPrint("Forming constraints of: Max Stripe Size: %d, "
-            "Max Strips PerIO %d, Max Data Transfer Size: %d sectors\n",
-            1 << sc.sc_info.info->mci_stripe_sz_ops.max,
-            sc.sc_info.info->mci_max_strips_per_io,
-            sc.sc_info.info->mci_max_request_size);
-#endif
-    MaxXferSize = min((1 << sc.sc_info.info->mci_stripe_sz_ops.max) *
-                       sc.sc_info.info->mci_max_strips_per_io,
-                       sc.sc_info.info->mci_max_request_size) * SECTOR_LEN;
-    val->setValue(MaxXferSize);
+    val->setValue(MaxXferSizePerSeg);
     constraints->setObject(kIOMaximumSegmentByteCountReadKey, val);
     constraints->setObject(kIOMaximumSegmentByteCountWriteKey, val);
-    /* Makes no sense */
-    val->setValue(MaxXferSize);
-    constraints->setObject(kIOMaximumByteCountReadKey, val);
-    constraints->setObject(kIOMaximumByteCountWriteKey, val);
-    /* */
     
     val->setValue(1);
     constraints->setObject(kIOMinimumSegmentAlignmentByteCountKey, val);
@@ -1480,7 +1494,7 @@ bool SASMegaRAID::InitializeDMASpecification(IODMACommand *cmd)
 {
     //DbgPrint("%s\n", __FUNCTION__);
     
-    return cmd->initWithSpecification(SASMegaRAID::OutputSegment, IOPhysSize, MaxXferSize,
+    return cmd->initWithSpecification(SASMegaRAID::OutputSegment, IOPhysSize, MaxXferSizePerSeg,
                                       IODMACommand::kMapped, MaxXferSize);
 }
 
