@@ -45,7 +45,7 @@ bool SASMegaRAID::InitializeController(void)
     IOService *provider = getProvider();
     IODeviceMemory *MemDesc;
     UInt8 regbar;
-    UInt32 type, barval;
+    UInt32 barval;
     
     //BaseClass::start(provider);
     DbgPrint("super->InitializeController\n");
@@ -70,8 +70,8 @@ bool SASMegaRAID::InitializeController(void)
     /* We do DMA transactions */
     fPCIDevice->setBusMasterEnable(true);
     /* Figuring out mapping scheme */
-    type = PCIHelperP->MappingType(this, regbar, &barval);
-    switch(type) {
+    MappingType = PCIHelperP->MappingType(this, regbar, &barval);
+    switch(MappingType) {
         case PCI_MAPREG_TYPE_IO:
 #if 1
             IOPrint("We don't support IO ports\n");
@@ -82,6 +82,7 @@ bool SASMegaRAID::InitializeController(void)
 #endif
         case PCI_MAPREG_MEM_TYPE_32BIT_1M:
         case PCI_MAPREG_MEM_TYPE_32BIT:
+            MappingType = 32;
             fPCIDevice->setMemoryEnable(true);
 
             if (!(MemDesc = IODeviceMemory::withRange(barval, MRAID_PCI_MEMSIZE))) {
@@ -105,6 +106,7 @@ bool SASMegaRAID::InitializeController(void)
             }
         break;
         case PCI_MAPREG_MEM_TYPE_64BIT:
+            MappingType = 64;
 #if 1
             IOPrint("PCI-X support to be implemented\n");
             return false;
@@ -318,6 +320,10 @@ bool SASMegaRAID::Attach()
     status = mraid_fw_state();
     sc.sc_max_cmds = status & MRAID_STATE_MAXCMD_MASK;
     sc.sc_max_sgl = (status & MRAID_STATE_MAXSGL_MASK) >> 16;
+    
+    /* XXX: Can't bump this: probably problem of my LSI-flashed PERC 5 */
+    sc.sc_max_sgl = min(sc.sc_max_sgl, FREEBSD_MAXFER / PAGE_SIZE + 1);
+    
     /* FW can accept 64-bit SGLs */
     if(IOPhysSize == 64) {
         sc.sc_sgl_size = sizeof(mraid_sg64);
@@ -467,23 +473,25 @@ bool SASMegaRAID::Attach()
         return false;
     }
 #endif
-    
+
+#if 0
 #if defined DEBUG || defined io_debug
-    IOPrint("Forming constraints of: Max Stripe Size: %d, "
+    IOPrint("Formed constraints of: Max Stripe Size: %d, "
             "Max Strips PerIO %d, Max Data Transfer Size: %d sectors\n",
             1 << sc.sc_info.info->mci_stripe_sz_ops.max,
             sc.sc_info.info->mci_max_strips_per_io,
             sc.sc_info.info->mci_max_request_size);
 #endif
-    val = OSNumber::withNumber(MaxXferSize =
-#if 1
-                               MaxXferSizePerSeg = min((1 << sc.sc_info.info->mci_stripe_sz_ops.max) *
-                                    sc.sc_info.info->mci_max_strips_per_io,
-                                    sc.sc_info.info->mci_max_request_size) * SECTOR_LEN, 64);
-#else
-                               PAGE_SIZE * sc.sc_max_sgl, 64);
-                                MaxXferSizePerSeg = PAGE_SIZE;
 #endif
+    val = OSNumber::withNumber(MaxXferSize = MaxXferSizePerSeg =
+#if 0
+                               min(min((1 << sc.sc_info.info->mci_stripe_sz_ops.max) *
+                                    sc.sc_info.info->mci_max_strips_per_io,
+                                    sc.sc_info.info->mci_max_request_size) * SECTOR_LEN,
+#else
+                               (
+#endif
+                               (sc.sc_max_sgl - 1) * PAGE_SIZE), 64);
     setProperty(kIOMaximumByteCountReadKey, val);
     setProperty(kIOMaximumByteCountWriteKey, val);
     val->release();
@@ -525,8 +533,6 @@ void SASMegaRAID::FreeMem(mraid_mem *mm)
 bool SASMegaRAID::GenerateSegments(mraid_ccbCommand *ccb)
 {
     UInt64 offset = 0;
-
-    DbgPrint("%s\n", __FUNCTION__);
     
     ccb->s.ccb_sglmem.numSeg = sc.sc_max_sgl;
 
@@ -534,7 +540,9 @@ bool SASMegaRAID::GenerateSegments(mraid_ccbCommand *ccb)
         ccb->s.ccb_sgl, &ccb->s.ccb_sglmem.numSeg) != kIOReturnSuccess)
         return false;
     
-    DbgPrint("genIOVMSegments: nseg %d\n", ccb->s.ccb_sglmem.numSeg);
+#if defined DEBUG || defined io_debug
+    IOPrint("genIOVMSegments: nseg %d\n", ccb->s.ccb_sglmem.numSeg);
+#endif
 
     return true;
 }
@@ -1134,6 +1142,7 @@ void SASMegaRAID::MRAID_Exec(mraid_ccbCommand *ccb)
     ccb_lock.event = false;
     IOLockUnlock(ccb_lock.holder);
 #if defined DEBUG
+    my_assert(ret == THREAD_AWAKENED);
     if (ret != THREAD_AWAKENED)
         IOPrint("Warning: interrupt didn't come while expected\n");
 #endif
@@ -1216,7 +1225,6 @@ void SASMegaRAID::CompleteTask(mraid_ccbCommand *ccb, cmd_context *cmd)
 bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr)
 {
     SCSICommandDescriptorBlock cdbData = { 0 };
-    IOMemoryDescriptor *md;
     
     mraid_pass_frame *pf;
     cmd_context *cmd;
@@ -1228,7 +1236,7 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
     pf->mpf_header.mrh_target_id = GetTargetIdentifier(pr);
     pf->mpf_header.mrh_lun_id = 0;
     pf->mpf_header.mrh_cdb_len = GetCommandDescriptorBlockSize(pr);
-    pf->mpf_header.mrh_timeout = 0;
+    pf->mpf_header.mrh_timeout = GetTimeoutDuration(pr);
     pf->mpf_header.mrh_data_len = (UInt32) htole64(GetRequestedDataTransferCount(pr)); /* XXX */
     pf->mpf_header.mrh_sense_len = MRAID_SENSE_SIZE;
     
@@ -1266,7 +1274,7 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
         break;
     }
 
-    if ((md = GetDataBuffer(pr))) {
+    if (GetDataBuffer(pr)) {
         ccb->s.ccb_sglmem.len = (UInt32) GetRequestedDataTransferCount(pr);
         if (!(ccb->s.ccb_sglmem.cmd = GetDMACommand(pr)))
             return false;
@@ -1308,7 +1316,7 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
         break;
     }
     io->mif_header.mrh_target_id = GetTargetIdentifier(pr);
-    io->mif_header.mrh_timeout = 0;
+    io->mif_header.mrh_timeout = GetTimeoutDuration(pr);
     io->mif_header.mrh_flags = 0;
     io->mif_header.mrh_data_len = htole32(len);
     io->mif_header.mrh_sense_len = MRAID_SENSE_SIZE;
@@ -1480,7 +1488,7 @@ void SASMegaRAID::ReportHBAConstraints(OSDictionary *constraints)
     val->setValue(1);
     constraints->setObject(kIOMinimumSegmentAlignmentByteCountKey, val);
     
-    val->setValue(IOPhysSize);
+    val->setValue(MappingType);
     constraints->setObject(kIOMaximumSegmentAddressableBitCountKey, val);
 
     /* No alignment restriction, we don't use HBA data from stack */
