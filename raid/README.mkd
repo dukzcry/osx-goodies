@@ -18,8 +18,10 @@ Note, that probably almost every card from this family requires x86 host to get 
 Postponed features:
 - Sleep/resume handling
 - Hotspare support
-- Sensors data refreshing
 - Management of RAID functional
+
+Post-postponed features:
+- Battery monitoring with FakeSMC
 
 Notes for coder:
 - Templates are used for interaction with project-independend helper library
