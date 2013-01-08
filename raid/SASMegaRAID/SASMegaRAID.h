@@ -89,6 +89,7 @@ typedef struct {
 } lock;
 
 static IOPMPowerState PowerStates[] = {
+    {1, kIOPMSleep, kIOPMSleep, kIOPMSleep, 0, 0, 0, 0, 0, 0, 0, 0},
     {1, kIOPMPowerOn, kIOPMPowerOn, kIOPMPowerOn, 0, 0, 0, 0, 0, 0, 0, 0}
 };
 
@@ -128,10 +129,7 @@ private:
     void *vAddr;
     static UInt32 MaxXferSizePerSeg;
     UInt32 MaxXferSize, MappingType;
-    bool fMSIEnabled;
-    bool InterruptsActivated;
-    bool FirmwareInitialized;
-    bool ccb_inited;
+    bool fMSIEnabled, InterruptsActivated, FirmwareInitialized, ccb_inited, EnteredSleep;
     const mraid_pci_device *mpd;
     mraid_softc sc;
 
@@ -175,6 +173,8 @@ private:
     void MRAID_Poll(mraid_ccbCommand *);
     void MRAID_Exec(mraid_ccbCommand *);
     void MRAID_Shutdown();
+    void MRAID_Sleep();
+    void MRAID_WakeUp();
     
     bool mraid_xscale_intr();
     void mraid_xscale_intr_ena();
@@ -210,6 +210,7 @@ protected:
     virtual bool StartController() {DbgPrint("super->StartController\n");return true;}
     virtual void StopController() {};
     virtual void systemWillShutdown(IOOptionBits);
+    virtual IOReturn setPowerState(unsigned long, IOService *);
     
     virtual SCSILogicalUnitNumber	ReportHBAHighestLogicalUnitNumber ( void ) {return 1;};
     virtual SCSIDeviceIdentifier	ReportHighestSupportedDeviceID ( void ) {return min(MRAID_MAX_LD, sc.sc_info.info->mci_max_lds);};

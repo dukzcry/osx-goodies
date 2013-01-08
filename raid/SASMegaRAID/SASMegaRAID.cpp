@@ -16,7 +16,7 @@ bool SASMegaRAID::init (OSDictionary* dict)
     fPCIDevice = NULL;
     map = NULL;
     MyWorkLoop = NULL; fInterruptSrc = NULL;
-    InterruptsActivated = FirmwareInitialized = fMSIEnabled = ccb_inited = false;
+    InterruptsActivated = FirmwareInitialized = fMSIEnabled = ccb_inited = EnteredSleep = false;
     conf = OSDynamicCast(OSDictionary, getProperty("Settings"));
     addr_mask = IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : MASK_32BIT;
     
@@ -463,7 +463,7 @@ bool SASMegaRAID::Attach()
 
     PMinit();
     getProvider()->joinPMtree(this);
-    registerPowerDriver(this, PowerStates, 1);
+    registerPowerDriver(this, PowerStates, 2);
     
 #if test
     /* Ensure that interrupts work */
@@ -629,7 +629,6 @@ bool SASMegaRAID::Transition_Firmware()
                 IOPrint("Unknown firmware state\n");
                 return false;
         }
-        /* Rework: Freeze is possible */
         for (int i = 0; i < (max_wait * 10); i++) {
             fw_state = mraid_fw_state() & MRAID_STATE_MASK;
             if(fw_state == cur_state)
@@ -1040,6 +1039,52 @@ void SASMegaRAID::MRAID_Shutdown()
         FirmwareInitialized = false;
     }
 }
+void SASMegaRAID::MRAID_Sleep()
+{
+    UInt8 mbox[MRAID_MBOX_SIZE];
+    
+    DbgPrint("%s\n", __FUNCTION__);
+    
+    if (FirmwareInitialized) {
+        mbox[0] = MRAID_FLUSH_CTRL_CACHE | MRAID_FLUSH_DISK_CACHE;
+        if (!Management(MRAID_DCMD_CTRL_CACHE_FLUSH, MRAID_DATA_NONE, 0, NULL, mbox)) {
+            IOPrint("Warning: failed to flush cache\n");
+            //DbgPrint("Warning: failed to flush cache\n");
+            return;
+        }
+        mbox[0] = 0;
+        if (!Management(MRAID_DCMD_HIBERNATE_SHUTDOWN, MRAID_DATA_NONE, 0, NULL, mbox)) {
+            IOPrint("Warning: failed to prepare firmware for system sleep\n");
+            return;
+        }
+        FirmwareInitialized = false;
+    }
+    /*if (InterruptsActivated) {
+        mraid_intr_disable();
+        InterruptsActivated = false;
+    }*/
+}
+void SASMegaRAID::MRAID_WakeUp()
+{
+    mraid_prod_cons *pcq;
+    
+    DbgPrint("%s\n", __FUNCTION__);
+    
+    if(!Transition_Firmware())
+        return;
+    
+    pcq = (mraid_prod_cons *) MRAID_KVA(sc.sc_pcq);
+    pcq->mpc_consumer = pcq->mpc_producer = 0;
+    
+    if (!Initialize_Firmware()) {
+        IOPrint("Warning: unable to init firmware\n");
+        return;
+    }
+    FirmwareInitialized = true;
+    
+    /*mraid_intr_enable();
+    InterruptsActivated = true;*/
+}
 
 void SASMegaRAID::systemWillShutdown(IOOptionBits spec)
 {
@@ -1053,6 +1098,22 @@ void SASMegaRAID::systemWillShutdown(IOOptionBits spec)
     }
     
     BaseClass::systemWillShutdown(spec);
+}
+IOReturn SASMegaRAID::setPowerState(unsigned long state, IOService *dev __unused)
+{
+    DbgPrint("%s: spec = %lu\n", __FUNCTION__, state);
+    
+    switch (state) {
+        case 0:
+            MRAID_Sleep();
+            EnteredSleep = true;
+        break;
+        default:
+            if (EnteredSleep) MRAID_WakeUp();
+        break;
+    }
+        
+    return kIOPMAckImplied;
 }
 
 UInt32 SASMegaRAID::MRAID_Read(UInt8 offset)
@@ -1085,7 +1146,6 @@ void SASMegaRAID::MRAID_Poll(mraid_ccbCommand *ccb)
     
     mraid_post(ccb);
     
-    /* Rework: Freeze is possible */
     while (1) {
         IOSleep(10);
         

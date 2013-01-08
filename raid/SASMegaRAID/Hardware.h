@@ -67,6 +67,7 @@
 #define   MRAID_FLUSH_CTRL_CACHE                0x01
 #define   MRAID_FLUSH_DISK_CACHE                0x02
 #define MRAID_DCMD_CTRL_SHUTDOWN                0x01050000
+#define MRAID_DCMD_HIBERNATE_SHUTDOWN           0x01060000
 #define MRAID_DCMD_BBU_GET_INFO                 0x05010000
 
 /* Mailbox bytes in direct command */
