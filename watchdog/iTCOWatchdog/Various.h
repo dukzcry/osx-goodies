@@ -265,10 +265,8 @@ IOReturn MyLPC::setPowerState(unsigned long state, IOService *dev __unused)
 {
     DbgPrint(lpcid, "%s: spec = %lu\n", __FUNCTION__, state);
     
-    /* Rework: i doubt this API is right for catching sleeps */
     switch (state) {
         case 0:
-            /* XXX: is it really sleep state? */
             Sleep();
             store.entered_sleep = true;
         break;
