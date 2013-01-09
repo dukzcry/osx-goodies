@@ -116,5 +116,7 @@
 		<key>com.apple.kpi.iokit</key>
 		<string>10.0.0</string>
 	</dict>
+        <key>OSBundleRequired</key>
+        <string>Root</string>
 </dict>
 </plist>
