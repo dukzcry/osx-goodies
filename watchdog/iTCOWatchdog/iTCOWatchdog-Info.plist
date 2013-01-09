@@ -35,6 +35,7 @@
 				<string>pci8086,27b9</string>
 				<string>pci8086,27bd</string>
 				<string>pci8086,2670</string>
+                <!--<string>pci8086,8119</string>-->
 				<string>pci8086,2916</string>
 				<string>pci8086,3a18</string>
 				<string>pci8086,3b00</string>
@@ -42,6 +43,7 @@
 				<string>pci8086,3b02</string>
 				<string>pci8086,3b09</string>
 				<string>pci8086,1e44</string>
+                
 				<string>pci8086,1c42</string>
 				<string>pci8086,1c44</string>
 				<string>pci8086,1c4e</string>
@@ -68,6 +70,7 @@
 				<string>pci8086,1e5d</string>
 				<string>pci8086,1e43</string>
 				<string>pci8086,1e56</string>
+                
 				<string>pci8086,2918</string>
 				<string>pci8086,3a16</string>
 				<string>pci8086,3b06</string>

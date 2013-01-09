@@ -65,6 +65,7 @@ void iTCOWatchdog::free_common()
         is_active = false;
     }
     thread_terminate(thread.Thread);
+    IODelete(thread.Data, struct thread_data, 1);
     
     if (WorkaroundBug) {
         fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) | (ITCO_SMIEN_ENABLE+1));
