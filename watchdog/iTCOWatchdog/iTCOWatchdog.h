@@ -39,6 +39,10 @@ private:
         IOMemoryMap *map;
         void *vaddr;
     } GCSMem;
+    struct {
+        IOThread Thread;
+        struct thread_data *Data;
+    } thread;
     
     MyLPC *LPCNub;
     bool SelfFeeding, WorkaroundBug; UInt32 Timeout;
@@ -52,10 +56,12 @@ private:
     UInt32 readTimeleft();
 #endif
     void free_common();
+    IOThread IOCreateThread(IOThreadFunc, void *);
     
     void tcoWdSetTimer(UInt32);
     void tcoWdDisableTimer();
     void tcoWdEnableTimer();
+public:
     void tcoWdLoadTimer();
 protected:
     virtual bool init(OSDictionary *);
@@ -69,4 +75,9 @@ protected:
     virtual IOReturn setProperties(OSObject *);
     virtual void systemWillShutdown(IOOptionBits);
     //virtual IOReturn setPowerState(unsigned long, IOService *);
+};
+
+struct thread_data {
+    class iTCOWatchdog *instance;
+    unsigned msecs;
 };

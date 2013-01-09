@@ -28,53 +28,50 @@
 		<dict>
 			<key>IOProbeScore</key>
 			<integer>2000</integer>
-            <key>IONameMatch</key>
-            <array>
-                <string>pci8086,2811</string>
-                <string>pci8086,2815</string>
-                <string>pci8086,27b9</string>
-                <string>pci8086,27bd</string>
-                <string>pci8086,2670</string>
-                <!--<string>pci8086,8119</string>-->
-                <string>pci8086,2916</string>
-                <string>pci8086,3a18</string>
-                <string>pci8086,3b00</string>
-                <string>pci8086,3b01</string>
-                <string>pci8086,3b02</string>
-                <string>pci8086,3b09</string>
-                <string>pci8086,1e44</string>
-
-                <string>pci8086,1c42</string>
-                <string>pci8086,1c44</string>
-                <string>pci8086,1c4e</string>
-                <string>pci8086,1c4c</string>
-                <string>pci8086,1c50</string>
-                <string>pci8086,1c4a</string>
-                <string>pci8086,1c46</string>
-                <string>pci8086,1c5c</string>
-                <string>pci8086,1c52</string>
-                <string>pci8086,1c54</string>
-                <string>pci8086,1c56</string>
-                <string>pci8086,1c43</string>
-                <string>pci8086,1c4f</string>
-                <string>pci8086,1c47</string>
-                <string>pci8086,1c4b</string>
-                <string>pci8086,1c49</string>
-                <string>pci8086,1c41</string>
-                <string>pci8086,1c4d</string>
-                <string>pci8086,1e42</string>
-                <string>pci8086,1e55</string>
-                <string>pci8086,1e58</string>
-                <string>pci8086,1e57</string>
-                <string>pci8086,1e59</string>
-                <string>pci8086,1e5d</string>
-                <string>pci8086,1e43</string>
-                <string>pci8086,1e56</string>
-                
-                <string>pci8086,2918</string>
-                <string>pci8086,3a16</string>
-                <string>pci8086,3b06</string>
-            </array>
+			<key>IONameMatch</key>
+			<array>
+				<string>pci8086,2811</string>
+				<string>pci8086,2815</string>
+				<string>pci8086,27b9</string>
+				<string>pci8086,27bd</string>
+				<string>pci8086,2670</string>
+				<string>pci8086,2916</string>
+				<string>pci8086,3a18</string>
+				<string>pci8086,3b00</string>
+				<string>pci8086,3b01</string>
+				<string>pci8086,3b02</string>
+				<string>pci8086,3b09</string>
+				<string>pci8086,1e44</string>
+				<string>pci8086,1c42</string>
+				<string>pci8086,1c44</string>
+				<string>pci8086,1c4e</string>
+				<string>pci8086,1c4c</string>
+				<string>pci8086,1c50</string>
+				<string>pci8086,1c4a</string>
+				<string>pci8086,1c46</string>
+				<string>pci8086,1c5c</string>
+				<string>pci8086,1c52</string>
+				<string>pci8086,1c54</string>
+				<string>pci8086,1c56</string>
+				<string>pci8086,1c43</string>
+				<string>pci8086,1c4f</string>
+				<string>pci8086,1c47</string>
+				<string>pci8086,1c4b</string>
+				<string>pci8086,1c49</string>
+				<string>pci8086,1c41</string>
+				<string>pci8086,1c4d</string>
+				<string>pci8086,1e42</string>
+				<string>pci8086,1e55</string>
+				<string>pci8086,1e58</string>
+				<string>pci8086,1e57</string>
+				<string>pci8086,1e59</string>
+				<string>pci8086,1e5d</string>
+				<string>pci8086,1e43</string>
+				<string>pci8086,1e56</string>
+				<string>pci8086,2918</string>
+				<string>pci8086,3a16</string>
+				<string>pci8086,3b06</string>
+			</array>
 			<key>IOClass</key>
 			<string>MyLPC</string>
 			<key>IOResourceMatch</key>
@@ -109,6 +106,8 @@
 	</dict>
 	<key>OSBundleLibraries</key>
 	<dict>
+		<key>com.apple.kpi.mach</key>
+		<string>8.0.0b2</string>
 		<key>com.apple.iokit.IOPCIFamily</key>
 		<string>2.6</string>
 		<key>com.apple.kpi.libkern</key>
@@ -116,7 +115,7 @@
 		<key>com.apple.kpi.iokit</key>
 		<string>10.0.0</string>
 	</dict>
-        <key>OSBundleRequired</key>
-        <string>Root</string>
+	<key>OSBundleRequired</key>
+	<string>Root</string>
 </dict>
 </plist>

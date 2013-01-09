@@ -64,6 +64,7 @@ void iTCOWatchdog::free_common()
         tcoWdDisableTimer();
         is_active = false;
     }
+    thread_terminate(thread.Thread);
     
     if (WorkaroundBug) {
         fPCIDevice->ioWrite32(ITCO_SMIEN, fPCIDevice->ioRead32(ITCO_SMIEN) | (ITCO_SMIEN_ENABLE+1));
@@ -171,6 +172,27 @@ IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
     return super::probe(provider, score);
 }
 
+IOThread iTCOWatchdog::IOCreateThread(IOThreadFunc fcn, void *arg)
+{
+    thread_t thread;
+    
+    if (kernel_thread_start((thread_continue_t) fcn, arg, &thread) != KERN_SUCCESS)
+        return NULL;
+    
+    thread_deallocate(thread);
+    return thread;
+}
+
+static void thread_fcn(void *context)
+{
+    struct thread_data *data = (struct thread_data *) context;
+    
+    while (1) {
+        IOSleep(data->msecs);
+        data->instance->tcoWdLoadTimer();
+    }
+}
+
 bool iTCOWatchdog::start(IOService *provider)
 {    
     bool res;
@@ -183,16 +205,17 @@ bool iTCOWatchdog::start(IOService *provider)
     provider->joinPMtree(this);
     registerPowerDriver(this, PowerStates, 2);
     
-    if (SelfFeeding) {        
+    if (SelfFeeding) {
+        thread.Data = IONew(struct thread_data, 1);
+        thread.Data->msecs = (Timeout - 2) * 1000;
+        thread.Data->instance = this;
+        
         tcoWdSetTimer(Timeout);
         tcoWdEnableTimer();
         
-        while (1) {
-            IOSleep((Timeout-2) * 1000);
-            tcoWdLoadTimer();
-        }
+        thread.Thread = IOCreateThread(&thread_fcn, (void *) thread.Data);
+        return res;
     }
-    else this->registerService();
     
 #if test
     for (int i = 0; i < 3; i++) {
@@ -204,6 +227,7 @@ bool iTCOWatchdog::start(IOService *provider)
     return false;
 #endif
     
+    this->registerService();
     return res;
 }
 
