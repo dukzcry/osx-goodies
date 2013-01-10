@@ -22,11 +22,10 @@
 #define MRAID_OSTS_GEN2_INTR_VALID              (0x00000001 | 0x00000004)
 #define MRAID_OSTS_SKINNY_INTR_VALID            0x00000001
 #define MRAID_INVALID_CTX                       0xffffffff
-#define MRAID_ENABLE_INTR                       0x01
 
-/* PPC-specific */
+/* HW specific */
+#define MRAID_XSCALE_DISABLE_INTR               0x1f
 #define MRAID_PPC_ENABLE_INTR_MASK              0x80000004
-/* Skinny-specific */
 #define MRAID_SKINNY_ENABLE_INTR_MASK           0x00000001
 
 /* Firmware states */

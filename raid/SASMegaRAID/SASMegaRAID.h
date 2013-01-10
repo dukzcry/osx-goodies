@@ -129,7 +129,7 @@ private:
     void *vAddr;
     static UInt32 MaxXferSizePerSeg;
     UInt32 MaxXferSize, MappingType;
-    bool fMSIEnabled, InterruptsActivated, FirmwareInitialized, ccb_inited, EnteredSleep;
+    bool fMSIEnabled, PreferMSI, InterruptsActivated, FirmwareInitialized, ccb_inited, EnteredSleep;
     const mraid_pci_device *mpd;
     mraid_softc sc;
 

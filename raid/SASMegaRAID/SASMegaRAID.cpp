@@ -18,6 +18,8 @@ bool SASMegaRAID::init (OSDictionary* dict)
     MyWorkLoop = NULL; fInterruptSrc = NULL;
     InterruptsActivated = FirmwareInitialized = fMSIEnabled = ccb_inited = EnteredSleep = false;
     conf = OSDynamicCast(OSDictionary, getProperty("Settings"));
+    OSBoolean *sPreferMSI = conf ? OSDynamicCast(OSBoolean, conf->getObject("PreferMSI")) : NULL;
+    if (sPreferMSI) PreferMSI = sPreferMSI->isTrue();
     addr_mask = IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : MASK_32BIT;
     
 	/* Create an instance of PCI class from Helper Library */
@@ -136,12 +138,6 @@ bool SASMegaRAID::InitializeController(void)
             IOPrint("Can't find out mapping scheme\n");
             return false;
     }
-    OSBoolean *sPreferMSI = conf ? OSDynamicCast(OSBoolean, conf->getObject("PreferMSI")) : NULL;
-    bool PreferMSI = true;
-    if (sPreferMSI) PreferMSI = sPreferMSI->isTrue();
-    if(!PCIHelperP->CreateDeviceInterrupt(this, provider, PreferMSI, &SASMegaRAID::interruptHandler,
-                                          &SASMegaRAID::interruptFilter))
-        return false;
     
     if(!Attach()) {
         IOPrint("Can't attach device\n");
@@ -311,13 +307,21 @@ bool SASMegaRAID::Attach()
     if(!Transition_Firmware())
         return false;
     
+    status = mraid_fw_state();
+    
+    /* Ask for MSI support from HW */
+    PreferMSI = (status & 0x4000000) >> 0x1a;
+    /* Besides installing of intr handler, inits workloop */
+    if(!PCIHelperP->CreateDeviceInterrupt(this, getProvider(), PreferMSI, &SASMegaRAID::interruptHandler,
+                                          &SASMegaRAID::interruptFilter))
+        return false;
+    
     if(!(ccbCommandPool = IOCommandPool::withWorkLoop(MyWorkLoop))) {
         IOPrint("Can't init command pool\n");
         return false;
     }
     
     /* Get constraints forming frames pool contiguous memory */
-    status = mraid_fw_state();
     sc.sc_max_cmds = status & MRAID_STATE_MAXCMD_MASK;
     sc.sc_max_sgl = (status & MRAID_STATE_MAXSGL_MASK) >> 16;
     
@@ -460,7 +464,7 @@ bool SASMegaRAID::Attach()
     mraid_intr_enable();
     /* XXX: Is it possible to get intrs enabled info from controller? */
     InterruptsActivated = true;
-
+    
     PMinit();
     getProvider()->joinPMtree(this);
     registerPowerDriver(this, PowerStates, 2);
@@ -1048,8 +1052,7 @@ void SASMegaRAID::MRAID_Sleep()
     if (FirmwareInitialized) {
         mbox[0] = MRAID_FLUSH_CTRL_CACHE | MRAID_FLUSH_DISK_CACHE;
         if (!Management(MRAID_DCMD_CTRL_CACHE_FLUSH, MRAID_DATA_NONE, 0, NULL, mbox)) {
-            IOPrint("Warning: failed to flush cache\n");
-            //DbgPrint("Warning: failed to flush cache\n");
+            DbgPrint("Warning: failed to flush cache\n");
             return;
         }
         mbox[0] = 0;
@@ -1059,16 +1062,27 @@ void SASMegaRAID::MRAID_Sleep()
         }
         FirmwareInitialized = false;
     }
-    /*if (InterruptsActivated) {
+    if (InterruptsActivated) {
         mraid_intr_disable();
         InterruptsActivated = false;
-    }*/
+    }
+    
+    if (fInterruptSrc) {
+        if (MyWorkLoop)
+            MyWorkLoop->removeEventSource(fInterruptSrc);
+        if (fInterruptSrc) fInterruptSrc->release();
+    }
+    fPCIDevice->setMemoryEnable(false);
+    fPCIDevice->setBusMasterEnable(false);
 }
 void SASMegaRAID::MRAID_WakeUp()
 {
     mraid_prod_cons *pcq;
     
     DbgPrint("%s\n", __FUNCTION__);
+    
+    fPCIDevice->setMemoryEnable(true);
+    fPCIDevice->setBusMasterEnable(true);
     
     if(!Transition_Firmware())
         return;
@@ -1082,8 +1096,12 @@ void SASMegaRAID::MRAID_WakeUp()
     }
     FirmwareInitialized = true;
     
-    /*mraid_intr_enable();
-    InterruptsActivated = true;*/
+    if(!PCIHelperP->CreateDeviceInterrupt(this, getProvider(), PreferMSI, &SASMegaRAID::interruptHandler,
+                                          &SASMegaRAID::interruptFilter))
+        return;
+    
+    mraid_intr_enable();
+    InterruptsActivated = true;
 }
 
 void SASMegaRAID::systemWillShutdown(IOOptionBits spec)
@@ -1581,11 +1599,11 @@ bool SASMegaRAID::mraid_xscale_intr()
 }
 void SASMegaRAID::mraid_xscale_intr_ena()
 {
-    MRAID_Write(MRAID_OMSK, MRAID_ENABLE_INTR);
+    MRAID_Write(MRAID_OMSK, 0);
 }
 void SASMegaRAID::mraid_xscale_intr_dis()
 {
-    MRAID_Write(MRAID_OMSK, 0);
+    MRAID_Write(MRAID_OMSK, MRAID_XSCALE_DISABLE_INTR);
 }
 UInt32 SASMegaRAID::mraid_xscale_fw_state()
 {
