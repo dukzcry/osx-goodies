@@ -151,7 +151,8 @@ bool SASMegaRAID::InitializeController(void)
 void SASMegaRAID::TerminateController(void)
 {
     DbgPrint("super->TerminateController\n");
-    
+ 
+    MRAID_Shutdown();
     if (InterruptsActivated) {
         /* XXX: Doesn't work at least on ARM */
         mraid_intr_disable();
@@ -162,7 +163,6 @@ void SASMegaRAID::TerminateController(void)
             MyWorkLoop->removeEventSource(fInterruptSrc);
         if (fInterruptSrc) fInterruptSrc->release();
     }
-    MRAID_Shutdown();
     if (fPCIDevice) {
         fPCIDevice->close(this);
         fPCIDevice->release();
@@ -1047,8 +1047,6 @@ void SASMegaRAID::MRAID_Sleep()
 {
     UInt8 mbox[MRAID_MBOX_SIZE];
     
-    DbgPrint("%s\n", __FUNCTION__);
-    
     if (FirmwareInitialized) {
         mbox[0] = MRAID_FLUSH_CTRL_CACHE | MRAID_FLUSH_DISK_CACHE;
         if (!Management(MRAID_DCMD_CTRL_CACHE_FLUSH, MRAID_DATA_NONE, 0, NULL, mbox)) {
@@ -1066,23 +1064,16 @@ void SASMegaRAID::MRAID_Sleep()
         mraid_intr_disable();
         InterruptsActivated = false;
     }
-    
+    /* TO-DO: Not necessary if intrs disabling works */
     if (fInterruptSrc) {
         if (MyWorkLoop)
             MyWorkLoop->removeEventSource(fInterruptSrc);
         if (fInterruptSrc) fInterruptSrc->release();
     }
-    fPCIDevice->setMemoryEnable(false);
-    fPCIDevice->setBusMasterEnable(false);
 }
 void SASMegaRAID::MRAID_WakeUp()
 {
-    mraid_prod_cons *pcq;
-    
-    DbgPrint("%s\n", __FUNCTION__);
-    
-    fPCIDevice->setMemoryEnable(true);
-    fPCIDevice->setBusMasterEnable(true);
+    mraid_prod_cons *pcq = (mraid_prod_cons *) MRAID_KVA(sc.sc_pcq);
     
     if(!Transition_Firmware())
         return;
@@ -1105,9 +1096,7 @@ void SASMegaRAID::MRAID_WakeUp()
 }
 
 void SASMegaRAID::systemWillShutdown(IOOptionBits spec)
-{
-    DbgPrint("%s: spec = %#x\n", __FUNCTION__, spec);
-    
+{ 
     switch (spec) {
         case kIOMessageSystemWillRestart:
         case kIOMessageSystemWillPowerOff:
@@ -1119,14 +1108,14 @@ void SASMegaRAID::systemWillShutdown(IOOptionBits spec)
 }
 IOReturn SASMegaRAID::setPowerState(unsigned long state, IOService *dev __unused)
 {
-    DbgPrint("%s: spec = %lu\n", __FUNCTION__, state);
-    
     switch (state) {
         case 0:
+            DbgPrint("Entering sleep state\n");
             MRAID_Sleep();
             EnteredSleep = true;
         break;
         default:
+            DbgPrint("Resuming after sleep\n");
             if (EnteredSleep) MRAID_WakeUp();
         break;
     }
@@ -1599,11 +1588,11 @@ bool SASMegaRAID::mraid_xscale_intr()
 }
 void SASMegaRAID::mraid_xscale_intr_ena()
 {
-    MRAID_Write(MRAID_OMSK, 0);
+    MRAID_Write(MRAID_OMSK, MRAID_XSCALE_ENABLE_INTR);
 }
 void SASMegaRAID::mraid_xscale_intr_dis()
 {
-    MRAID_Write(MRAID_OMSK, MRAID_XSCALE_DISABLE_INTR);
+    MRAID_Write(MRAID_OMSK, 0);
 }
 UInt32 SASMegaRAID::mraid_xscale_fw_state()
 {

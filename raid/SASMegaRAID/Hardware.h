@@ -24,7 +24,7 @@
 #define MRAID_INVALID_CTX                       0xffffffff
 
 /* HW specific */
-#define MRAID_XSCALE_DISABLE_INTR               0x1f
+#define MRAID_XSCALE_ENABLE_INTR                0x01
 #define MRAID_PPC_ENABLE_INTR_MASK              0x80000004
 #define MRAID_SKINNY_ENABLE_INTR_MASK           0x00000001
 
