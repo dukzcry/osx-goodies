@@ -1073,7 +1073,7 @@ void SASMegaRAID::MRAID_Sleep()
 }
 void SASMegaRAID::MRAID_WakeUp()
 {
-    mraid_prod_cons *pcq = (mraid_prod_cons *) MRAID_KVA(sc.sc_pcq);
+    mraid_prod_cons *pcq;
     
     if(!Transition_Firmware())
         return;
