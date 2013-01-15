@@ -41,10 +41,12 @@
 #define MRAID_STATE_FAULT                       0xf0000000
 #define MRAID_STATE_MAXSGL_MASK                 0x00ff0000
 #define MRAID_STATE_MAXCMD_MASK                 0x0000ffff
+#define MRAID_STATE_BOOT_MESSAGE_PENDING        0x90000000
 
 /* FW init, clear cmds queue, state resets */
 #define MRAID_INIT_READY                        0x00000002 /* Discard queue info on this */
 #define MRAID_INIT_CLEAR_HANDSHAKE              0x00000008
+#define MRAID_INIT_HOTPLUG                      0x00000010
 
 /* Frame flags */
 #define MRAID_FRAME_DONT_POST_IN_REPLY_QUEUE	0x0001

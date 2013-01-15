@@ -3,7 +3,6 @@
 //#define io_debug
 
 #include "SASMegaRAID.h"
-#include "Registers.h"
 
 OSDefineMetaClassAndStructors(SASMegaRAID, IOSCSIParallelInterfaceController)
 OSDefineMetaClassAndStructors(mraid_ccbCommand, IOCommand)
@@ -152,7 +151,7 @@ void SASMegaRAID::TerminateController(void)
 {
     DbgPrint("super->TerminateController\n");
  
-    MRAID_Shutdown();
+    if (FirmwareInitialized) MRAID_Shutdown();
     if (InterruptsActivated) {
         /* XXX: Doesn't work at least on ARM */
         mraid_intr_disable();
@@ -596,14 +595,15 @@ mraid_ccbCommand *SASMegaRAID::Getccb()
 
 bool SASMegaRAID::Transition_Firmware()
 {
-    UInt32 fw_state, cur_state;
+    UInt32 fw_state, cur_state, idb;
     int max_wait;
     
     DbgPrint("%s\n", __FUNCTION__);
     
     fw_state = mraid_fw_state() & MRAID_STATE_MASK;
+    idb = sc.sc_iop->mio_idb;
     
-    DbgPrint("Firmware state %#x\n", fw_state);
+    DbgPrint("Firmware state: %#x\n", fw_state);
     
     while (fw_state != MRAID_STATE_READY) {
         DbgPrint("Waiting for firmware to become ready\n");
@@ -613,11 +613,11 @@ bool SASMegaRAID::Transition_Firmware()
                 IOPrint("Firmware fault\n");
                 return false;
             case MRAID_STATE_WAIT_HANDSHAKE:
-                MRAID_Write(MRAID_IDB, MRAID_INIT_CLEAR_HANDSHAKE);
+                MRAID_Write(idb, MRAID_INIT_CLEAR_HANDSHAKE);
                 max_wait = 2;
                 break;
             case MRAID_STATE_OPERATIONAL:
-                MRAID_Write(MRAID_IDB, MRAID_INIT_READY);
+                MRAID_Write(idb, MRAID_INIT_READY);
                 max_wait = 10;
                 break;
             case MRAID_STATE_UNDEFINED:
@@ -629,8 +629,12 @@ bool SASMegaRAID::Transition_Firmware()
             case MRAID_STATE_FLUSH_CACHE:
                 max_wait = 20;
                 break;
+            case MRAID_STATE_BOOT_MESSAGE_PENDING:
+                MRAID_Write(idb, MRAID_INIT_HOTPLUG);
+                max_wait = 180;
+                break;
             default:
-                IOPrint("Unknown firmware state\n");
+                IOPrint("Unknown firmware state: %#x\n", fw_state);
                 return false;
         }
         for (int i = 0; i < (max_wait * 10); i++) {
@@ -1100,7 +1104,7 @@ void SASMegaRAID::systemWillShutdown(IOOptionBits spec)
     switch (spec) {
         case kIOMessageSystemWillRestart:
         case kIOMessageSystemWillPowerOff:
-            MRAID_Shutdown();
+            if (FirmwareInitialized) MRAID_Shutdown();
         break;
     }
     

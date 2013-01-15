@@ -7,6 +7,7 @@
 #include <IOKit/IOKitKeys.h>
 
 #include "Hardware.h"
+#include "Registers.h"
 #include "HelperLib.h"
 
 #ifndef _OS_OSBYTEORDER_H
@@ -273,6 +274,7 @@ typedef struct mraid_iop_ops {
                 mio_intr_dis = &SASMegaRAID::mraid_xscale_intr_dis;
                 mio_fw_state = &SASMegaRAID::mraid_xscale_fw_state;
                 mio_post = &SASMegaRAID::mraid_xscale_post;
+                mio_idb = MRAID_IDB;
                 break;
             case MRAID_IOP_PPC:
                 mio_intr = &SASMegaRAID::mraid_ppc_intr;
@@ -280,6 +282,7 @@ typedef struct mraid_iop_ops {
                 mio_intr_dis = &SASMegaRAID::mraid_ppc_intr_dis;
                 mio_fw_state = &SASMegaRAID::mraid_ppc_fw_state;
                 mio_post = &SASMegaRAID::mraid_ppc_post;
+                mio_idb = MRAID_IDB;
                 break;
             case MRAID_IOP_GEN2:
                 mio_intr = &SASMegaRAID::mraid_gen2_intr;
@@ -287,6 +290,7 @@ typedef struct mraid_iop_ops {
                 mio_intr_dis = &SASMegaRAID::mraid_gen2_intr_dis;
                 mio_fw_state = &SASMegaRAID::mraid_gen2_fw_state;
                 mio_post = &SASMegaRAID::mraid_ppc_post; /* Same as for PPC */
+                mio_idb = MRAID_IDB;
                 break;
             case MRAID_IOP_SKINNY:
                 mio_intr = &SASMegaRAID::mraid_skinny_intr;
@@ -294,6 +298,7 @@ typedef struct mraid_iop_ops {
                 mio_intr_dis = &SASMegaRAID::mraid_xscale_intr_dis; /* Same as for ARM */
                 mio_fw_state = &SASMegaRAID::mraid_skinny_fw_state;
                 mio_post = &SASMegaRAID::mraid_skinny_post;
+                mio_idb = MRAID_SKINNY_IDB;
                 break;
         }
     }
@@ -302,4 +307,5 @@ typedef struct mraid_iop_ops {
     void        (SASMegaRAID::*mio_intr_dis)(void);
     bool        (SASMegaRAID::*mio_intr)(void);
     void        (SASMegaRAID::*mio_post)(mraid_ccbCommand *);
+    UInt32      mio_idb;
 } mraid_iop_ops;
