@@ -1068,7 +1068,7 @@ void SASMegaRAID::MRAID_Sleep()
         mraid_intr_disable();
         InterruptsActivated = false;
     }
-    /* TO-DO: Not necessary if intrs disabling works */
+    /* Rework: Not necessary if intrs disabling works */
     if (fInterruptSrc) {
         if (MyWorkLoop)
             MyWorkLoop->removeEventSource(fInterruptSrc);
