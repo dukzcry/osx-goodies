@@ -17,7 +17,6 @@ Note, that probably almost every card from this family requires x86 host to get 
 
 Postponed features:
 - ~~Sleep/resume handling~~
-- Hotspare support
 - Management of RAID functional
 
 Post-postponed features:
