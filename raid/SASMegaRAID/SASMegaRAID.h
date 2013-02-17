@@ -34,7 +34,7 @@ typedef struct {
 } mraid_sgl_mem;
 void FreeDataMem(mraid_data_mem *mm)
 {
-    if (mm->bmd) {
+    if (mm && mm->bmd) {
         mm->bmd->complete();
         mm->bmd->release();
         mm->bmd = NULL;
