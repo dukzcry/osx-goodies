@@ -239,7 +239,7 @@ int I2CDevice::I2CExec(I2COp op, UInt16 addr, void *cmdbuf, size_t cmdlen, void 
         ctl = ICH_SMB_HC_CMD_BYTE;
     else if (len == 1)
         ctl = ICH_SMB_HC_CMD_BDATA;
-    else if (len == 2)
+    else /* len == 2 */
         ctl = ICH_SMB_HC_CMD_WDATA;
     
     ctl |= ICH_SMB_HC_INTREN | ICH_SMB_HC_START;
