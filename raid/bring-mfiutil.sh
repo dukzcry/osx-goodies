@@ -8,9 +8,9 @@ INC="/usr/include"
 LU="libutil-30"
 CFLAGS=${CFLAGS}" -D_SYS_CDEFS_H_ -Dlint -I. \
 	-include ${INC}/stdint.h -include ${INC}/sys/types.h \
-	\"-D__packed=__attribute__((packed))\""
-LDFLAGS=${LDFLAGS}" -L./${LU}/dst/usr/lib"
-export CFLAGS LDFLAGS
+	\"-D__packed=__attribute__((packed))\" -v"
+#LDFLAGS=${LDFLAGS}" -L./${LU}/dst/usr/lib"
+export CFLAGS #LDFLAGS
 
 svn co svn://svn.freebsd.org/base/stable/9/usr.sbin/mfiutil mfiutil
 
@@ -31,7 +31,7 @@ ln -s ${TMP}/sys/linker_set.h ${TMP}/sys/param.h ${TMP}/sys/_null.h \
 ln -s ${TMP}/scsi/scsi_all.h ./cam/scsi/
 ln -s ${TMP}/mfi/mfireg.h ${TMP}/mfi/mfi_ioctl.h ./dev/mfi/
 
-ln -s ${INC}/i386/param.h ./sys/
+#ln -s ${INC}/i386/param.h ./sys/
 ln -s ${INC}/stdint.h ./sys/_stdint.h
 ln -s ${INC}/sys/syslimits.h ./sys/limits.h
 # Apple does not appear to provide llvm-config
@@ -39,9 +39,10 @@ ln -s /System/Library/Frameworks/Kernel.framework/Versions/A/Headers/stdarg.h ./
 ln -s ./${LU}/libutil.h .
 
 #cd ./${LU}
-#mkdir -p obj sym dat
+#mkdir -p obj sym dst
 #xcodebuild install -target util ARCHS="i386 x86_64" \
 #	SRCROOT=$PWD OBJROOT=$PWD/obj SYMROOT=$PWD/sym DSTROOT=$PWD/dst
 #cd ..
 
+#CC=gcc 
 bsdmake

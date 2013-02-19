@@ -383,7 +383,7 @@ bool SASMegaRAID::Attach()
         return false;
     }
     if (sc.sc_info.info->mci_pd_present)
-        IOPrint("%d of physical drive(s) present\n", sc.sc_info.info->mci_pd_disks_present);
+        IOPrint("%d physical drive(s) present\n", sc.sc_info.info->mci_pd_disks_present);
     if (sc.sc_info.info->mci_pd_disks_pred_failure)
         IOPrint("Predicated failure of %d physical drive(s)\n", sc.sc_info.info->mci_pd_disks_pred_failure);
     if (sc.sc_info.info->mci_pd_disks_failed)
