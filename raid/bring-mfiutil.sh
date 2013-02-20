@@ -47,5 +47,5 @@ ln -s ./${LU}/libutil.h .
 ln -s ${PWD}/${XNU}/bsd/sys/linker_set.h ./sys/
 ln -s ${PWD}/${XNU}/libkern/libkern/kernel_mach_header.h ./libkern/
 
-#CC=gcc 
+#CC=gcc
 bsdmake
