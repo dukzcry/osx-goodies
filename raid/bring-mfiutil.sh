@@ -47,5 +47,59 @@ ln -s ./${LU}/libutil.h .
 ln -s ${PWD}/${XNU}/bsd/sys/linker_set.h ./sys/
 ln -s ${PWD}/${XNU}/libkern/libkern/kernel_mach_header.h ./libkern/
 
+cat > patch-mfiutil.h << EOF
+--- mfiutil.h.orig	2013-02-21 15:55:44.000000000 +0400
++++ mfiutil.h	2013-02-21 15:56:47.000000000 +0400
+@@ -37,27 +37,9 @@
+ 
+ #include <dev/mfi/mfireg.h>
+ 
+-/* 4.x compat */
++/* OS X compat */
+ #ifndef SET_DECLARE
+ 
+-/* <sys/cdefs.h> */
+-#define	__used
+-#define	__section(x)	__attribute__((__section__(x)))
+-
+-/* <sys/linker_set.h> */
+-#undef __MAKE_SET
+-#undef DATA_SET
+-
+-#define __MAKE_SET(set, sym)						\\
+-	static void const * const __set_##set##_sym_##sym 		\\
+-	__section("set_" #set) __used = &sym
+-
+-#define DATA_SET(set, sym)	__MAKE_SET(set, sym)
+-
+-#define SET_DECLARE(set, ptype)						\\
+-	extern ptype *__CONCAT(__start_set_,set);			\\
+-	extern ptype *__CONCAT(__stop_set_,set)
+-
+ #define SET_BEGIN(set)							\\
+ 	(&__CONCAT(__start_set_,set))
+ #define SET_LIMIT(set)							\\
+@@ -66,9 +48,6 @@
+ #define	SET_FOREACH(pvar, set)						\\
+ 	for (pvar = SET_BEGIN(set); pvar < SET_LIMIT(set); pvar++)
+ 
+-int	humanize_number(char *_buf, size_t _len, int64_t _number,
+-	    const char *_suffix, int _scale, int _flags);
+-
+ /* humanize_number(3) */
+ #define HN_DECIMAL		0x01
+ #define HN_NOSPACE		0x02
+@@ -97,7 +76,7 @@ struct mfiutil_command {
+ 	int (*handler)(int ac, char **av);
+ };
+ 
+-#define	MFI_DATASET(name)	mfiutil_ ## name ## _table
++#define	MFI_DATASET(name)	mfu_ ## name ## _tbl
+ 
+ #define	MFI_COMMAND(set, name, function)				\\
+ 	static struct mfiutil_command function ## _mfiutil_command =	\\
+EOF
+patch < patch-mfiutil.h
+
 #CC=gcc
 bsdmake
