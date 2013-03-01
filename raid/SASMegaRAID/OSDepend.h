@@ -17,8 +17,6 @@
 #define FREEBSD_MAXFER      128 * 1024
 
 #if defined PPC
-#include <libkern/OSByteOrder.h>
-
 #define letoh32(x) OSSwapLittleToHostInt32(x)
 #define htole32(x) OSSwapHostToLittleInt32(x)
 #define htole64(x) OSSwapHostToLittleInt64(x)

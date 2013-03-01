@@ -1206,7 +1206,7 @@ void SASMegaRAID::MRAID_Exec(mraid_ccbCommand *ccb)
     ccb->s.ccb_done = mraid_exec_done;
     mraid_post(ccb);
     
-    clock_interval_to_deadline(1, kSecondScale, (UInt64 *) &deadline);
+    clock_interval_to_deadline(1, kSecondScale, &deadline);
     
     IOLockLock(ccb_lock.holder);
     ret = IOLockSleepDeadline(ccb_lock.holder, &ccb_lock.event, deadline, THREAD_INTERRUPTIBLE);
