@@ -48,9 +48,9 @@ ln -s ${PWD}/${XNU}/bsd/sys/linker_set.h ./sys/
 ln -s ${PWD}/${XNU}/libkern/libkern/kernel_mach_header.h ./libkern/
 
 cat > patch-mfiutil.h << EOF
---- mfiutil.h.orig	2013-02-21 15:55:44.000000000 +0400
-+++ mfiutil.h	2013-02-21 15:56:47.000000000 +0400
-@@ -37,27 +37,9 @@
+--- mfiutil.h.orig	2013-03-01 11:44:07.000000000 +0400
++++ mfiutil.h	2013-03-01 11:46:36.000000000 +0400
+@@ -37,31 +37,26 @@
  
  #include <dev/mfi/mfireg.h>
  
@@ -62,34 +62,36 @@ cat > patch-mfiutil.h << EOF
 -#define	__used
 -#define	__section(x)	__attribute__((__section__(x)))
 -
--/* <sys/linker_set.h> */
+ /* <sys/linker_set.h> */
 -#undef __MAKE_SET
--#undef DATA_SET
--
++#undef __LINKER_MAKE_SET
+ #undef DATA_SET
+ 
 -#define __MAKE_SET(set, sym)						\\
 -	static void const * const __set_##set##_sym_##sym 		\\
 -	__section("set_" #set) __used = &sym
--
++#define __LINKER_MAKE_SET(_set, _sym)					\\
++	/*__unused*/ static void const * /*const*/ __set_##_set##_sym_##_sym
+ 
 -#define DATA_SET(set, sym)	__MAKE_SET(set, sym)
--
--#define SET_DECLARE(set, ptype)						\\
++#define DATA_SET(set, sym)	__LINKER_MAKE_SET(set, sym)
+ 
+ #define SET_DECLARE(set, ptype)						\\
 -	extern ptype *__CONCAT(__start_set_,set);			\\
 -	extern ptype *__CONCAT(__stop_set_,set)
--
++	static ptype *__CONCAT(__start_set_,set);			\\
++	static ptype *__CONCAT(__stop_set_,set)
+ 
  #define SET_BEGIN(set)							\\
- 	(&__CONCAT(__start_set_,set))
+-	(&__CONCAT(__start_set_,set))
++	LINKER_SET_BEGIN(__CONCAT(__start_set_,set))
  #define SET_LIMIT(set)							\\
-@@ -66,9 +48,6 @@
+-	(&__CONCAT(__stop_set_,set))
++	LINKER_SET_LIMIT(__CONCAT(__stop_set_,set))
+ 
  #define	SET_FOREACH(pvar, set)						\\
  	for (pvar = SET_BEGIN(set); pvar < SET_LIMIT(set); pvar++)
- 
--int	humanize_number(char *_buf, size_t _len, int64_t _number,
--	    const char *_suffix, int _scale, int _flags);
--
- /* humanize_number(3) */
- #define HN_DECIMAL		0x01
- #define HN_NOSPACE		0x02
-@@ -97,7 +76,7 @@ struct mfiutil_command {
+@@ -97,7 +92,7 @@ struct mfiutil_command {
  	int (*handler)(int ac, char **av);
  };
  
@@ -101,5 +103,5 @@ cat > patch-mfiutil.h << EOF
 EOF
 patch < patch-mfiutil.h
 
-#CC=gcc
+#CC=gcc 
 bsdmake
