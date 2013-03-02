@@ -1119,8 +1119,10 @@ IOReturn SASMegaRAID::setPowerState(unsigned long state, IOService *dev __unused
             EnteredSleep = true;
         break;
         default:
-            DbgPrint("Resuming after sleep\n");
-            if (EnteredSleep) MRAID_WakeUp();
+            if (EnteredSleep) {
+                DbgPrint("Resuming after sleep\n");
+                MRAID_WakeUp();
+            }
         break;
     }
         
