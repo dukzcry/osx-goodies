@@ -124,7 +124,7 @@ bool PCIHelper<UserClass>::CreateDeviceInterrupt(UserClass *CPtr, IOService *pro
         /* Avoiding of masking interrupts for other devices that are sharing the interrupt line 
          * by immediate enabling of the event source */
         CPtr->fInterruptSrc->enable();
-        IOPrint("IRQ: %d\n", (UInt8) CPtr->fPCIDevice->configRead32(kIOPCIConfigInterruptLine));
+        IOPrint("[Helper] IRQ: %d\n", (UInt8) CPtr->fPCIDevice->configRead32(kIOPCIConfigInterruptLine));
     }
     
     return true;
