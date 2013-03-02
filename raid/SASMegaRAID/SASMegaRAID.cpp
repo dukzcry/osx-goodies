@@ -18,7 +18,7 @@ bool SASMegaRAID::init (OSDictionary* dict)
     InterruptsActivated = FirmwareInitialized = fMSIEnabled = ccb_inited = EnteredSleep = false;
     conf = OSDynamicCast(OSDictionary, getProperty("Settings"));
     OSBoolean *sPreferMSI = conf ? OSDynamicCast(OSBoolean, conf->getObject("PreferMSI")) : NULL;
-    if (sPreferMSI) PreferMSI = sPreferMSI->isTrue();
+    PreferMSI = (sPreferMSI && sPreferMSI->isTrue()) ? true : false;
     addr_mask = IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : MASK_32BIT;
     
 	/* Create an instance of PCI class from Helper Library */
@@ -308,8 +308,8 @@ bool SASMegaRAID::Attach()
     
     status = mraid_fw_state();
     
-    /* Ask for MSI support from HW */
-    PreferMSI = (status & 0x4000000) >> 0x1a;
+    /* Ask for MSI-X support from HW */
+    //PreferMSI = (status & 0x4000000) >> 0x1a;
     /* Besides installing of intr handler, inits workloop */
     if(!PCIHelperP->CreateDeviceInterrupt(this, getProvider(), PreferMSI, &SASMegaRAID::interruptHandler,
                                           &SASMegaRAID::interruptFilter))

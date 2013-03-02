@@ -29,7 +29,7 @@
 			<key>Settings</key>
 			<dict>
 				<key>PreferMSI</key>
-				<true/>
+				<false/>
 			</dict>
 			<key>IOResourceMatch</key>
 			<string>IOKit</string>
