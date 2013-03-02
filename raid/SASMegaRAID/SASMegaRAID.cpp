@@ -1118,12 +1118,14 @@ IOReturn SASMegaRAID::setPowerState(unsigned long state, IOService *dev __unused
             MRAID_Sleep();
             EnteredSleep = true;
         break;
-        default:
+        case 1:
             if (EnteredSleep) {
                 DbgPrint("Resuming after sleep\n");
                 MRAID_WakeUp();
             }
         break;
+	default:
+		return IOPMNoSuchState;
     }
         
     return kIOPMAckImplied;
