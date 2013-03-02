@@ -10,10 +10,6 @@
 #include "Registers.h"
 #include "HelperLib.h"
 
-#ifndef _OS_OSBYTEORDER_H
-#warning "Install private headers"
-#endif
-
 typedef struct {
     IOBufferMemoryDescriptor *bmd;
     IOVirtualAddress vaddr;

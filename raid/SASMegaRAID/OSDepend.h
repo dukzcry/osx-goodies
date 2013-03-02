@@ -25,3 +25,8 @@
 #define htole32(x) (x)
 #define htole64(x) (x)
 #endif
+
+/* Undo macro for those with private headers installed */
+#ifdef clock_interval_to_deadline
+#undef clock_interval_to_deadline
+#endif
