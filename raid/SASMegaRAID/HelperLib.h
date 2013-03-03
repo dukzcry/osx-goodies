@@ -84,7 +84,7 @@ bool PCIHelper<UserClass>::CreateDeviceInterrupt(UserClass *CPtr, IOService *pro
             msi_index = intr_index;
         intr_index++;
     }
-    intr_index = (Prefer_MSI && msi_index != -1) ? msi_index : intr_index = legacy_index;
+    intr_index = (Prefer_MSI && msi_index != -1) ? msi_index : legacy_index;
     if (intr_index == msi_index)
         CPtr->fMSIEnabled = true;
 
