@@ -34,6 +34,7 @@
 #define MRAID_STATE_BB_INIT                     0x10000000
 #define MRAID_STATE_FW_INIT                     0x40000000
 #define MRAID_STATE_WAIT_HANDSHAKE              0x60000000
+#define MRAID_STATE_FW_INIT_2                   0x70000000
 #define MRAID_STATE_DEVICE_SCAN                 0x80000000
 #define MRAID_STATE_FLUSH_CACHE                 0xa0000000
 #define MRAID_STATE_READY                       0xb0000000
