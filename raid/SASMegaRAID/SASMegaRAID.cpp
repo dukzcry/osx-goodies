@@ -223,6 +223,8 @@ void SASMegaRAID::interruptHandler(OSObject *owner, void *src, IOService *nub, i
     
     DbgPrint("%s: pcq vaddr %p\n", __FUNCTION__, pcq);
     
+    MRAID_Write(MRAID_OSTS, MRAID_Read(MRAID_OSTS));
+    
     Producer = letoh32(pcq->mpc_producer);
     Consumer = letoh32(pcq->mpc_consumer);
     
@@ -460,6 +462,7 @@ bool SASMegaRAID::Attach()
         sc.sc_ld_present[i] = true;
     }
     
+    if (PreferMSI) fInterruptSrc->enable();
     mraid_intr_enable();
     /* XXX: Is it possible to get intrs enabled info from controller? */
     InterruptsActivated = true;
@@ -1097,6 +1100,7 @@ void SASMegaRAID::MRAID_WakeUp()
                                           &SASMegaRAID::interruptFilter))
         return;
     
+    if (PreferMSI) fInterruptSrc->enable();
     mraid_intr_enable();
     InterruptsActivated = true;
 }
