@@ -631,6 +631,7 @@ bool SASMegaRAID::Transition_Firmware()
                 break;
             case MRAID_STATE_BOOT_MESSAGE_PENDING:
                 MRAID_Write(idb, MRAID_INIT_HOTPLUG);
+            case MRAID_STATE_FW_INIT_2:
                 max_wait = 180;
                 break;
             default:
@@ -1081,6 +1082,7 @@ void SASMegaRAID::MRAID_WakeUp()
     
     if(!Transition_Firmware())
         return;
+        //MRAID_Write(sc.sc_iop->mio_idb, 0xF);
     
     pcq = (mraid_prod_cons *) MRAID_KVA(sc.sc_pcq);
     pcq->mpc_consumer = pcq->mpc_producer = 0;
