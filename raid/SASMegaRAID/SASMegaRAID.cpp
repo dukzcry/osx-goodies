@@ -223,7 +223,7 @@ void SASMegaRAID::interruptHandler(OSObject *owner, void *src, IOService *nub, i
     
     DbgPrint("%s: pcq vaddr %p\n", __FUNCTION__, pcq);
     
-    MRAID_Write(MRAID_OSTS, MRAID_Read(MRAID_OSTS));
+    if (PreferMSI) MRAID_Write(MRAID_OSTS, MRAID_Read(MRAID_OSTS));
     
     Producer = letoh32(pcq->mpc_producer);
     Consumer = letoh32(pcq->mpc_consumer);
