@@ -1453,15 +1453,14 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
     ccb = Getccb();
     
     switch (cdbData[0]) {
-        /* Optional */
+        case kSCSICmd_READ_16:
+        case kSCSICmd_WRITE_16:
+            if (!IOCmd(ccb, parallelRequest, OSReadBigInt64(cdbData, 2), OSReadBigInt32(cdbData, 10)))
+                goto fail;
+            break;
         case kSCSICmd_READ_12:
         case kSCSICmd_WRITE_12:
-        /* */
-#if 0
-            if (!IOCmd(ccb, parallelRequest, OSReadBigInt32(cdbData, 2),
-                       /* XXX: Check me */
-                       OSReadBigInt16(cdbData, 9)))
-#endif
+            if (!IOCmd(ccb, parallelRequest, (UInt64) OSReadBigInt32(cdbData, 2), OSReadBigInt32(cdbData, 6)))
                 goto fail;
         break;
         case kSCSICmd_READ_10:
