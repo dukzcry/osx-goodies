@@ -1457,7 +1457,7 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
         case kSCSICmd_WRITE_16:
             if (!IOCmd(ccb, parallelRequest, OSReadBigInt64(cdbData, 2), OSReadBigInt32(cdbData, 10)))
                 goto fail;
-            break;
+        break;
         case kSCSICmd_READ_12:
         case kSCSICmd_WRITE_12:
             if (!IOCmd(ccb, parallelRequest, (UInt64) OSReadBigInt32(cdbData, 2), OSReadBigInt32(cdbData, 6)))
@@ -1478,7 +1478,7 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
             mbox[0] = MRAID_FLUSH_CTRL_CACHE | MRAID_FLUSH_DISK_CACHE;
             if (!Do_Management(ccb, MRAID_DCMD_CTRL_CACHE_FLUSH, MRAID_DATA_NONE, 0, NULL, mbox))
                 goto fail;
-            goto complete;
+        goto complete;
         /* No support for them */
         case kSCSICmd_MODE_SENSE_6:
         case kSCSICmd_MODE_SENSE_10:
