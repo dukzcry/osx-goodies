@@ -27,7 +27,6 @@ bool SASMegaRAID::init (OSDictionary* dict)
     sc.sc_iop = IONew(mraid_iop_ops, 1);
     
     sc.sc_pcq = sc.sc_frames = sc.sc_sense = NULL;
-    //sc.sc_bbuok = false;
     sc.sc_info.info = NULL;
     bzero(sc.sc_ld_present, MRAID_MAX_LD);
 
@@ -442,7 +441,6 @@ bool SASMegaRAID::Attach()
             case MRAID_BBU_GOOD:
                 IOLog("good, %d%% charged", MRAID_BBU_TYPE_IBBU ? bbu_stat->detail.ibbu.relative_charge :
                                                                  bbu_stat->detail.bbu.relative_charge);
-                //sc.sc_bbuok = true;
                 break;
             case MRAID_BBU_BAD:
                 IOLog("bad");
@@ -1445,10 +1443,6 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
 
     DbgPrint("%s: Opcode 0x%x, Target %llu\n", __FUNCTION__, cdbData[0],
             GetTargetIdentifier(parallelRequest));
-    
-    /* TO-DO: We need batt status refreshing for this */
-    /*if (cdbData[0] == kSCSICmd_SYNCHRONIZE_CACHE && sc.sc_bbuok)
-     return kSCSIServiceResponse_TASK_COMPLETE;*/
     
     ccb = Getccb();
     

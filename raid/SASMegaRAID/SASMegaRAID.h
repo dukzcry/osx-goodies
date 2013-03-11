@@ -77,7 +77,6 @@ typedef struct {
 #define MRAID_BBU_BAD               1
 #define MRAID_BBU_UNKNOWN           2
 #define MRAID_BBU_ERROR             3
-    //bool                            sc_bbuok;
 } mraid_softc;
 
 typedef struct {
