@@ -10,7 +10,7 @@ Here's rough list of cards which should be supported (if yours doesn't get recog
 - IBM ServeRAID M1015, M5014
 - Intel RAID SRCSAS18E, SRCSAS144E
 
-Definitely unsupported:
+**Except for**:
 - Fusion I/II-based controllers
 - Cards based on SAS2208 (Thunderbolt) chip
 - Dell SAS cards (not RAIDs)
