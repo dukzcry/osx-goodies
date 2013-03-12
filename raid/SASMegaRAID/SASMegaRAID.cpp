@@ -17,8 +17,10 @@ bool SASMegaRAID::init (OSDictionary* dict)
     MyWorkLoop = NULL; fInterruptSrc = NULL;
     InterruptsActivated = FirmwareInitialized = fMSIEnabled = ccb_inited = EnteredSleep = false;
     conf = OSDynamicCast(OSDictionary, getProperty("Settings"));
-    OSBoolean *sPreferMSI = conf ? OSDynamicCast(OSBoolean, conf->getObject("PreferMSI")) : NULL;
-    PreferMSI = (sPreferMSI && sPreferMSI->isTrue()) ? true : false;
+    OSBoolean *osbool = conf ? OSDynamicCast(OSBoolean, conf->getObject("PreferMSI")) : NULL;
+    PreferMSI = (osbool && osbool->isTrue()) ? true : false;
+    osbool = OSDynamicCast(OSBoolean, conf->getObject("NoCacheFlush"));
+    NoCacheFlush = (osbool && osbool->isTrue()) ? true : false;
     addr_mask = IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : MASK_32BIT;
     
 	/* Create an instance of PCI class from Helper Library */
@@ -27,6 +29,7 @@ bool SASMegaRAID::init (OSDictionary* dict)
     sc.sc_iop = IONew(mraid_iop_ops, 1);
     
     sc.sc_pcq = sc.sc_frames = sc.sc_sense = NULL;
+    sc.sc_bbuok = false;
     sc.sc_info.info = NULL;
     bzero(sc.sc_ld_present, MRAID_MAX_LD);
 
@@ -429,10 +432,10 @@ bool SASMegaRAID::Attach()
 		switch (bbu_stat->battery_type) {
             case MRAID_BBU_TYPE_BBU:
                 IOLog("BBU");
-                break;
+            break;
             case MRAID_BBU_TYPE_IBBU:
                 IOLog("IBBU");
-                break;
+            break;
             default:
                 IOLog("unknown type %d", bbu_stat->battery_type);
 		}
@@ -441,13 +444,14 @@ bool SASMegaRAID::Attach()
             case MRAID_BBU_GOOD:
                 IOLog("good, %d%% charged", MRAID_BBU_TYPE_IBBU ? bbu_stat->detail.ibbu.relative_charge :
                                                                  bbu_stat->detail.bbu.relative_charge);
-                break;
+                sc.sc_bbuok = true;
+            break;
             case MRAID_BBU_BAD:
                 IOLog("bad");
-                break;
+            break;
             case MRAID_BBU_UNKNOWN:
                 IOLog("unknown");
-                break;
+            break;
 		}
         FreeDataMem(&mem);
     } while (0);
@@ -1469,9 +1473,11 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
                 goto fail;
         break;
         case kSCSICmd_SYNCHRONIZE_CACHE:
-            mbox[0] = MRAID_FLUSH_CTRL_CACHE | MRAID_FLUSH_DISK_CACHE;
-            if (!Do_Management(ccb, MRAID_DCMD_CTRL_CACHE_FLUSH, MRAID_DATA_NONE, 0, NULL, mbox))
-                goto fail;
+            if (!sc.sc_bbuok || !NoCacheFlush) {
+                mbox[0] = MRAID_FLUSH_CTRL_CACHE | MRAID_FLUSH_DISK_CACHE;
+                if (!Do_Management(ccb, MRAID_DCMD_CTRL_CACHE_FLUSH, MRAID_DATA_NONE, 0, NULL, mbox))
+                    goto fail;
+            }
         goto complete;
         /* No support for them */
         case kSCSICmd_MODE_SENSE_6:

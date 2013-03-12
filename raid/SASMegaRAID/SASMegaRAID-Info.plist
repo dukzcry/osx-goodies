@@ -28,6 +28,8 @@
 		<dict>
 			<key>Settings</key>
 			<dict>
+				<key>NoCacheFlush</key>
+				<false/>
 				<key>PreferMSI</key>
 				<false/>
 			</dict>

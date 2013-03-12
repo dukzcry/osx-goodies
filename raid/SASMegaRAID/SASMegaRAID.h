@@ -77,6 +77,7 @@ typedef struct {
 #define MRAID_BBU_BAD               1
 #define MRAID_BBU_UNKNOWN           2
 #define MRAID_BBU_ERROR             3
+    bool                            sc_bbuok;
 } mraid_softc;
 
 typedef struct {
@@ -125,7 +126,7 @@ private:
     void *vAddr;
     static UInt32 MaxXferSizePerSeg;
     UInt32 MaxXferSize, MappingType;
-    bool fMSIEnabled, PreferMSI, InterruptsActivated, FirmwareInitialized, ccb_inited, EnteredSleep;
+    bool fMSIEnabled, PreferMSI, NoCacheFlush, InterruptsActivated, FirmwareInitialized, ccb_inited, EnteredSleep;
     const mraid_pci_device *mpd;
     mraid_softc sc;
 
