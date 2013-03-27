@@ -67,15 +67,15 @@ cat > patch-mfiutil.h << EOF
 -#undef __MAKE_SET
  #undef DATA_SET
  
--#define __MAKE_SET(set, sym)						\
--	static void const * const __set_##set##_sym_##sym 		\
+-#define __MAKE_SET(set, sym)						\\
+-	static void const * const __set_##set##_sym_##sym 		\\
 -	__section("set_" #set) __used = &sym
 -
 -#define DATA_SET(set, sym)	__MAKE_SET(set, sym)
 +#define DATA_SET(set, sym)	__LINKER_MAKE_SET(set, sym)
  
- #define SET_DECLARE(set, ptype)						\
--	extern ptype *__CONCAT(__start_set_,set);			\
+ #define SET_DECLARE(set, ptype)						\\
+-	extern ptype *__CONCAT(__start_set_,set);			\\
 -	extern ptype *__CONCAT(__stop_set_,set)
 +	char set[] = __LS_VA_STRINGIFY(set)
 +
@@ -99,14 +99,14 @@ cat > patch-mfiutil.h << EOF
 +	return ((void **) ((uintptr_t) _set_begin + _size));
 +}
  
- #define SET_BEGIN(set)							\
+ #define SET_BEGIN(set)							\\
 -	(&__CONCAT(__start_set_,set))
 +	__linker_set_object_begin_fixed(set)
- #define SET_LIMIT(set)							\
+ #define SET_LIMIT(set)							\\
 -	(&__CONCAT(__stop_set_,set))
 +	__linker_set_object_limit_fixed(set)
  
- #define	SET_FOREACH(pvar, set)						\
+ #define	SET_FOREACH(pvar, set)						\\
  	for (pvar = SET_BEGIN(set); pvar < SET_LIMIT(set); pvar++)
 @@ -97,7 +107,7 @@ struct mfiutil_command {
  	int (*handler)(int ac, char **av);
@@ -115,8 +115,8 @@ cat > patch-mfiutil.h << EOF
 -#define	MFI_DATASET(name)	mfiutil_ ## name ## _table
 +#define	MFI_DATASET(name)	mfu_ ## name ## _tbl
  
- #define	MFI_COMMAND(set, name, function)				\
- 	static struct mfiutil_command function ## _mfiutil_command =	\
+ #define	MFI_COMMAND(set, name, function)				\\
+ 	static struct mfiutil_command function ## _mfiutil_command =	\\
 EOF
 patch < patch-mfiutil.h
 
