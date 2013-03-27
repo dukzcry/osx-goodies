@@ -10,6 +10,7 @@ XNU="xnu-2050.18.24"
 CFLAGS=${CFLAGS}" -D_SYS_CDEFS_H_ -DKERNEL -I. \
 	-include ${INC}/stdint.h -include ${INC}/sys/types.h \
 	\"-D__packed=__attribute__((packed))\" -v"
+
 #-Dlint
 export CFLAGS
 
@@ -48,9 +49,9 @@ ln -s ${PWD}/${XNU}/bsd/sys/linker_set.h ./sys/
 ln -s ${PWD}/${XNU}/libkern/libkern/kernel_mach_header.h ./libkern/
 
 cat > patch-mfiutil.h << EOF
---- mfiutil.h.orig	2013-03-01 11:44:07.000000000 +0400
-+++ mfiutil.h	2013-03-01 11:46:36.000000000 +0400
-@@ -37,31 +37,26 @@
+--- mfiutil.h.orig	2013-03-28 00:52:10.000000000 +0400
++++ mfiutil.h	2013-03-28 00:58:52.000000000 +0400
+@@ -37,31 +37,41 @@
  
  #include <dev/mfi/mfireg.h>
  
@@ -64,44 +65,60 @@ cat > patch-mfiutil.h << EOF
 -
  /* <sys/linker_set.h> */
 -#undef __MAKE_SET
-+#undef __LINKER_MAKE_SET
  #undef DATA_SET
  
--#define __MAKE_SET(set, sym)						\\
--	static void const * const __set_##set##_sym_##sym 		\\
+-#define __MAKE_SET(set, sym)						\
+-	static void const * const __set_##set##_sym_##sym 		\
 -	__section("set_" #set) __used = &sym
-+#define __LINKER_MAKE_SET(_set, _sym)					\\
-+	/*__unused*/ static void const * /*const*/ __set_##_set##_sym_##_sym
- 
+-
 -#define DATA_SET(set, sym)	__MAKE_SET(set, sym)
 +#define DATA_SET(set, sym)	__LINKER_MAKE_SET(set, sym)
  
- #define SET_DECLARE(set, ptype)						\\
--	extern ptype *__CONCAT(__start_set_,set);			\\
+ #define SET_DECLARE(set, ptype)						\
+-	extern ptype *__CONCAT(__start_set_,set);			\
 -	extern ptype *__CONCAT(__stop_set_,set)
-+	static ptype *__CONCAT(__start_set_,set);			\\
-+	static ptype *__CONCAT(__stop_set_,set)
++	char set[] = __LS_VA_STRINGIFY(set)
++
++static __inline void **
++__linker_set_object_begin_fixed(const char *_set)
++{
++	void *_set_begin;
++	unsigned long _size;
++
++	_set_begin = getsectdata("__DATA", _set, &_size);
++	return( (void **) _set_begin );
++}
++static __inline void **
++__linker_set_object_limit_fixed(const char *_set)
++{
++	void *_set_begin;
++	unsigned long _size;
++
++	_set_begin = getsectdata("__DATA", _set, &_size);
++	
++	return ((void **) ((uintptr_t) _set_begin + _size));
++}
  
- #define SET_BEGIN(set)							\\
+ #define SET_BEGIN(set)							\
 -	(&__CONCAT(__start_set_,set))
-+	LINKER_SET_BEGIN(__CONCAT(__start_set_,set))
- #define SET_LIMIT(set)							\\
++	__linker_set_object_begin_fixed(set)
+ #define SET_LIMIT(set)							\
 -	(&__CONCAT(__stop_set_,set))
-+	LINKER_SET_LIMIT(__CONCAT(__stop_set_,set))
++	__linker_set_object_limit_fixed(set)
  
- #define	SET_FOREACH(pvar, set)						\\
+ #define	SET_FOREACH(pvar, set)						\
  	for (pvar = SET_BEGIN(set); pvar < SET_LIMIT(set); pvar++)
-@@ -97,7 +92,7 @@ struct mfiutil_command {
+@@ -97,7 +107,7 @@ struct mfiutil_command {
  	int (*handler)(int ac, char **av);
  };
  
 -#define	MFI_DATASET(name)	mfiutil_ ## name ## _table
 +#define	MFI_DATASET(name)	mfu_ ## name ## _tbl
  
- #define	MFI_COMMAND(set, name, function)				\\
- 	static struct mfiutil_command function ## _mfiutil_command =	\\
+ #define	MFI_COMMAND(set, name, function)				\
+ 	static struct mfiutil_command function ## _mfiutil_command =	\
 EOF
 patch < patch-mfiutil.h
 
-#CC=gcc 
+#CC=gcc
 bsdmake
