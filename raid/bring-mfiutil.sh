@@ -9,8 +9,8 @@ LU="libutil-30"
 XNU="xnu-2050.18.24"
 CFLAGS=${CFLAGS}" -D_SYS_CDEFS_H_ -DKERNEL -I. \
 	-include ${INC}/stdint.h -include ${INC}/sys/types.h \
-	\"-D__packed=__attribute__((packed))\" -v"
-
+	\"-D__packed=__attribute__((packed))\" -v \
+	-arch x86_64 -arch i386"
 #-Dlint
 export CFLAGS
 
