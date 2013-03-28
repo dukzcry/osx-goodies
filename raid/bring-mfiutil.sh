@@ -7,7 +7,7 @@ TMP=`mkdir -p /tmp/mfi; echo /tmp/mfi`
 INC="/usr/include"
 LU="libutil-30"
 XNU="xnu-2050.18.24"
-CFLAGS=${CFLAGS}" -D_SYS_CDEFS_H_ -DKERNEL -I. \
+CFLAGS=${CFLAGS}" -D_SYS_CDEFS_H_ -I. \
 	-include ${INC}/stdint.h -include ${INC}/sys/types.h \
 	\"-D__packed=__attribute__((packed))\" -v \
 	-arch x86_64 -arch i386"
@@ -49,9 +49,15 @@ ln -s ${PWD}/${XNU}/bsd/sys/linker_set.h ./sys/
 ln -s ${PWD}/${XNU}/libkern/libkern/kernel_mach_header.h ./libkern/
 
 cat > patch-mfiutil.h << EOF
---- mfiutil.h.orig	2013-03-28 00:52:10.000000000 +0400
-+++ mfiutil.h	2013-03-28 00:58:52.000000000 +0400
-@@ -37,31 +37,41 @@
+--- mfiutil.h.orig	2013-03-28 12:06:19.000000000 +0400
++++ mfiutil.h	2013-03-28 12:31:25.000000000 +0400
+@@ -33,35 +33,47 @@
+ #define	__MFIUTIL_H__
+ 
+ #include <sys/cdefs.h>
++
++typedef struct mach_header kernel_mach_header_t;
+ #include <sys/linker_set.h>
  
  #include <dev/mfi/mfireg.h>
  
@@ -80,35 +86,35 @@ cat > patch-mfiutil.h << EOF
 +	char set[] = __LS_VA_STRINGIFY(set)
 +
 +static __inline void **
-+__linker_set_object_begin_fixed(const char *_set)
++__linker_set_object_begin_slide(const char *_set)
 +{
-+	void *_set_begin;
-+	unsigned long _size;
++        void *_set_begin;
++        unsigned long _size;
 +
-+	_set_begin = getsectdata("__DATA", _set, &_size);
-+	return( (void **) _set_begin );
++        _set_begin = getsectiondata(&_mh_execute_header, SEG_DATA, _set, &_size);
++        return( (void **) _set_begin );
 +}
 +static __inline void **
-+__linker_set_object_limit_fixed(const char *_set)
++__linker_set_object_limit_slide(const char *_set)
 +{
-+	void *_set_begin;
-+	unsigned long _size;
++        void *_set_begin;
++        unsigned long _size;
 +
-+	_set_begin = getsectdata("__DATA", _set, &_size);
-+	
-+	return ((void **) ((uintptr_t) _set_begin + _size));
++        _set_begin = getsectiondata(&_mh_execute_header, SEG_DATA, _set, &_size);
++
++        return ((void **) ((uintptr_t) _set_begin + _size));
 +}
  
  #define SET_BEGIN(set)							\\
 -	(&__CONCAT(__start_set_,set))
-+	__linker_set_object_begin_fixed(set)
++	__linker_set_object_begin_slide(set)
  #define SET_LIMIT(set)							\\
 -	(&__CONCAT(__stop_set_,set))
-+	__linker_set_object_limit_fixed(set)
++	__linker_set_object_limit_slide(set)
  
  #define	SET_FOREACH(pvar, set)						\\
  	for (pvar = SET_BEGIN(set); pvar < SET_LIMIT(set); pvar++)
-@@ -97,7 +107,7 @@ struct mfiutil_command {
+@@ -97,7 +109,7 @@ struct mfiutil_command {
  	int (*handler)(int ac, char **av);
  };
  
