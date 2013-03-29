@@ -19,7 +19,7 @@ bool SASMegaRAID::init (OSDictionary* dict)
     conf = OSDynamicCast(OSDictionary, getProperty("Settings"));
     OSBoolean *osbool = conf ? OSDynamicCast(OSBoolean, conf->getObject("PreferMSI")) : NULL;
     PreferMSI = (osbool && osbool->isTrue()) ? true : false;
-    osbool = OSDynamicCast(OSBoolean, conf->getObject("NoCacheFlush"));
+    osbool = conf ? OSDynamicCast(OSBoolean, conf->getObject("NoCacheFlush")) : NULL;
     NoCacheFlush = (osbool && osbool->isTrue()) ? true : false;
     addr_mask = IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : MASK_32BIT;
     
