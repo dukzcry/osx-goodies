@@ -2,7 +2,6 @@
     #error "I need C++11 for functional jokery ;)"
 #endif
 
-#include "OSDepend.h"
 #include "RAID.h"
 
 static struct cdevsw mraid_cdevsw = {

@@ -2,6 +2,8 @@
 #include <sys/conf.h>
 #include <miscfs/devfs/devfs.h>
 
+#include "OSDepend.h"
+
 class RAID {
     void *raid_devnode;
     int devindex;
