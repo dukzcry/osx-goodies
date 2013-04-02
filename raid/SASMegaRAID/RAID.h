@@ -12,6 +12,6 @@ public:
     RAID() {raid_devnode = NULL; devindex = -1;};
     ~RAID();
     
-    bool init();
+    bool init(SInt32);
     static int MRAID_Ioctl(dev_t, u_long, caddr_t, int, struct proc *);
 };

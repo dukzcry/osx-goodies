@@ -506,7 +506,7 @@ bool SASMegaRAID::Attach()
     val->release();
                                
     RAIDP = new RAID;
-    if (RAIDP) if (!RAIDP->init()) RAIDP = NULL;
+    if (RAIDP) if (!RAIDP->init(GetSCSIDomainIdentifier())) RAIDP = NULL;
     
     return true;
 }

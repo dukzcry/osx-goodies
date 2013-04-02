@@ -32,19 +32,23 @@ RAID::~RAID() {
     }
 }
 
-bool RAID::init()
+bool RAID::init(SInt32 domain)
 {
+    char str[5];
+    
     if ((devindex = cdevsw_add(-1, &mraid_cdevsw)) == -1) {
         IOPrint("[RAID] cdevsw_add() failed\n");
         return false;
     }
+    
+    snprintf(str, sizeof(str), "mfi%d", domain);
     
     if ((raid_devnode = devfs_make_node(makedev(DEVINDEX, 0),
                                      DEVFS_CHAR,
                                      UID_ROOT,
                                      GID_OPERATOR,
                                      0640,
-                                     "mfi")) == NULL)
+                                     str)) == NULL)
         return false;
     
     return true;
