@@ -27,6 +27,15 @@
 #define htole64(x) (x)
 #endif
 
+/* Horrible, see bsd_stubs.c */
+#if VERSION_MAJOR >= 12
+#define DEVINDEX -24
+#elif VERSION_MAJOR == 11
+#define DEVINDEX -12
+#else
+#define DEVINDEX -1
+#endif
+
 /* Undo macro for those with private headers installed */
 #ifdef clock_interval_to_deadline
 #undef clock_interval_to_deadline

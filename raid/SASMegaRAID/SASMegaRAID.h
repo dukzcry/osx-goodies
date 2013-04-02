@@ -6,10 +6,13 @@
 #include <IOKit/scsi/SCSICommandDefinitions.h>
 #include <IOKit/IOKitKeys.h>
 
+/* Keep order */
+#include "RAID.h"
 #include "Hardware.h"
+/* */
+
 #include "Registers.h"
 #include "HelperLib.h"
-#include "RAID.h"
 
 typedef struct {
     IOBufferMemoryDescriptor *bmd;

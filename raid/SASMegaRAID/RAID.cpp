@@ -39,7 +39,7 @@ bool RAID::init()
         return false;
     }
     
-    if ((raid_devnode = devfs_make_node(makedev(devindex, 0),
+    if ((raid_devnode = devfs_make_node(makedev(DEVINDEX, 0),
                                      DEVFS_CHAR,
                                      UID_ROOT,
                                      GID_OPERATOR,
