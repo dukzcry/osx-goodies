@@ -194,6 +194,7 @@ void SASMegaRAID::free(void)
     /* Helper Library is not inherited from OSObject */
     /*PCIHelperP->release();*/
     delete PCIHelperP;
+    if (RAIDP) delete RAIDP;
     if (sc.sc_iop) IODelete(sc.sc_iop, mraid_iop_ops, 1);
     
     if (sc.sc_pcq) FreeMem(sc.sc_pcq);
@@ -503,6 +504,9 @@ bool SASMegaRAID::Attach()
     setProperty(kIOMaximumByteCountReadKey, val);
     setProperty(kIOMaximumByteCountWriteKey, val);
     val->release();
+                               
+    RAIDP = new RAID;
+    if (RAIDP) if (!RAIDP->init()) RAIDP = NULL;
     
     return true;
 }

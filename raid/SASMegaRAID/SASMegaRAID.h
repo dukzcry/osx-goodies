@@ -9,6 +9,7 @@
 #include "Hardware.h"
 #include "Registers.h"
 #include "HelperLib.h"
+#include "RAID.h"
 
 typedef struct {
     IOBufferMemoryDescriptor *bmd;
@@ -114,6 +115,7 @@ class SASMegaRAID: public BaseClass {
 	OSDeclareDefaultStructors(SASMegaRAID);
 private:
     class PCIHelper<SASMegaRAID>* PCIHelperP;
+    class RAID *RAIDP;
     
     IOPCIDevice *fPCIDevice;
     IOMemoryMap *map;
