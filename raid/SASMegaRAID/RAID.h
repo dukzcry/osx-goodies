@@ -14,4 +14,6 @@ public:
     
     bool init(SInt32);
     static int MRAID_Ioctl(dev_t, u_long, caddr_t, int, struct proc *);
+    static int MRAID_Open(dev_t, int, int, struct proc *);
+    static int MRAID_Close(dev_t, int, int, struct proc *);
 };
