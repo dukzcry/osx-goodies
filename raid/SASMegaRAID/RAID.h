@@ -1,3 +1,5 @@
+/* Written by Artem Falcon <lomka@gero.in> */
+
 #if 0
 #if __cplusplus < 201103L
 #error "I need C++11 for functional jokery ;)"

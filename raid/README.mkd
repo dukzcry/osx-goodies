@@ -19,7 +19,7 @@ Note, that probably almost every card from this family requires x86 host to get 
 
 Postponed features:
 - ~~Sleep/resume handling~~
-- Management of RAID functional
+- ~~Management of RAID functional~~ including catching of async events
 
 Post-postponed features:
 - Monitoring with HWSensors
