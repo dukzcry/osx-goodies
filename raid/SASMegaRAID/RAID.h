@@ -83,6 +83,7 @@ int RAID::MRAID_UserCommand(struct mfi_ioc_passthru *iop)
 {
     mraid_data_mem mem;
     mraid_ccbCommand* ccb;
+    IOVirtualAddress addr;
     int res = 0;
     
     if (iop->buf_size > 1024 * 1024 ||
@@ -91,8 +92,9 @@ int RAID::MRAID_UserCommand(struct mfi_ioc_passthru *iop)
                                                                      iop->buf_size, obj->addr_mask)))
         return ENOMEM;
     mem.bmd->prepare();
+    addr = (IOVirtualAddress) mem.bmd->getBytesNoCopy();
     if (iop->buf_size > 0)
-        bcopy(iop->buf, (void *) mem.bmd->getPhysicalSegment(0, NULL), iop->buf_size);
+        bcopy(iop->buf, (void *) addr, iop->buf_size);
 
     ccb = obj->Getccb();
     res = obj->Do_Management(ccb, iop->ioc_frame.opcode, MRAID_DATA_IN | MRAID_DATA_OUT,
@@ -106,7 +108,7 @@ int RAID::MRAID_UserCommand(struct mfi_ioc_passthru *iop)
     }
     
     if (iop->buf_size > 0)
-        bcopy(mem.bmd->getBytesNoCopy(), iop->buf, iop->buf_size);
+        bcopy((void *) addr, iop->buf, iop->buf_size);
     iop->ioc_frame.header.cmd_status = MRAID_STAT_OK;
     
 end:
