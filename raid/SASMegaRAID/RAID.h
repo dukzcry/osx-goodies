@@ -24,6 +24,7 @@ public:
     bool init(SASMegaRAID *, SInt32);
     static int Ioctl(dev_t, u_long, caddr_t, int, struct proc *);
     int MRAID_Ioctl(dev_t, u_long, caddr_t, int, struct proc *);
+    int MRAID_UserCommand(struct mfi_ioc_passthru *);
 };
 
 static struct cdevsw mraid_cdevsw = {
@@ -78,6 +79,41 @@ bool RAID::init(SASMegaRAID *instance, SInt32 domain)
     return true;
 }
 
+int RAID::MRAID_UserCommand(struct mfi_ioc_passthru *iop)
+{
+    mraid_data_mem mem;
+    mraid_ccbCommand* ccb;
+    int res = 0;
+    
+    if (iop->buf_size > 1024 * 1024 ||
+        !(mem.bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(kernel_task,
+                                                                      kIOMemoryPhysicallyContiguous,
+                                                                     iop->buf_size, obj->addr_mask)))
+        return ENOMEM;
+    mem.bmd->prepare();
+    if (iop->buf_size > 0)
+        bcopy((void *) mem.bmd->getPhysicalSegment(0, NULL), iop->buf, iop->buf_size);
+
+    ccb = obj->Getccb();
+    res = obj->Do_Management(ccb, iop->ioc_frame.opcode, MRAID_DATA_IN | MRAID_DATA_OUT,
+                             iop->buf_size, &mem, NULL);
+    
+    obj->Putccb(ccb);
+    if (!res) {
+        DbgPrint("[RAID] Ioctl failed\n");
+        res = EIO;
+        goto end;
+    }
+    
+    if (iop->buf_size > 0)
+        bcopy(iop->buf, mem.bmd->getBytesNoCopy(), iop->buf_size);
+    iop->ioc_frame.header.cmd_status = MRAID_STAT_OK;
+    
+end:
+    FreeDataMem(&mem);
+    return res;
+}
+
 int RAID::MRAID_Ioctl(__unused dev_t dev, u_long cmd, caddr_t data,
                 __unused int flag, __unused struct proc *p)
 {
@@ -89,6 +125,11 @@ int RAID::MRAID_Ioctl(__unused dev_t dev, u_long cmd, caddr_t data,
             bzero(qd->devname, SPECNAMELEN + 1);
             snprintf(qd->devname, SPECNAMELEN, "mfid%d", qd->array_id);
             return 0;
+        }
+        case MFIIO_PASSTHRU: {
+            struct mfi_ioc_passthru *iop = (struct mfi_ioc_passthru *) data;
+            
+            return MRAID_UserCommand(iop);
         }
     }
     
