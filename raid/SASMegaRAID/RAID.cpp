@@ -9,7 +9,7 @@ static struct cdevsw mraid_cdevsw = {
     (d_close_t *)&nulldev, // lambda(dev_t, int d_close, int, struct proc *) { return d_close; }
     (d_read_t *)&nulldev, // lambda(dev_t, struct uio *, int d_read) { return d_read; }
     (d_write_t *)&nulldev, // lambda(dev_t, struct uio *, int d_write) { return d_write; }
-    RAID::MRAID_Ioctl, // lambda(dev_t, u_long, caddr_t, int d_ioctl, struct proc *) { return d_ioctl; }
+    RAID::Ioctl, // lambda(dev_t, u_long, caddr_t, int d_ioctl, struct proc *) { return d_ioctl; }
     (d_stop_t *)&nulldev, // lambda(struct tty*, int d_stop) { return d_stop; }
     (d_reset_t *)&nulldev, // lambda(int d_reset) { return d_reset; }
     0,               // struct tty      **d_ttys;
@@ -54,14 +54,15 @@ bool RAID::init(SInt32 domain)
     return true;
 }
 
-int RAID::MRAID_Ioctl(__unused dev_t dev, u_long cmd, caddr_t data,
+int RAID::Ioctl(__unused dev_t dev, u_long cmd, caddr_t data,
            __unused int flag, __unused struct proc *p)
 {
-    struct mfi_ioc_passthru *iop = (struct mfi_ioc_passthru *) data;
+    int res = ENOTTY;
     
     switch (cmd) {
         default:
             DbgPrint("[RAID] Ioctl 0x%lx not handled\n", cmd);
-            return ENOTTY;
     }
+    
+    return res;
 }
