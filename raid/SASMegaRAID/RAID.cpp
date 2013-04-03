@@ -54,21 +54,14 @@ bool RAID::init(SInt32 domain)
     return true;
 }
 
-int RAID::MRAID_Ioctl(__unused dev_t dev, u_long cmd, __unused caddr_t data,
+int RAID::MRAID_Ioctl(__unused dev_t dev, u_long cmd, caddr_t data,
            __unused int flag, __unused struct proc *p)
 {
+    struct mfi_ioc_passthru *iop = (struct mfi_ioc_passthru *) data;
+    
     switch (cmd) {
         default:
             DbgPrint("[RAID] Ioctl 0x%lx not handled\n", cmd);
             return ENOTTY;
     }
 }
-
-/*int RAID::MRAID_Open(__unused dev_t dev, __unused int, __unused int, __unused struct proc *p)
-{
-    return 0;
-}
-int RAID::MRAID_Close(__unused dev_t dev, __unused int, __unused int, __unused struct proc *p)
-{
-    return 0;
-}*/

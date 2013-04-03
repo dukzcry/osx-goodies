@@ -24,11 +24,11 @@ svn co svn://svn.freebsd.org/base/stable/9/sys/cam/scsi ${TMP}/scsi
 [ ! -e ${TMP}/${XNU}.tgz ] && \
 	curl http://www.opensource.apple.com/tarballs/xnu/${XNU}.tar.gz -o ${TMP}/${XNU}.tgz
 
-cd mfiutil
+cd ./mfiutil
 tar xzf ${TMP}/${LU}.tgz -C .
 tar xzf ${TMP}/${XNU}.tgz -C .
 mkdir ./sys
-mkdir machine
+mkdir ./machine
 mkdir -p ./dev/mfi
 mkdir -p ./cam/scsi
 
@@ -38,6 +38,7 @@ ln -s ${TMP}/sys/param.h ${TMP}/sys/_null.h \
 #${TMP}/sys/_stdint.h
 ln -s ${TMP}/scsi/scsi_all.h ./cam/scsi/
 ln -s ${TMP}/mfi/mfireg.h ${TMP}/mfi/mfi_ioctl.h ./dev/mfi/
+mkdir ../dev && cp -r ./dev/mfi ../dev/
 
 #ln -s ${INC}/i386/param.h ./sys/
 ln -s ${INC}/stdint.h ./sys/_stdint.h
