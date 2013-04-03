@@ -1,5 +1,7 @@
+#if 0
 #if __cplusplus < 201103L
 #error "I need C++11 for functional jokery ;)"
+#endif
 #endif
 
 #include <sys/systm.h>
