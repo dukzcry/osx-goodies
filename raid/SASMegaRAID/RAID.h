@@ -95,10 +95,10 @@ int RAID::MRAID_UserCommand(struct mfi_ioc_passthru *iop)
     addr = (IOVirtualAddress) mem.bmd->getBytesNoCopy();
     if (iop->buf_size > 0)
         bcopy(iop->buf, (void *) addr, iop->buf_size);
-
+    
     ccb = obj->Getccb();
     res = obj->Do_Management(ccb, iop->ioc_frame.opcode, MRAID_DATA_IN | MRAID_DATA_OUT,
-                             iop->buf_size, &mem, NULL);
+                             iop->buf_size, &mem, iop->ioc_frame.mbox);
     
     obj->Putccb(ccb);
     if (!res) {
