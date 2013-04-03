@@ -92,7 +92,7 @@ int RAID::MRAID_UserCommand(struct mfi_ioc_passthru *iop)
         return ENOMEM;
     mem.bmd->prepare();
     if (iop->buf_size > 0)
-        bcopy((void *) mem.bmd->getPhysicalSegment(0, NULL), iop->buf, iop->buf_size);
+        bcopy(iop->buf, (void *) mem.bmd->getPhysicalSegment(0, NULL), iop->buf_size);
 
     ccb = obj->Getccb();
     res = obj->Do_Management(ccb, iop->ioc_frame.opcode, MRAID_DATA_IN | MRAID_DATA_OUT,
@@ -106,7 +106,7 @@ int RAID::MRAID_UserCommand(struct mfi_ioc_passthru *iop)
     }
     
     if (iop->buf_size > 0)
-        bcopy(iop->buf, mem.bmd->getBytesNoCopy(), iop->buf_size);
+        bcopy(mem.bmd->getBytesNoCopy(), iop->buf, iop->buf_size);
     iop->ioc_frame.header.cmd_status = MRAID_STAT_OK;
     
 end:
