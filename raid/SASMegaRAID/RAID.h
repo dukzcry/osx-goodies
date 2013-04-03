@@ -84,7 +84,7 @@ int RAID::MRAID_UserCommand(struct mfi_ioc_passthru *iop)
     mraid_data_mem mem;
     mraid_ccbCommand* ccb;
     IOVirtualAddress addr;
-    int res = 0;
+    int res;
     
     if (iop->buf_size > 1024 * 1024 ||
         !(mem.bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(kernel_task,
@@ -106,6 +106,7 @@ int RAID::MRAID_UserCommand(struct mfi_ioc_passthru *iop)
         res = EIO;
         goto end;
     }
+    else res = 0;
     
     if (iop->buf_size > 0)
         bcopy((void *) addr, iop->buf, iop->buf_size);
