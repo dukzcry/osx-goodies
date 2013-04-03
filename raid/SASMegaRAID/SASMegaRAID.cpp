@@ -882,9 +882,7 @@ bool SASMegaRAID::Management(UInt32 opc, UInt32 dir, UInt32 len, mraid_data_mem 
     mraid_ccbCommand* ccb;
     bool res;
     
-    ccb = Getccb();
-    
-    if (dir == MRAID_DATA_IN) {
+    if (dir & MRAID_DATA_IN) {
         /* Support 64-bit DMA */
         if (!(mem->bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask(kernel_task,
             kIOMemoryPhysicallyContiguous /*| kIOMapInhibitCache // No caching */,
@@ -894,6 +892,7 @@ bool SASMegaRAID::Management(UInt32 opc, UInt32 dir, UInt32 len, mraid_data_mem 
         mem->bmd->prepare();
     }
     
+    ccb = Getccb();
     res = Do_Management(ccb, opc, dir, len, mem, mbox);
     Putccb(ccb);
     
@@ -973,8 +972,10 @@ void SASMegaRAID::PointToData(mraid_ccbCommand *ccb, mraid_data_mem *mem)
     }
     DbgPrint("Paddr: %#llx\n", mem->paddr);
 
-    hdr->mrh_flags |= (ccb->s.ccb_direction == MRAID_DATA_IN) ?
-        MRAID_FRAME_DIR_READ : MRAID_FRAME_DIR_WRITE;
+    if (ccb->s.ccb_direction & MRAID_DATA_IN)
+        hdr->mrh_flags |= MRAID_FRAME_DIR_READ;
+    if (ccb->s.ccb_direction & MRAID_DATA_OUT)
+        hdr->mrh_flags |= MRAID_FRAME_DIR_WRITE;
 
     hdr->mrh_flags |= sc.sc_sgl_flags;
     hdr->mrh_sg_count = 1;
@@ -1023,8 +1024,10 @@ bool SASMegaRAID::CreateSGL(mraid_ccbCommand *ccb)
     }
     my_assert(ccb->s.ccb_sglmem.numSeg <= sc.sc_max_sgl);
 
-    hdr->mrh_flags |= (ccb->s.ccb_direction == MRAID_DATA_IN) ?
-        MRAID_FRAME_DIR_READ : MRAID_FRAME_DIR_WRITE;
+    if (ccb->s.ccb_direction & MRAID_DATA_IN)
+        hdr->mrh_flags |= MRAID_FRAME_DIR_READ;
+    if (ccb->s.ccb_direction & MRAID_DATA_OUT)
+        hdr->mrh_flags |= MRAID_FRAME_DIR_WRITE;
     
     hdr->mrh_flags |= sc.sc_sgl_flags;
     hdr->mrh_sg_count = ccb->s.ccb_sglmem.numSeg;
