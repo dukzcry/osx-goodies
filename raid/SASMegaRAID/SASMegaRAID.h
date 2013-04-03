@@ -6,11 +6,7 @@
 #include <IOKit/scsi/SCSICommandDefinitions.h>
 #include <IOKit/IOKitKeys.h>
 
-/* Keep order */
-#include "RAID.h"
 #include "Hardware.h"
-/* */
-
 #include "Registers.h"
 #include "HelperLib.h"
 
@@ -60,7 +56,6 @@ typedef struct {
     UInt32                          sc_max_sgl;
     UInt32                          sc_sgl_size;
     UInt16                          sc_sgl_flags;
-    UInt32                          sc_ld_cnt;
     
     /* Producer/consumer pointers and reply queue */
     mraid_mem                       *sc_pcq;
@@ -118,7 +113,6 @@ class SASMegaRAID: public BaseClass {
 	OSDeclareDefaultStructors(SASMegaRAID);
 private:
     class PCIHelper<SASMegaRAID>* PCIHelperP;
-    class RAID *RAIDP;
     
     IOPCIDevice *fPCIDevice;
     IOMemoryMap *map;
@@ -136,6 +130,7 @@ private:
     mraid_softc sc;
 
     friend struct mraid_iop_ops;
+    friend class RAID;
     /* Helper Library */
 	template <typename UserClass> friend
     UInt32 PCIHelper<UserClass>::MappingType(UserClass*, UInt8, UInt32*);

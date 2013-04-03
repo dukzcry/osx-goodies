@@ -2,7 +2,7 @@
 
 //#define io_debug
 
-#include "SASMegaRAID.h"
+#include "RAID.h"
 
 OSDefineMetaClassAndStructors(SASMegaRAID, IOSCSIParallelInterfaceController)
 OSDefineMetaClassAndStructors(mraid_ccbCommand, IOCommand)
@@ -460,8 +460,7 @@ bool SASMegaRAID::Attach()
         IOPrint("BBU not present/read error");
     IOLog("\n");
     
-    sc.sc_ld_cnt = sc.sc_info.info->mci_lds_present;
-    for (int i = 0; i < sc.sc_ld_cnt; i++) {
+    for (int i = 0; i < sc.sc_info.info->mci_lds_present; i++) {
         sc.sc_ld_present[i] = true;
     }
     
@@ -506,7 +505,7 @@ bool SASMegaRAID::Attach()
     val->release();
                                
     RAIDP = new RAID;
-    if (RAIDP) if (!RAIDP->init(GetSCSIDomainIdentifier())) RAIDP = NULL;
+    if (RAIDP) if (!RAIDP->init(this, GetSCSIDomainIdentifier())) RAIDP = NULL;
     
     return true;
 }

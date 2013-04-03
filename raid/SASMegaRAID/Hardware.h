@@ -1,3 +1,5 @@
+#include "OSDepend.h"
+
 #define MRAID_PCI_MEMSIZE                       0x2000      /* 8k */
 
 #define	PCI_VENDOR_SYMBIOS						0x1000		/* Symbios Logic */

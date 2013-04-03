@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		2112013B1709975E0030CA0A /* RAID.h in Headers */ = {isa = PBXBuildFile; fileRef = 2112013A1709975E0030CA0A /* RAID.h */; };
-		2182C0F91709865300EA6273 /* RAID.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2182C0F81709865300EA6273 /* RAID.cpp */; };
 		218740A0164FC3830060F761 /* SASMegaRAID.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2187409F164FC3830060F761 /* SASMegaRAID.cpp */; };
 		21BD6EBA164FC68400433C9B /* OSDepend.h in Headers */ = {isa = PBXBuildFile; fileRef = 21BD6EB9164FC68400433C9B /* OSDepend.h */; };
 		21BD6EC2164FD6ED00433C9B /* Registers.h in Headers */ = {isa = PBXBuildFile; fileRef = 21BD6EC1164FD6ED00433C9B /* Registers.h */; };
@@ -19,7 +18,6 @@
 
 /* Begin PBXFileReference section */
 		2112013A1709975E0030CA0A /* RAID.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RAID.h; sourceTree = "<group>"; };
-		2182C0F81709865300EA6273 /* RAID.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = RAID.cpp; sourceTree = "<group>"; };
 		21874093164FC3830060F761 /* SASMegaRAID.kext */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SASMegaRAID.kext; sourceTree = BUILT_PRODUCTS_DIR; };
 		21874097164FC3830060F761 /* Kernel.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Kernel.framework; path = System/Library/Frameworks/Kernel.framework; sourceTree = SDKROOT; };
 		2187409A164FC3830060F761 /* SASMegaRAID-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "SASMegaRAID-Info.plist"; sourceTree = "<group>"; };
@@ -82,7 +80,6 @@
 				2187409E164FC3830060F761 /* SASMegaRAID.h */,
 				2187409F164FC3830060F761 /* SASMegaRAID.cpp */,
 				2112013A1709975E0030CA0A /* RAID.h */,
-				2182C0F81709865300EA6273 /* RAID.cpp */,
 				21E10FE4165207E1005C21B0 /* Hardware.h */,
 				21BD6EC1164FD6ED00433C9B /* Registers.h */,
 				21874099164FC3830060F761 /* Supporting Files */,
@@ -190,7 +187,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				218740A0164FC3830060F761 /* SASMegaRAID.cpp in Sources */,
-				2182C0F91709865300EA6273 /* RAID.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
