@@ -81,33 +81,19 @@ bool RAID::init(SASMegaRAID *instance, SInt32 domain)
 int RAID::MRAID_Ioctl(__unused dev_t dev, u_long cmd, caddr_t data,
                 __unused int flag, __unused struct proc *p)
 {
-    int res = ENOTTY;
-    
     switch (cmd) {
-        case MFIIO_QUERY_DISK:
-        {
+        case MFIIO_QUERY_DISK: {
             struct mfi_query_disk *qd = (struct mfi_query_disk *) data;
-            
-            if (!obj->GetInfo()) {
-                DbgPrint("[RAID] Unable to get controller info\n");
-                res = EIO;
-                break;
-            }
-            bzero(obj->sc.sc_ld_present, MRAID_MAX_LD);
-            for (int i = 0; i < obj->sc.sc_info.info->mci_lds_present; i++) {
-                obj->sc.sc_ld_present[i] = true;
-            }
-            
+
             qd->present = obj->sc.sc_ld_present[qd->array_id];
             bzero(qd->devname, SPECNAMELEN + 1);
             snprintf(qd->devname, SPECNAMELEN, "mfid%d", qd->array_id);
-        break;
+            return 0;
         }
-        default:
-            DbgPrint("[RAID] Ioctl 0x%lx not handled\n", cmd);
     }
     
-    return res;
+    DbgPrint("[RAID] Ioctl 0x%lx not handled\n", cmd);
+    return ENOTTY;
 }
 int RAID::Ioctl(__unused dev_t dev, u_long cmd, caddr_t data,
                       __unused int flag, __unused struct proc *p)
