@@ -604,11 +604,13 @@ mraid_ccbCommand *SASMegaRAID::Getccb()
 bool SASMegaRAID::Transition_Firmware()
 {
     UInt32 fw_state, cur_state, idb;
+    UInt32 cur_abs_reg_val = 0, prev_abs_reg_val = 0;
     int max_wait;
     
     DbgPrint("%s\n", __FUNCTION__);
     
-    fw_state = mraid_fw_state() & MRAID_STATE_MASK;
+    cur_abs_reg_val = mraid_fw_state();
+    fw_state = cur_abs_reg_val & MRAID_STATE_MASK;
     idb = sc.sc_iop->mio_idb;
     
     DbgPrint("Firmware state: %#x\n", fw_state);
@@ -622,20 +624,21 @@ bool SASMegaRAID::Transition_Firmware()
                 return false;
             case MRAID_STATE_WAIT_HANDSHAKE:
                 MRAID_Write(idb, MRAID_INIT_CLEAR_HANDSHAKE);
-                max_wait = 2;
+                max_wait = 180; //2;
                 break;
             case MRAID_STATE_OPERATIONAL:
                 MRAID_Write(idb, MRAID_INIT_READY);
-                max_wait = 10;
+                max_wait = 180; //10;
                 break;
             case MRAID_STATE_UNDEFINED:
             case MRAID_STATE_BB_INIT:
-                max_wait = 2;
+                max_wait = 180; //2;
                 break;
-            case MRAID_STATE_FW_INIT:
             case MRAID_STATE_DEVICE_SCAN:
+                prev_abs_reg_val = cur_abs_reg_val;
+            case MRAID_STATE_FW_INIT:
             case MRAID_STATE_FLUSH_CACHE:
-                max_wait = 20;
+                max_wait = 180; //20;
                 break;
             case MRAID_STATE_BOOT_MESSAGE_PENDING:
                 MRAID_Write(idb, MRAID_INIT_HOTPLUG);
@@ -647,11 +650,15 @@ bool SASMegaRAID::Transition_Firmware()
                 return false;
         }
         for (int i = 0; i < (max_wait * 10); i++) {
-            fw_state = mraid_fw_state() & MRAID_STATE_MASK;
+            cur_abs_reg_val = mraid_fw_state();
+            fw_state = cur_abs_reg_val & MRAID_STATE_MASK;
             if(fw_state == cur_state)
                 IOSleep(100);
             else break;
         }
+        if (fw_state == MRAID_STATE_DEVICE_SCAN)
+            if (prev_abs_reg_val != cur_abs_reg_val)
+                continue;
         if (fw_state == cur_state) {
             IOPrint("Firmware stuck in state: %#x\n", fw_state);
             return false;
