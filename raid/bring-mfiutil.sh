@@ -14,11 +14,11 @@ CFLAGS=${CFLAGS}" -D_SYS_CDEFS_H_ -I. \
 #-Dlint
 export CFLAGS
 
-svn co svn://svn.freebsd.org/base/stable/9/usr.sbin/mfiutil mfiutil
+svn co svn://svn.freebsd.org/base/release/9.1.0/usr.sbin/mfiutil mfiutil
 
-svn co svn://svn.freebsd.org/base/stable/9/sys/sys ${TMP}/sys
-svn co svn://svn.freebsd.org/base/stable/9/sys/dev/mfi ${TMP}/mfi
-svn co svn://svn.freebsd.org/base/stable/9/sys/cam/scsi ${TMP}/scsi
+svn co svn://svn.freebsd.org/base/release/9.1.0/sys/sys ${TMP}/sys
+svn co svn://svn.freebsd.org/base/release/9.1.0/sys/dev/mfi ${TMP}/mfi
+svn co svn://svn.freebsd.org/base/release/9.1.0/sys/cam/scsi ${TMP}/scsi
 [ ! -e ${TMP}/${LU}.tgz ] && \
 	curl http://www.opensource.apple.com/tarballs/libutil/${LU}.tar.gz -o ${TMP}/${LU}.tgz
 [ ! -e ${TMP}/${XNU}.tgz ] && \
