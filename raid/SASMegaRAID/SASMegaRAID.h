@@ -79,6 +79,11 @@ typedef struct {
     bool                            sc_bbuok;
 } mraid_softc;
 
+typedef struct {
+    IOLock      *holder;
+    bool        event;
+} lock;
+
 static IOPMPowerState PowerStates[] = {
     {1, kIOPMSleep, kIOPMSleep, kIOPMSleep, 0, 0, 0, 0, 0, 0, 0, 0},
     {1, kIOPMPowerOn, kIOPMPowerOn, kIOPMPowerOn, 0, 0, 0, 0, 0, 0, 0, 0}

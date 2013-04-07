@@ -1205,17 +1205,49 @@ void SASMegaRAID::MRAID_Poll(mraid_ccbCommand *ccb)
 }
 
 /* Interrupt driven */
+void mraid_exec_done(mraid_ccbCommand *ccb)
+{
+    
+    lock *ccb_lock;
+                                  
+    DbgPrint("%s\n", __FUNCTION__);
+                          
+    ccb_lock = (lock *) ccb->s.ccb_context;
+    
+    IOLockLock(ccb_lock->holder);
+    ccb->s.ccb_context = NULL;
+    ccb_lock->event = true;
+    IOLockWakeup(ccb_lock->holder, &ccb_lock->event, true);
+    IOLockUnlock(ccb_lock->holder);
+}
 void SASMegaRAID::MRAID_Exec(mraid_ccbCommand *ccb)
 {
+    UInt64 deadline;
+    int ret;
+    lock ccb_lock;
+    
     DbgPrint("%s\n", __FUNCTION__);
     
 #if defined(DEBUG)
     if (ccb->s.ccb_done)
         IOPrint("Warning: ccb_done set\n");
 #endif
+    ccb_lock.holder = IOLockAlloc();
+    ccb_lock.event = false;
+    ccb->s.ccb_context = &ccb_lock;
     
-    ccb->s.ccb_done = mraid_empty_done;
+    ccb->s.ccb_done = mraid_exec_done;
     mraid_post(ccb);
+  
+    clock_interval_to_deadline(1, kSecondScale, &deadline);
+    
+    IOLockLock(ccb_lock.holder);
+    ret = IOLockSleepDeadline(ccb_lock.holder, &ccb_lock.event, *((AbsoluteTime *) &deadline), THREAD_INTERRUPTIBLE);
+    ccb_lock.event = false;
+    IOLockUnlock(ccb_lock.holder);
+    my_assert(ret == THREAD_AWAKENED);
+    
+    IOLockFree(ccb_lock.holder);
 }
 /* */
 
