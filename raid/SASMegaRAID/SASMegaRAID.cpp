@@ -1296,7 +1296,7 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
     
     mraid_pass_frame *pf;
     cmd_context *cmd;
-    addr64_t *task_ccb, ccb_addr;
+    addr64_t *task_ccb;
     
     DbgPrint("%s\n", __FUNCTION__);
     
@@ -1317,8 +1317,8 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
     
     ccb->s.ccb_done = mraid_cmd_done;
     
-    task_ccb = (addr64_t *) GetHBADataPointer(pr); ccb_addr = (addr64_t) ccb;
-    memcpy(task_ccb, &ccb_addr, sizeof(addr64_t));
+    task_ccb = (addr64_t *) GetHBADataPointer(pr);
+    *task_ccb = (addr64_t) ccb;
     cmd = IONew(cmd_context, 1);
     cmd->instance = this;
     cmd->pr = pr;
@@ -1367,7 +1367,7 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
     
     mraid_io_frame *io;
     cmd_context *cmd;
-    addr64_t *task_ccb, ccb_addr;
+    addr64_t *task_ccb;
     
     if (!GetDataBuffer(pr))
         return false;
@@ -1398,8 +1398,8 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
     
     ccb->s.ccb_done = mraid_cmd_done;
     
-    task_ccb = (addr64_t *) GetHBADataPointer(pr); ccb_addr = (addr64_t) ccb;
-    memcpy(task_ccb, &ccb_addr, sizeof(addr64_t));
+    task_ccb = (addr64_t *) GetHBADataPointer(pr);
+    *task_ccb = (addr64_t) ccb;
     cmd = IONew(cmd_context, 1);
     cmd->instance = this;
     cmd->pr = pr;
