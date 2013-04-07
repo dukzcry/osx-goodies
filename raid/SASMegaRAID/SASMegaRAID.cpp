@@ -226,7 +226,7 @@ void SASMegaRAID::interruptHandler(OSObject *owner, void *src, IOService *nub, i
     
     DbgPrint("%s: pcq vaddr %p\n", __FUNCTION__, pcq);
     
-    if (PreferMSI) MRAID_Write(MRAID_OSTS, MRAID_Read(MRAID_OSTS));
+    if (PreferMSI) MRAID_Write(sc.sc_iop->mio_odb, MRAID_Read(MRAID_OSTS));
     
     Producer = letoh32(pcq->mpc_producer);
     Consumer = letoh32(pcq->mpc_consumer);
@@ -1692,6 +1692,8 @@ bool SASMegaRAID::mraid_skinny_intr()
     Status = MRAID_Read(MRAID_OSTS);
     if(!(Status & MRAID_OSTS_SKINNY_INTR_VALID))
         return false;
+    
+    MRAID_Write(MRAID_OSTS, Status);
     
     return true;
 }
