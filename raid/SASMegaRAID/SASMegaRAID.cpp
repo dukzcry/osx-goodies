@@ -1674,7 +1674,7 @@ bool SASMegaRAID::mraid_gen2_intr()
 void SASMegaRAID::mraid_gen2_intr_ena()
 {
     MRAID_Write(MRAID_ODC, 0xffffffff);
-    MRAID_Write(MRAID_OMSK, ~MRAID_OSTS_GEN2_INTR_VALID);
+    MRAID_Write(MRAID_OMSK, ~ MRAID_OSTS_GEN2_INTR_VALID);
 }
 void SASMegaRAID::mraid_gen2_intr_dis()
 {
@@ -1699,7 +1699,7 @@ bool SASMegaRAID::mraid_skinny_intr()
 }
 void SASMegaRAID::mraid_skinny_intr_ena()
 {
-    MRAID_Write(MRAID_OMSK, ~MRAID_SKINNY_ENABLE_INTR_MASK);
+    MRAID_Write(MRAID_OMSK, ~ MRAID_SKINNY_ENABLE_INTR_MASK);
 }
 UInt32 SASMegaRAID::mraid_skinny_fw_state()
 {
