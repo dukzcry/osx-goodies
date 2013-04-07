@@ -79,11 +79,6 @@ typedef struct {
     bool                            sc_bbuok;
 } mraid_softc;
 
-typedef struct {
-    IOLock      *holder;
-    bool        event;
-} lock;
-
 static IOPMPowerState PowerStates[] = {
     {1, kIOPMSleep, kIOPMSleep, kIOPMSleep, 0, 0, 0, 0, 0, 0, 0, 0},
     {1, kIOPMPowerOn, kIOPMPowerOn, kIOPMPowerOn, 0, 0, 0, 0, 0, 0, 0, 0}
@@ -217,11 +212,12 @@ protected:
     virtual SCSIInitiatorIdentifier	ReportInitiatorIdentifier ( void ) {return min(MRAID_MAX_LD, sc.sc_info.info->mci_max_lds)+1;};
     virtual bool                    InitializeTargetForID ( SCSITargetIdentifier targetID );
     virtual SCSIServiceResponse     ProcessParallelTask ( SCSIParallelTaskIdentifier parallelRequest );
+    virtual void                    HandleTimeout ( SCSIParallelTaskIdentifier parallelRequest );
     virtual bool                    DoesHBASupportSCSIParallelFeature ( SCSIParallelFeature theFeature );
     
     virtual void                    HandleInterruptRequest ( void ) {};
     /* We don't need 'em, we use our own cmds pool, and we're rely on it much before service starting */
-    virtual UInt32                  ReportHBASpecificTaskDataSize ( void ) {/*must be > 0*/return 1;};
+    virtual UInt32                  ReportHBASpecificTaskDataSize ( void ) {/*must be > 0*/return sizeof(addr64_t);};
     virtual UInt32                  ReportHBASpecificDeviceDataSize ( void ) {return 0;};
     /* */
     /* Implement us */

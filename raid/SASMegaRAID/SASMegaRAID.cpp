@@ -228,6 +228,7 @@ void SASMegaRAID::interruptHandler(OSObject *owner, void *src, IOService *nub, i
     
     if (PreferMSI) MRAID_Write(sc.sc_iop->mio_odb, MRAID_Read(MRAID_OSTS));
     
+restart:
     Producer = letoh32(pcq->mpc_producer);
     Consumer = letoh32(pcq->mpc_consumer);
     
@@ -252,6 +253,12 @@ void SASMegaRAID::interruptHandler(OSObject *owner, void *src, IOService *nub, i
     }
     
     pcq->mpc_consumer = htole32(Consumer);
+    
+    /* Care of stucks: do dummy read for PCI flush & restart if more commands
+     awaiting us */
+    mraid_fw_state();
+    if (letoh32(pcq->mpc_producer) != Producer)
+        goto restart;
 
     return;
 }
@@ -1198,52 +1205,17 @@ void SASMegaRAID::MRAID_Poll(mraid_ccbCommand *ccb)
 }
 
 /* Interrupt driven */
-void mraid_exec_done(mraid_ccbCommand *ccb)
-{
-    lock *ccb_lock;
-    
-    DbgPrint("%s\n", __FUNCTION__);
-    
-    ccb_lock = (lock *) ccb->s.ccb_context;
-    
-    IOLockLock(ccb_lock->holder);
-    ccb->s.ccb_context = NULL;
-    ccb_lock->event = true;
-    IOLockWakeup(ccb_lock->holder, &ccb_lock->event, true);
-    IOLockUnlock(ccb_lock->holder);
-}
 void SASMegaRAID::MRAID_Exec(mraid_ccbCommand *ccb)
 {
-    UInt64 deadline;
-    int ret;
-    lock ccb_lock;
-    
     DbgPrint("%s\n", __FUNCTION__);
     
 #if defined(DEBUG)
     if (ccb->s.ccb_done)
         IOPrint("Warning: ccb_done set\n");
 #endif
-    ccb_lock.holder = IOLockAlloc();
-    ccb_lock.event = false;
-    ccb->s.ccb_context = &ccb_lock;
     
-    ccb->s.ccb_done = mraid_exec_done;
+    ccb->s.ccb_done = mraid_empty_done;
     mraid_post(ccb);
-    
-    clock_interval_to_deadline(1, kSecondScale, &deadline);
-    
-    IOLockLock(ccb_lock.holder);
-    ret = IOLockSleepDeadline(ccb_lock.holder, &ccb_lock.event, *((AbsoluteTime *) &deadline), THREAD_INTERRUPTIBLE);
-    ccb_lock.event = false;
-    IOLockUnlock(ccb_lock.holder);
-#if defined DEBUG
-    my_assert(ret == THREAD_AWAKENED);
-    if (ret != THREAD_AWAKENED)
-        IOPrint("Warning: interrupt didn't come while expected\n");
-#endif
-    
-    IOLockFree(ccb_lock.holder);
 }
 /* */
 
@@ -1324,6 +1296,7 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
     
     mraid_pass_frame *pf;
     cmd_context *cmd;
+    addr64_t *task_ccb, ccb_addr;
     
     DbgPrint("%s\n", __FUNCTION__);
     
@@ -1332,7 +1305,7 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
     pf->mpf_header.mrh_target_id = GetTargetIdentifier(pr);
     pf->mpf_header.mrh_lun_id = 0;
     pf->mpf_header.mrh_cdb_len = GetCommandDescriptorBlockSize(pr);
-    pf->mpf_header.mrh_timeout = GetTimeoutDuration(pr);
+    pf->mpf_header.mrh_timeout = 0;
     pf->mpf_header.mrh_data_len = (UInt32) htole64(GetRequestedDataTransferCount(pr)); /* XXX */
     pf->mpf_header.mrh_sense_len = MRAID_SENSE_SIZE;
     
@@ -1344,6 +1317,8 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
     
     ccb->s.ccb_done = mraid_cmd_done;
     
+    task_ccb = (addr64_t *) GetHBADataPointer(pr); ccb_addr = (addr64_t) ccb;
+    memcpy(task_ccb, &ccb_addr, sizeof(addr64_t));
     cmd = IONew(cmd_context, 1);
     cmd->instance = this;
     cmd->pr = pr;
@@ -1392,6 +1367,7 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
     
     mraid_io_frame *io;
     cmd_context *cmd;
+    addr64_t *task_ccb, ccb_addr;
     
     if (!GetDataBuffer(pr))
         return false;
@@ -1412,7 +1388,7 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
         break;
     }
     io->mif_header.mrh_target_id = GetTargetIdentifier(pr);
-    io->mif_header.mrh_timeout = GetTimeoutDuration(pr);
+    io->mif_header.mrh_timeout = 0;
     io->mif_header.mrh_flags = 0;
     io->mif_header.mrh_data_len = htole32(len);
     io->mif_header.mrh_sense_len = MRAID_SENSE_SIZE;
@@ -1422,6 +1398,8 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
     
     ccb->s.ccb_done = mraid_cmd_done;
     
+    task_ccb = (addr64_t *) GetHBADataPointer(pr); ccb_addr = (addr64_t) ccb;
+    memcpy(task_ccb, &ccb_addr, sizeof(addr64_t));
     cmd = IONew(cmd_context, 1);
     cmd->instance = this;
     cmd->pr = pr;
@@ -1521,13 +1499,10 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
     
     mraid_post(ccb);
     DbgPrint("Command queued\n");
+    SetTimeoutForTask(parallelRequest, MRAID_CMD_TIMEOUT);
     return kSCSIServiceResponse_Request_In_Process;
 fail:
-    my_assert(cdbData[0] == kSCSICmd_MODE_SENSE_6 || cdbData[0] == kSCSICmd_MODE_SENSE_10
-#if 1
-              || cdbData[0] == kSCSICmd_READ_12 || cdbData[0] == kSCSICmd_WRITE_12
-#endif
-              );
+    my_assert(cdbData[0] == kSCSICmd_MODE_SENSE_6 || cdbData[0] == kSCSICmd_MODE_SENSE_10);
     Putccb(ccb);
     return kSCSIServiceResponse_SERVICE_DELIVERY_OR_TARGET_FAILURE;
 complete:
@@ -1536,6 +1511,21 @@ complete:
 }
 
 /* */
+                               
+void SASMegaRAID::HandleTimeout(SCSIParallelTaskIdentifier parallelRequest)
+{
+    mraid_ccbCommand *ccb;
+    cmd_context *cmd;
+    
+    IOPrint("COMMAND TIMEOUT AFTER %d SECONDS\n", MRAID_CMD_TIMEOUT / 1000);
+    
+    ccb = (mraid_ccbCommand *) *((addr64_t *) GetHBADataPointer(parallelRequest));
+    cmd = (cmd_context *) ccb->s.ccb_context;
+    
+    cmd->ts = kSCSITaskStatus_No_Status;
+    cmd->instance->CompleteTask(ccb, cmd);
+    IODelete(cmd, cmd_context, 1);
+}
 
 bool SASMegaRAID::InitializeTargetForID(SCSITargetIdentifier targetID)
 {

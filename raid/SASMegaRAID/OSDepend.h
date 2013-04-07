@@ -35,8 +35,3 @@
 #else
 #define DEVINDEX -1
 #endif
-
-/* Undo macro for those with private headers installed */
-#ifdef clock_interval_to_deadline
-#undef clock_interval_to_deadline
-#endif
