@@ -32,15 +32,15 @@ public:
 };
 
 static struct cdevsw mraid_cdevsw = {
-    (d_open_t *) &nulldev, // lambda(dev_t, int d_open, int, struct proc *) { return d_open; }
-    (d_close_t *) &nulldev, // lambda(dev_t, int d_close, int, struct proc *) { return d_close; }
-    (d_read_t *) &nulldev, // lambda(dev_t, struct uio *, int d_read) { return d_read; }
-    (d_write_t *) &nulldev, // lambda(dev_t, struct uio *, int d_write) { return d_write; }
-    RAID::Ioctl, // lambda(dev_t, u_long, caddr_t, int d_ioctl, struct proc *) { return d_ioctl; }
-    (d_stop_t *) &nulldev, // lambda(struct tty*, int d_stop) { return d_stop; }
-    (d_reset_t *) &nulldev, // lambda(int d_reset) { return d_reset; }
+    (d_open_t *) &nulldev, // lambda(dev_t, int x, int, struct proc *) { return x; }
+    (d_close_t *) &nulldev, // lambda(dev_t, int x, int, struct proc *) { return x; }
+    (d_read_t *) &nulldev, // lambda(dev_t, struct uio *, int x) { return x; }
+    (d_write_t *) &nulldev, // lambda(dev_t, struct uio *, int x) { return x; }
+    RAID::Ioctl, // lambda(dev_t, u_long, caddr_t, int x, struct proc *) { return x; }
+    (d_stop_t *) &nulldev, // lambda(struct tty*, int x) { return x; }
+    (d_reset_t *) &nulldev, // lambda(int x) { return x; }
     0,               // struct tty      **d_ttys;
-    (d_select_t *) &nulldev, // lambda(dev_t, int d_select, void *, struct proc *) { return d_select; }
+    (d_select_t *) &nulldev, // lambda(dev_t, int x, void *, struct proc *) { return x; }
     eno_mmap,        // mmap_fcn_t       *d_mmap;
     eno_strat,       // strategy_fcn_t   *d_strategy;
     eno_getc,        // getc_fcn_t       *d_getc;
@@ -135,6 +135,9 @@ int RAID::MRAID_Ioctl(__unused dev_t dev, u_long cmd, caddr_t data,
         }
         case MFIIO_PASSTHRU: {
             struct mfi_ioc_passthru *iop = (struct mfi_ioc_passthru *) data;
+            
+            if (!obj->FirmwareInitialized)
+                return EIO;
             
             return MRAID_UserCommand(iop);
         }

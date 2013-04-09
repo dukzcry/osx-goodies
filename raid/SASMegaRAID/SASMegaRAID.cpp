@@ -389,7 +389,13 @@ bool SASMegaRAID::Attach()
         return false;
     }
     FirmwareInitialized = true;
+    
+    if (PreferMSI) fInterruptSrc->enable();
+    mraid_intr_enable();
+    /* XXX: Is it possible to get intrs enabled info from controller? */
+    InterruptsActivated = true;
 
+    /* In exec mode in order to ensure that interrupts work */
     if (!GetInfo()) {
         IOPrint("Unable to get controller info\n");
         return false;
@@ -471,23 +477,9 @@ bool SASMegaRAID::Attach()
         sc.sc_ld_present[i] = true;
     }
     
-    if (PreferMSI) fInterruptSrc->enable();
-    mraid_intr_enable();
-    /* XXX: Is it possible to get intrs enabled info from controller? */
-    InterruptsActivated = true;
-    
     PMinit();
     getProvider()->joinPMtree(this);
     registerPowerDriver(this, PowerStates, 2);
-    
-#if test
-    /* Ensure that interrupts work */
-    bzero(sc.info, sizeof(mraid_ctrl_info));
-    if (!GetInfo()) {
-        IOPrint("Unable to get controller info\n");
-        return false;
-    }
-#endif
 
 #if 0
 #if defined DEBUG || defined io_debug
@@ -638,6 +630,11 @@ bool SASMegaRAID::Transition_Firmware()
                 max_wait = 180; //10;
                 break;
             case MRAID_STATE_UNDEFINED:
+                /* XXX: I stuck in this forever sometimes */
+                max_wait =
+                /* Use it as cold run flag */
+                ccb_inited ? 180 : 2;
+                break;
             case MRAID_STATE_BB_INIT:
                 max_wait = 180; //2;
                 break;
@@ -1107,7 +1104,6 @@ void SASMegaRAID::MRAID_WakeUp()
     
     if(!Transition_Firmware())
         return;
-        //MRAID_Write(sc.sc_iop->mio_idb, 0xF);
     
     pcq = (mraid_prod_cons *) MRAID_KVA(sc.sc_pcq);
     pcq->mpc_consumer = pcq->mpc_producer = 0;
@@ -1142,14 +1138,15 @@ IOReturn SASMegaRAID::setPowerState(unsigned long state, IOService *dev __unused
 {
     switch (state) {
         case 0:
+            EnteredSleep = true;
             DbgPrint("Entering sleep state\n");
             MRAID_Sleep();
-            EnteredSleep = true;
         break;
         case 1:
             if (EnteredSleep) {
                 DbgPrint("Resuming after sleep\n");
                 MRAID_WakeUp();
+                EnteredSleep = false;
             }
         break;
 	default:
@@ -1466,6 +1463,9 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
     mraid_ccbCommand *ccb;
     UInt8 mbox[MRAID_MBOX_SIZE];
     
+    if (EnteredSleep)
+        return kSCSIServiceResponse_SERVICE_DELIVERY_OR_TARGET_FAILURE;
+    
     GetCommandDescriptorBlock(parallelRequest, &cdbData);
 
     DbgPrint("%s: Opcode 0x%x, Target %llu\n", __FUNCTION__, cdbData[0],
@@ -1531,7 +1531,7 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
     
     mraid_post(ccb);
     DbgPrint("Command queued\n");
-    SetTimeoutForTask(parallelRequest, MRAID_CMD_TIMEOUT);
+    //SetTimeoutForTask(parallelRequest, MRAID_CMD_TIMEOUT);
     return kSCSIServiceResponse_Request_In_Process;
 fail:
     my_assert(cdbData[0] == kSCSICmd_MODE_SENSE_6 || cdbData[0] == kSCSICmd_MODE_SENSE_10);
@@ -1543,7 +1543,8 @@ complete:
 }
 
 /* */
-                               
+                  
+#if 0
 void SASMegaRAID::HandleTimeout(SCSIParallelTaskIdentifier parallelRequest)
 {
     mraid_ccbCommand *ccb;
@@ -1558,6 +1559,7 @@ void SASMegaRAID::HandleTimeout(SCSIParallelTaskIdentifier parallelRequest)
     cmd->instance->CompleteTask(ccb, cmd);
     IODelete(cmd, cmd_context, 1);
 }
+#endif
 
 bool SASMegaRAID::InitializeTargetForID(SCSITargetIdentifier targetID)
 {
@@ -1665,7 +1667,7 @@ bool SASMegaRAID::mraid_ppc_intr()
 void SASMegaRAID::mraid_ppc_intr_ena()
 {
     MRAID_Write(MRAID_ODC, 0xffffffff);
-    MRAID_Write(MRAID_OMSK, ~MRAID_PPC_ENABLE_INTR_MASK);
+    MRAID_Write(MRAID_OMSK, ~ MRAID_PPC_ENABLE_INTR_MASK);
 }
 void SASMegaRAID::mraid_ppc_intr_dis()
 {
