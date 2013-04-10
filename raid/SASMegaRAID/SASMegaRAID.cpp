@@ -617,6 +617,7 @@ bool SASMegaRAID::Transition_Firmware()
     while (fw_state != MRAID_STATE_READY) {
         DbgPrint("Waiting for firmware to become ready\n");
         cur_state = fw_state;
+        /* Liberal timeouts: for working wakeup */
         switch (fw_state) {
             case MRAID_STATE_FAULT:
                 IOPrint("Firmware fault\n");
@@ -1186,6 +1187,7 @@ void SASMegaRAID::MRAID_Poll(mraid_ccbCommand *ccb)
     
     mraid_post(ccb);
     
+    /* 50 (!) sec for worst case */
     while (1) {
         IOSleep(100);
         
@@ -1346,8 +1348,8 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
     
     ccb->s.ccb_done = mraid_cmd_done;
     
-    task_ccb = (addr64_t *) GetHBADataPointer(pr);
-    *task_ccb = (addr64_t) ccb;
+    /*task_ccb = (addr64_t *) GetHBADataPointer(pr);
+    *task_ccb = (addr64_t) ccb;*/
     cmd = IONew(cmd_context, 1);
     cmd->instance = this;
     cmd->pr = pr;
@@ -1427,8 +1429,8 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
     
     ccb->s.ccb_done = mraid_cmd_done;
     
-    task_ccb = (addr64_t *) GetHBADataPointer(pr);
-    *task_ccb = (addr64_t) ccb;
+    /*task_ccb = (addr64_t *) GetHBADataPointer(pr);
+    *task_ccb = (addr64_t) ccb;*/
     cmd = IONew(cmd_context, 1);
     cmd->instance = this;
     cmd->pr = pr;
