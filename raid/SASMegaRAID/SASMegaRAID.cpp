@@ -1327,7 +1327,7 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
     
     mraid_pass_frame *pf;
     cmd_context *cmd;
-    addr64_t *task_ccb;
+    //addr64_t *task_ccb;
     
     DbgPrint("%s\n", __FUNCTION__);
     
@@ -1398,7 +1398,7 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
     
     mraid_io_frame *io;
     cmd_context *cmd;
-    addr64_t *task_ccb;
+    //addr64_t *task_ccb;
     
     if (!GetDataBuffer(pr))
         return false;
