@@ -1187,7 +1187,7 @@ void SASMegaRAID::MRAID_Poll(mraid_ccbCommand *ccb)
     mraid_post(ccb);
     
     while (1) {
-        IOSleep(10);
+        IOSleep(100);
         
         if (hdr->mrh_cmd_status != 0xff)
             break;
