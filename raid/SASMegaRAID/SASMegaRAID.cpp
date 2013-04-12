@@ -140,6 +140,12 @@ bool SASMegaRAID::InitializeController(void)
             return false;
     }
     
+    if (fPCIDevice->hasPCIPowerManagement(kPCIPMCPMESupportFromD3Cold) ||
+        fPCIDevice->hasPCIPowerManagement(kPCIPMCD3Support))
+        fPCIDevice->enablePCIPowerManagement(kPCIPMCSPowerStateD3);
+    else
+        fPCIDevice->enablePCIPowerManagement();
+    
     if(!Attach()) {
         IOPrint("Can't attach device\n");
         return false;
@@ -1124,6 +1130,11 @@ void SASMegaRAID::MRAID_WakeUp()
     InterruptsActivated = true;
 }
 
+unsigned long SASMegaRAID::initialPowerStateForDomainState(IOPMPowerFlags flags __unused)
+{
+    DbgPrint("%s\n", __FUNCTION__);
+    return MRAID_POWER_ACTIVE;
+}
 void SASMegaRAID::systemWillShutdown(IOOptionBits spec)
 { 
     switch (spec) {
@@ -1138,12 +1149,12 @@ void SASMegaRAID::systemWillShutdown(IOOptionBits spec)
 IOReturn SASMegaRAID::setPowerState(unsigned long state, IOService *dev __unused)
 {
     switch (state) {
-        case 0:
+        case MRAID_POWER_SLEEP:
             EnteredSleep = true;
             DbgPrint("Entering sleep state\n");
             MRAID_Sleep();
         break;
-        case 1:
+        case MRAID_POWER_ACTIVE:
             if (EnteredSleep) {
                 DbgPrint("Resuming after sleep\n");
                 MRAID_WakeUp();

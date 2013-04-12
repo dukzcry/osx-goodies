@@ -85,6 +85,8 @@ typedef struct {
 } lock;
 
 static IOPMPowerState PowerStates[] = {
+#define MRAID_POWER_SLEEP 0
+#define MRAID_POWER_ACTIVE 1
     {1, kIOPMSleep, kIOPMSleep, kIOPMSleep, 0, 0, 0, 0, 0, 0, 0, 0},
     {1, kIOPMPowerOn, kIOPMPowerOn, kIOPMPowerOn, 0, 0, 0, 0, 0, 0, 0, 0}
 };
@@ -206,6 +208,7 @@ protected:
     virtual void TerminateController(void);
     virtual bool StartController() {DbgPrint("super->StartController\n");return true;}
     virtual void StopController() {};
+    virtual unsigned long initialPowerStateForDomainState(IOPMPowerFlags);
     virtual void systemWillShutdown(IOOptionBits);
     virtual IOReturn setPowerState(unsigned long, IOService *);
     
