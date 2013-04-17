@@ -1285,7 +1285,7 @@ void mraid_cmd_done(mraid_ccbCommand *ccb)
             memcpy(&sense, ccb->s.ccb_sense, sizeof(SCSI_Sense_Data));
         break;
         case MRAID_STAT_DEVICE_NOT_FOUND:
-            cmd->ts = kSCSITaskStatus_BUSY;
+            cmd->ts = kSCSITaskStatus_DeviceNotPresent;
         break;
         default:
             cmd->ts = kSCSITaskStatus_No_Status;
