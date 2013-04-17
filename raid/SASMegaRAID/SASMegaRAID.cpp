@@ -1390,15 +1390,18 @@ bool SASMegaRAID::LogicalDiskCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifi
     if (GetDataBuffer(pr)) {
         ccb->s.ccb_sglmem.len = (UInt32) GetRequestedDataTransferCount(pr);
         if (!(ccb->s.ccb_sglmem.cmd = GetDMACommand(pr)))
-            return false;
+            goto fail;
         ccb->s.ccb_sglmem.cmd->prepare(GetDataBufferOffset(pr), ccb->s.ccb_sglmem.len, false, false);
         if (!CreateSGL(ccb)) {
             FreeSGL(&ccb->s.ccb_sglmem);
-            return false;
+            goto fail;
         }
     }
     
     return true;
+fail:
+    IODelete(cmd, cmd_context, 1);
+    return false;
 }
 
 bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UInt64 lba, UInt32 len)
@@ -1459,14 +1462,17 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
 
     ccb->s.ccb_sglmem.len = (UInt32) GetRequestedDataTransferCount(pr);
     if (!(ccb->s.ccb_sglmem.cmd = GetDMACommand(pr)))
-        return false;
+        goto fail;
     ccb->s.ccb_sglmem.cmd->prepare(GetDataBufferOffset(pr), ccb->s.ccb_sglmem.len, false, false);
     if (!CreateSGL(ccb)) {
         FreeSGL(&ccb->s.ccb_sglmem);
-        return false;
+        goto fail;
     }
     
     return true;
+fail:
+    IODelete(cmd, cmd_context, 1);
+    return false;
 }
 
 SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier parallelRequest)
