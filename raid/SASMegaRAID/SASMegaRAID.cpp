@@ -234,7 +234,7 @@ void SASMegaRAID::interruptHandler(OSObject *owner, void *src, IOService *nub, i
     
     if (PreferMSI) MRAID_Write(sc.sc_iop->mio_odb, MRAID_Read(MRAID_OSTS));
     
-restart:
+//restart:
     Producer = letoh32(pcq->mpc_producer);
     Consumer = letoh32(pcq->mpc_consumer);
     
@@ -244,7 +244,7 @@ restart:
         Context = pcq->mpc_reply_q[Consumer];
         pcq->mpc_reply_q[Consumer] = MRAID_INVALID_CTX;
         if(Context == MRAID_INVALID_CTX)
-            IOPrint("Invalid context, Prod: %d Cons: %d\n", Producer, Consumer);
+            IOPrint("Invalid context, Prod: %d Cons: %d\n", (unsigned int)Producer, (unsigned int)Consumer);
         else {
             ccb = (mraid_ccbCommand *) sc.sc_ccb[Context];
 #if defined DEBUG || defined io_debug
@@ -260,11 +260,13 @@ restart:
     
     pcq->mpc_consumer = htole32(Consumer);
     
+#if 0
     /* Care of stucks: do dummy read for PCI flush & restart if more commands
      awaiting us */
     mraid_fw_state();
     if (letoh32(pcq->mpc_producer) != Producer)
         goto restart;
+#endif
 
     return;
 }
@@ -353,7 +355,7 @@ bool SASMegaRAID::Attach()
         sc.sc_sgl_size = sizeof(mraid_sg32);
         sc.sc_sgl_flags = MRAID_FRAME_SGL32;
     }
-    IOPrint("DMA: %d-bit, max commands: %u, Max SGE Count: %u\n", IOPhysSize, sc.sc_max_cmds, sc.sc_max_sgl);
+    IOPrint("DMA: %d-bit, max commands: %u, Max SGE Count: %u\n", IOPhysSize, (unsigned int)sc.sc_max_cmds, (unsigned int)sc.sc_max_sgl);
     
     /* Allocate united mem for reply queue & producer-consumer */
     if (!(sc.sc_pcq = AllocMem(sizeof(UInt32) /* Context size */
@@ -376,7 +378,7 @@ bool SASMegaRAID::Attach()
     }
     /* Rework: handle this case */
     if (MRAID_DVA(sc.sc_frames) & 0x3f) {
-        IOPrint("Wrong frame alignment. Addr %#llx\n", MRAID_DVA(sc.sc_frames));
+        IOPrint("Wrong frame alignment. Addr %#llx\n", (unsigned long long)MRAID_DVA(sc.sc_frames));
         return false;
     }
     
@@ -657,7 +659,7 @@ bool SASMegaRAID::Transition_Firmware()
                 max_wait = 180;
                 break;
             default:
-                IOPrint("Unknown firmware state: %#x\n", fw_state);
+                IOPrint("Unknown firmware state: %#x\n", (unsigned int)fw_state);
                 return false;
         }
         for (int i = 0; i < (max_wait * 10); i++) {
@@ -671,7 +673,7 @@ bool SASMegaRAID::Transition_Firmware()
             if (prev_abs_reg_val != cur_abs_reg_val)
                 continue;
         if (fw_state == cur_state) {
-            IOPrint("Firmware stuck in state: %#x\n", fw_state);
+            IOPrint("Firmware stuck in state: %#x\n", (unsigned int)fw_state);
             return false;
         }
     }
@@ -833,7 +835,6 @@ void SASMegaRAID::ExportInfo()
         if ((string = OSString::withCString(str))) {
             SetHBAProperty(kIOPropertyPortDescriptionKey, string);
             string->release();
-            string = NULL;
         }
     }
 }

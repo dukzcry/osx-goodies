@@ -225,7 +225,7 @@ protected:
     
     virtual void                    HandleInterruptRequest ( void ) {};
     /* We don't need 'em, we use our own cmds pool, and we're rely on it much before service starting */
-    virtual UInt32                  ReportHBASpecificTaskDataSize ( void ) {/*must be > 0*/return 1 /*sizeof(addr64_t)*/;};
+    virtual UInt32                  ReportHBASpecificTaskDataSize ( void ) {/*must be > 0*/return 1/*sizeof(addr64_t)*/;};
     virtual UInt32                  ReportHBASpecificDeviceDataSize ( void ) {return 0;};
     /* */
     /* Implement us */

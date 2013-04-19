@@ -25,7 +25,7 @@ public:
     RAID() {raid_devnode = NULL; devindex = -1;};
     ~RAID();
     
-    bool init(SASMegaRAID *, SInt32);
+    bool init(SASMegaRAID *, int);
     static int Ioctl(dev_t, u_long, caddr_t, int, struct proc *);
     int MRAID_Ioctl(dev_t, u_long, caddr_t, int, struct proc *);
     int MRAID_UserCommand(struct mfi_ioc_passthru *);
@@ -59,7 +59,7 @@ RAID::~RAID() {
     }
 }
 
-bool RAID::init(SASMegaRAID *instance, SInt32 domain)
+bool RAID::init(SASMegaRAID *instance, int domain)
 {
     char str[5];
     
@@ -136,7 +136,7 @@ int RAID::MRAID_Ioctl(__unused dev_t dev, u_long cmd, caddr_t data,
         case MFIIO_PASSTHRU: {
             struct mfi_ioc_passthru *iop = (struct mfi_ioc_passthru *) data;
             
-            if (!obj->FirmwareInitialized)
+            if (obj->EnteredSleep)
                 return EIO;
             
             return MRAID_UserCommand(iop);

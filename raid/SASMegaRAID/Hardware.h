@@ -12,6 +12,7 @@
 #define	PCI_PRODUCT_DELL_PERC5					0x0015		/* PERC 5 */
 #define	PCI_PRODUCT_SYMBIOS_SAS2108_1			0x0078		/* MegaRAID SAS2108 CRYPTO GEN2 */
 #define	PCI_PRODUCT_SYMBIOS_SAS2108_2			0x0079		/* MegaRAID SAS2108 GEN2 */
+#define PCI_PRODUCT_SYMBIOS_SAS2008             0x0072      /* MegaRAID SAS2008 */
 #define PCI_PRODUCT_SYMBIOS_SAS2008_1           0x0073      /* MegaRAID SAS2008 */
 
 /* Generic purpose constants */
@@ -78,7 +79,7 @@
 /* Driver defs */
 #define MRAID_MAX_LD                            64
 #define MRAID_MAXPHYS                           (128 * 1024)
-#define MRAID_CMD_TIMEOUT                       (15 * 1000)
+#define MRAID_CMD_TIMEOUT                       (2 * 1000)
 
 typedef enum {
     MRAID_IOP_XSCALE,
@@ -108,6 +109,8 @@ namespace mraid_structs {
         { PCI_VENDOR_SYMBIOS,	PCI_PRODUCT_SYMBIOS_SAS2108_2,
             MRAID_IOP_GEN2 },
         { PCI_VENDOR_SYMBIOS,   PCI_PRODUCT_SYMBIOS_SAS2008_1,
+            MRAID_IOP_SKINNY },
+        { PCI_VENDOR_SYMBIOS,   PCI_PRODUCT_SYMBIOS_SAS2008,
             MRAID_IOP_SKINNY }
     };
 }
