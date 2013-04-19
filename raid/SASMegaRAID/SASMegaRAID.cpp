@@ -31,7 +31,7 @@ bool SASMegaRAID::init (OSDictionary* dict)
     sc.sc_pcq = sc.sc_frames = sc.sc_sense = NULL;
     sc.sc_bbuok = false;
     sc.sc_info.info = NULL;
-    bzero(sc.sc_ld_present, MRAID_MAX_LD);
+    bzero(sc.sc_ld_present, MRAID_MAX_LD+1);
 
     return true;
 }
@@ -1302,8 +1302,8 @@ void mraid_cmd_done(mraid_ccbCommand *ccb)
     my_assert(cmd->ts == kSCSITaskStatus_GOOD);
 #if defined DEBUG /*|| defined io_debug*/
     if (cmd->ts != kSCSITaskStatus_GOOD)
-        IOPrint("Warning: cmd failed on tg %d with ts 0x%x and opc 0x%x\n", cmd->ts, cmd->opcode,
-                hdr->mrh_target_id);
+        IOPrint("Warning: cmd failed on tg %d with ts 0x%x and opc 0x%x\n", hdr->mrh_target_id,
+                cmd->ts, cmd->opcode);
 #endif
     
     cmd->instance->CompleteTask(ccb, cmd);

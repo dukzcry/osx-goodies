@@ -50,7 +50,7 @@ void FreeSGL(mraid_sgl_mem *mm)
 typedef struct {
     struct mraid_iop_ops            *sc_iop;
     
-    bool                            sc_ld_present[MRAID_MAX_LD];
+    bool                            sc_ld_present[MRAID_MAX_LD+1];
     
     UInt32                          sc_max_cmds;
     UInt32                          sc_max_sgl;
@@ -215,7 +215,7 @@ protected:
     virtual SCSILogicalUnitNumber	ReportHBAHighestLogicalUnitNumber ( void ) {return 1;};
     virtual SCSIDeviceIdentifier	ReportHighestSupportedDeviceID ( void ) {return min(MRAID_MAX_LD, sc.sc_info.info->mci_max_lds);};
     virtual bool                    DoesHBAPerformDeviceManagement ( void ) {return false;};
-    virtual UInt32                  ReportMaximumTaskCount ( void ) {/* Save one for management */ return sc.sc_max_cmds-1;};
+    virtual UInt32                  ReportMaximumTaskCount ( void ) {/* Save few for management */ return sc.sc_max_cmds-3;};
     /* We're not a real SCSI controller */
     virtual SCSIInitiatorIdentifier	ReportInitiatorIdentifier ( void ) {return min(MRAID_MAX_LD, sc.sc_info.info->mci_max_lds)+1;};
     virtual bool                    InitializeTargetForID ( SCSITargetIdentifier targetID );
