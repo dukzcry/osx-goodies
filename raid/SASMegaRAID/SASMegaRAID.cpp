@@ -153,7 +153,7 @@ void SASMegaRAID::TerminateController(void)
 {
     DbgPrint("super->TerminateController\n");
  
-    if (FirmwareInitialized) MRAID_Shutdown();
+    MRAID_Shutdown();
     if (InterruptsActivated) {
         /* XXX: Doesn't work at least on ARM */
         mraid_intr_disable();
@@ -1135,7 +1135,7 @@ void SASMegaRAID::systemWillShutdown(IOOptionBits spec)
     switch (spec) {
         case kIOMessageSystemWillRestart:
         case kIOMessageSystemWillPowerOff:
-            if (FirmwareInitialized) MRAID_Shutdown();
+        	MRAID_Shutdown();
         break;
     }
     
