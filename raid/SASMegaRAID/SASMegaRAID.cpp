@@ -1260,6 +1260,7 @@ void SASMegaRAID::MRAID_Exec(mraid_ccbCommand *ccb)
 void mraid_cmd_done(mraid_ccbCommand *ccb)
 {
     SCSI_Sense_Data sense = { 0 };
+    //UInt8 *sense_data = (UInt8 *) &sense;
     
     cmd_context *cmd;
     mraid_frame_header *hdr;
@@ -1304,27 +1305,9 @@ void mraid_cmd_done(mraid_ccbCommand *ccb)
     if (cmd->ts != kSCSITaskStatus_GOOD) {
         IOPrint("Warning: cmd failed on tg %d with ts 0x%x and opc 0x%x\n", hdr->mrh_target_id,
                 cmd->ts, cmd->opcode);
-        if (cmd-ts == kSCSITaskStatus_CHECK_CONDITION)
-            IOPrint("Got sense: %#x %#x %#x %#x %#x %#x %#x %#x %#x %#x %#x %#x %#x %#x %#x %#x %#x %#x\n",
-                    sense.VALID_RESPONSE_CODE,
-                    sense.SEGMENT_NUMBER,
-                    sense.SENSE_KEY,
-                    sense.INFORMATION_1,
-                    sense.INFORMATION_2,
-                    sense.INFORMATION_3,
-                    sense.INFORMATION_4,
-                    sense.ADDITIONAL_SENSE_LENGTH,
-                    sense.COMMAND_SPECIFIC_INFORMATION_1,
-                    sense.COMMAND_SPECIFIC_INFORMATION_2,
-                    sense.COMMAND_SPECIFIC_INFORMATION_3,
-                    sense.COMMAND_SPECIFIC_INFORMATION_4,
-                    sense.ADDITIONAL_SENSE_CODE,
-                    sense.ADDITIONAL_SENSE_CODE_QUALIFIER,
-                    sense.FIELD_REPLACEABLE_UNIT_CODE,
-                    sense.SKSV_SENSE_KEY_SPECIFIC_MSB,
-                    sense.SENSE_KEY_SPECIFIC_MID,
-                    sense.SENSE_KEY_SPECIFIC_LSB
-                    );
+        if (cmd->ts == kSCSITaskStatus_CHECK_CONDITION)
+            for (int i = 0; i < sizeof(sense); i++)
+                IOPrint("sense[%d]: %#x ", i, sense_data[i]);
     }
 #endif
     
