@@ -140,12 +140,6 @@ bool SASMegaRAID::InitializeController(void)
             return false;
     }
     
-    if (fPCIDevice->hasPCIPowerManagement(kPCIPMCPMESupportFromD3Cold) ||
-        fPCIDevice->hasPCIPowerManagement(kPCIPMCD3Support))
-        fPCIDevice->enablePCIPowerManagement(kPCIPMCSPowerStateD3);
-    else
-        fPCIDevice->enablePCIPowerManagement();
-    
     if(!Attach()) {
         IOPrint("Can't attach device\n");
         return false;
@@ -1308,7 +1302,8 @@ void mraid_cmd_done(mraid_ccbCommand *ccb)
     my_assert(cmd->ts == kSCSITaskStatus_GOOD);
 #if defined DEBUG /*|| defined io_debug*/
     if (cmd->ts != kSCSITaskStatus_GOOD)
-        IOPrint("Warning: cmd failed with ts 0x%x on opc 0x%x\n", cmd->ts, cmd->opcode);
+        IOPrint("Warning: cmd failed on tg %d with ts 0x%x and opc 0x%x\n", cmd->ts, cmd->opcode,
+                hdr->mrh_target_id);
 #endif
     
     cmd->instance->CompleteTask(ccb, cmd);
