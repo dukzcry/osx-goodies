@@ -1278,7 +1278,7 @@ void mraid_cmd_done(mraid_ccbCommand *ccb)
         case MRAID_STAT_SCSI_DONE_WITH_ERROR:
             cmd->ts = kSCSITaskStatus_CHECK_CONDITION;
             cmd->sense = &sense;
-            memcpy(&sense, ccb->s.ccb_sense, sizeof(SCSI_Sense_Data));
+            memcpy(&sense, ccb->s.ccb_sense, kSenseDefaultSize);
         break;
         case MRAID_STAT_DEVICE_NOT_FOUND:
             cmd->ts = kSCSITaskStatus_DeviceNotPresent;
@@ -1295,7 +1295,7 @@ void mraid_cmd_done(mraid_ccbCommand *ccb)
             if (hdr->mrh_scsi_status) {
                 cmd->ts = kSCSITaskStatus_CHECK_CONDITION;
                 cmd->sense = &sense;
-                memcpy(&sense, ccb->s.ccb_sense, sizeof(SCSI_Sense_Data));
+                memcpy(&sense, ccb->s.ccb_sense, kSenseDefaultSize);
             }
         break;
     }
@@ -1305,9 +1305,11 @@ void mraid_cmd_done(mraid_ccbCommand *ccb)
     if (cmd->ts != kSCSITaskStatus_GOOD) {
         IOPrint("Warning: cmd failed on tg %d with ts 0x%x and opc 0x%x\n", hdr->mrh_target_id,
                 cmd->ts, cmd->opcode);
+        IOPrint("Sense data: ");
         if (cmd->ts == kSCSITaskStatus_CHECK_CONDITION)
             for (int i = 0; i < sizeof(sense); i++)
-                IOPrint("sense[%d]: %#x ", i, sense_data[i]);
+                IOLog("%#x ", sense_data[i]);
+        IOPrint("\n");
     }
 #endif
     
@@ -1328,7 +1330,7 @@ void SASMegaRAID::CompleteTask(mraid_ccbCommand *ccb, cmd_context *cmd)
     Putccb(ccb);
 
     if (cmd->ts == kSCSITaskStatus_CHECK_CONDITION)
-        SetAutoSenseData(cmd->pr, cmd->sense, sizeof(SCSI_Sense_Data));
+        SetAutoSenseData(cmd->pr, cmd->sense, kSenseDefaultSize);
     
     CompleteParallelTask(cmd->pr, cmd->ts, kSCSIServiceResponse_TASK_COMPLETE);
 }
