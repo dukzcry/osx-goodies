@@ -177,21 +177,19 @@ private:
     
     bool mraid_xscale_intr();
     void mraid_xscale_intr_ena();
-    void mraid_xscale_intr_dis();
+    void mraid_common_intr_dis();
     UInt32 mraid_xscale_fw_state();
     void mraid_xscale_post(mraid_ccbCommand *);
     bool mraid_ppc_intr();
     void mraid_ppc_intr_ena();
     void mraid_ppc_intr_dis();
-    UInt32 mraid_ppc_fw_state();
-    void mraid_ppc_post(mraid_ccbCommand *);
+    UInt32 mraid_common_fw_state();
+    void mraid_common_post(mraid_ccbCommand *);
     bool mraid_gen2_intr();
     void mraid_gen2_intr_ena();
     void mraid_gen2_intr_dis();
-    UInt32 mraid_gen2_fw_state();
     bool mraid_skinny_intr();
     void mraid_skinny_intr_ena();
-    UInt32 mraid_skinny_fw_state();
     void mraid_skinny_post(mraid_ccbCommand *);
     
     bool LogicalDiskCmd(mraid_ccbCommand *, SCSIParallelTaskIdentifier);
@@ -271,7 +269,7 @@ typedef struct mraid_iop_ops {
             case MRAID_IOP_XSCALE:
                 mio_intr = &SASMegaRAID::mraid_xscale_intr;
                 mio_intr_ena = &SASMegaRAID::mraid_xscale_intr_ena;
-                mio_intr_dis = &SASMegaRAID::mraid_xscale_intr_dis;
+                mio_intr_dis = &SASMegaRAID::mraid_common_intr_dis;
                 mio_fw_state = &SASMegaRAID::mraid_xscale_fw_state;
                 mio_post = &SASMegaRAID::mraid_xscale_post;
                 mio_idb = MRAID_IDB;
@@ -281,8 +279,8 @@ typedef struct mraid_iop_ops {
                 mio_intr = &SASMegaRAID::mraid_ppc_intr;
                 mio_intr_ena = &SASMegaRAID::mraid_ppc_intr_ena;
                 mio_intr_dis = &SASMegaRAID::mraid_ppc_intr_dis;
-                mio_fw_state = &SASMegaRAID::mraid_ppc_fw_state;
-                mio_post = &SASMegaRAID::mraid_ppc_post;
+                mio_fw_state = &SASMegaRAID::mraid_common_fw_state;
+                mio_post = &SASMegaRAID::mraid_common_post;
                 mio_idb = MRAID_IDB;
                 mio_odb = MRAID_ODC;
                 break;
@@ -290,16 +288,16 @@ typedef struct mraid_iop_ops {
                 mio_intr = &SASMegaRAID::mraid_gen2_intr;
                 mio_intr_ena = &SASMegaRAID::mraid_gen2_intr_ena;
                 mio_intr_dis = &SASMegaRAID::mraid_gen2_intr_dis;
-                mio_fw_state = &SASMegaRAID::mraid_gen2_fw_state;
-                mio_post = &SASMegaRAID::mraid_ppc_post; /* Same as for PPC */
+                mio_fw_state = &SASMegaRAID::mraid_common_fw_state;
+                mio_post = &SASMegaRAID::mraid_common_post;
                 mio_idb = MRAID_IDB;
                 mio_odb = MRAID_ODC;
                 break;
             case MRAID_IOP_SKINNY:
                 mio_intr = &SASMegaRAID::mraid_skinny_intr;
                 mio_intr_ena = &SASMegaRAID::mraid_skinny_intr_ena;
-                mio_intr_dis = &SASMegaRAID::mraid_xscale_intr_dis; /* Same as for ARM */
-                mio_fw_state = &SASMegaRAID::mraid_skinny_fw_state;
+                mio_intr_dis = &SASMegaRAID::mraid_common_intr_dis;
+                mio_fw_state = &SASMegaRAID::mraid_common_fw_state;
                 mio_post = &SASMegaRAID::mraid_skinny_post;
                 mio_idb = MRAID_SKINNY_IDB;
                 mio_odb = MRAID_OSTS;

@@ -99,8 +99,8 @@ bool SASMegaRAID::InitializeController(void)
                 if(map != NULL) {
                     vAddr = (void *) map->getVirtualAddress();
                     DbgPrint("Memory mapped at virtual address %#x,"
-                             " length %d\n", (UInt32)map->getVirtualAddress(),
-                             (UInt32)map->getLength());
+                             " length %d\n", (unsigned int)map->getVirtualAddress(),
+                             (unsigned int)map->getLength());
                 }
                 else {
                     IOPrint("Can't map controller PCI space\n");
@@ -233,7 +233,7 @@ void SASMegaRAID::interruptHandler(OSObject *owner, void *src, IOService *nub, i
     Consumer = letoh32(pcq->mpc_consumer);
     
     while (Consumer != Producer) {
-        DbgPrint("pi: %#x ci: %#x\n", Producer, Consumer);
+        DbgPrint("pi: %#x ci: %#x\n", (unsigned int)Producer, (unsigned int)Consumer);
 
         Context = pcq->mpc_reply_q[Consumer];
         pcq->mpc_reply_q[Consumer] = MRAID_INVALID_CTX;
@@ -242,7 +242,7 @@ void SASMegaRAID::interruptHandler(OSObject *owner, void *src, IOService *nub, i
         else {
             ccb = (mraid_ccbCommand *) sc.sc_ccb[Context];
 #if defined DEBUG || defined io_debug
-            IOPrint("ccb: %d\n", Context);
+            IOPrint("ccb: %d\n", (unsigned int)Context);
 #endif
             my_assert(ccb->s.ccb_done);
             ccb->s.ccb_done(ccb);
@@ -553,7 +553,7 @@ bool SASMegaRAID::GenerateSegments(mraid_ccbCommand *ccb)
         return false;
     
 #if defined DEBUG || defined io_debug
-    IOPrint("genIOVMSegments: nseg %d\n", ccb->s.ccb_sglmem.numSeg);
+    IOPrint("genIOVMSegments: nseg %d\n", (unsigned int)ccb->s.ccb_sglmem.numSeg);
 #endif
 
     return true;
@@ -614,7 +614,7 @@ bool SASMegaRAID::Transition_Firmware()
     fw_state = cur_abs_reg_val & MRAID_STATE_MASK;
     idb = sc.sc_iop->mio_idb;
     
-    DbgPrint("Firmware state: %#x\n", fw_state);
+    DbgPrint("Firmware state: %#x\n", (unsigned int)fw_state);
     
     while (fw_state != MRAID_STATE_READY) {
         DbgPrint("Waiting for firmware to become ready\n");
@@ -915,7 +915,7 @@ bool SASMegaRAID::Do_Management(mraid_ccbCommand *ccb, UInt32 opc, UInt32 dir, U
 {
     mraid_dcmd_frame *dcmd;
     
-    DbgPrint("%s: opcode: %#x\n", __FUNCTION__, opc);
+    DbgPrint("%s: opcode: %#x\n", __FUNCTION__, (unsigned int)opc);
         
     dcmd = &ccb->s.ccb_frame->mrr_dcmd;
     bzero(dcmd->mdf_mbox, MRAID_MBOX_SIZE);
@@ -983,7 +983,7 @@ void SASMegaRAID::PointToData(mraid_ccbCommand *ccb, mraid_data_mem *mem)
                                           );
         sgl->sg32[0].len = htole32(ccb->s.ccb_sglmem.len);
     }
-    DbgPrint("Paddr: %#llx\n", mem->paddr);
+    DbgPrint("Paddr: %#llx\n", (unsigned long long) mem->paddr);
 
     if (ccb->s.ccb_direction & MRAID_DATA_IN)
         hdr->mrh_flags |= MRAID_FRAME_DIR_READ;
@@ -1047,7 +1047,7 @@ bool SASMegaRAID::CreateSGL(mraid_ccbCommand *ccb)
     ccb->s.ccb_frame_size += sc.sc_sgl_size * ccb->s.ccb_sglmem.numSeg;
     ccb->s.ccb_extra_frames = (ccb->s.ccb_frame_size - 1) / MRAID_FRAME_SIZE;
     
-    DbgPrint("frame_size: %d, extra_frames: %d\n", ccb->s.ccb_frame_size, ccb->s.ccb_extra_frames);
+    DbgPrint("frame_size: %d, extra_frames: %d\n", (unsigned int)ccb->s.ccb_frame_size, (unsigned int)ccb->s.ccb_extra_frames);
     
     return true;
 }
@@ -1260,7 +1260,7 @@ void SASMegaRAID::MRAID_Exec(mraid_ccbCommand *ccb)
 void mraid_cmd_done(mraid_ccbCommand *ccb)
 {
     SCSI_Sense_Data sense = { 0 };
-    //UInt8 *sense_data = (UInt8 *) &sense;
+    UInt8 *sense_data = (UInt8 *) &sense;
     
     cmd_context *cmd;
     mraid_frame_header *hdr;
@@ -1421,7 +1421,7 @@ bool SASMegaRAID::IOCmd(mraid_ccbCommand *ccb, SCSIParallelTaskIdentifier pr, UI
         return false;
 
 #if defined DEBUG || defined io_debug
-    IOPrint("%s: trlen: %lld, lba: %lld, blkcnt: %d\n", __FUNCTION__, GetRequestedDataTransferCount(pr), lba, len);
+    IOPrint("%s: trlen: %lld, lba: %lld, blkcnt: %d\n", __FUNCTION__, GetRequestedDataTransferCount(pr), lba, (unsigned int)len);
 #endif
     
     io = &ccb->s.ccb_frame->mrr_io;
@@ -1662,7 +1662,7 @@ void SASMegaRAID::mraid_xscale_intr_ena()
 {
     MRAID_Write(MRAID_OMSK, MRAID_XSCALE_ENABLE_INTR);
 }
-void SASMegaRAID::mraid_xscale_intr_dis()
+void SASMegaRAID::mraid_common_intr_dis()
 {
     MRAID_Write(MRAID_OMSK, 0);
 }
@@ -1697,11 +1697,11 @@ void SASMegaRAID::mraid_ppc_intr_dis()
     MRAID_Write(MRAID_OMSK, ~(UInt32) 0x0);
     MRAID_Write(MRAID_ODC, 0xffffffff);
 }
-UInt32 SASMegaRAID::mraid_ppc_fw_state()
+UInt32 SASMegaRAID::mraid_common_fw_state()
 {
     return(MRAID_Read(MRAID_OSP));
 }
-void SASMegaRAID::mraid_ppc_post(mraid_ccbCommand *ccb)
+void SASMegaRAID::mraid_common_post(mraid_ccbCommand *ccb)
 {
     MRAID_Write(MRAID_IQP, 0x1 | ccb->s.ccb_pframe | (ccb->s.ccb_extra_frames << 1));
 }
@@ -1727,10 +1727,6 @@ void SASMegaRAID::mraid_gen2_intr_dis()
     MRAID_Write(MRAID_OMSK, 0xffffffff);
     MRAID_Write(MRAID_ODC, 0xffffffff);
 }
-UInt32 SASMegaRAID::mraid_gen2_fw_state()
-{
-    return(MRAID_Read(MRAID_OSP));
-}
 bool SASMegaRAID::mraid_skinny_intr()
 {
     UInt32 Status;
@@ -1746,10 +1742,6 @@ bool SASMegaRAID::mraid_skinny_intr()
 void SASMegaRAID::mraid_skinny_intr_ena()
 {
     MRAID_Write(MRAID_OMSK, ~ MRAID_SKINNY_ENABLE_INTR_MASK);
-}
-UInt32 SASMegaRAID::mraid_skinny_fw_state()
-{
-    return MRAID_Read(MRAID_OSP);
 }
 void SASMegaRAID::mraid_skinny_post(mraid_ccbCommand *ccb)
 {
