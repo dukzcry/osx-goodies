@@ -2,8 +2,6 @@ I/O Kit driver for LSI MegaRAID SAS family of hardware RAID controllers, which i
 
 This family of controllers uses SCSI protocol for data passing, so your device will be presented as parallel SCSI controller to the system.
 
-Message signaled interrupts are deprefered by default (they don't work for PERC 6 owners according to their reports). I have them working with PERC 5 card. It is worth to try: just set "PreferMSI" key under "Settings" dictionary in kext's plist to "YES", if driver doesn't function correctly, revert back to "NO".
-
 Here's rough list of cards which should be supported (if yours doesn't get recognized, try adding PCI DevID of the card into Info.plist):
 - LSI MegaRAID SAS 8xxx, 92xx
 - Dell PERC 5, 6, Hxx
