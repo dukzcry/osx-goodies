@@ -633,11 +633,6 @@ bool SASMegaRAID::Transition_Firmware()
                 max_wait = 180; //10;
                 break;
             case MRAID_STATE_UNDEFINED:
-                /* XXX: I stuck in this forever sometimes */
-                max_wait =
-                /* Use it as cold run flag */
-                ccb_inited ? 180 : 2;
-                break;
             case MRAID_STATE_BB_INIT:
                 max_wait = 180; //2;
                 break;
@@ -1150,11 +1145,9 @@ IOReturn SASMegaRAID::setPowerState(unsigned long state, IOService *dev __unused
             MRAID_Sleep();
         break;
         case MRAID_POWER_ACTIVE:
-            if (EnteredSleep) {
-                DbgPrint("Resuming after sleep\n");
-                MRAID_WakeUp();
-                EnteredSleep = false;
-            }
+            DbgPrint("Resuming after sleep\n");
+            MRAID_WakeUp();
+            EnteredSleep = false;
         break;
 	default:
 		return IOPMNoSuchState;
