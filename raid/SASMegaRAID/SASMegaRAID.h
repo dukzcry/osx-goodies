@@ -88,9 +88,12 @@ static IOPMPowerState PowerStates[] = {
 #define MRAID_POWER_SLEEP 0
 #define MRAID_POWER_ACTIVE 1
     {1, kIOPMSleep, kIOPMSleep, kIOPMSleep, 0, 0, 0, 0, 0, 0, 0, 0},
-    {1, (IOPMPowerOn | kIOPMInitialDeviceState |
+    {1, (IOPMPowerOn | kIOPMInitialDeviceState
+#ifndef SLEEP
          /* XXX: Prevent sleep as it corrupts booting volume */
-         kIOPMPreventIdleSleep | kIOPMPreventSystemSleep), kIOPMPowerOn, kIOPMPowerOn, 0, 0, 0, 0, 0, 0, 0, 0}
+         | kIOPMPreventIdleSleep | kIOPMPreventSystemSleep
+#endif
+         ), kIOPMPowerOn, kIOPMPowerOn, 0, 0, 0, 0, 0, 0, 0, 0}
 };
 
 class SASMegaRAID;

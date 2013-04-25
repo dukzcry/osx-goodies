@@ -1253,7 +1253,9 @@ void SASMegaRAID::MRAID_Exec(mraid_ccbCommand *ccb)
 void mraid_cmd_done(mraid_ccbCommand *ccb)
 {
     SCSI_Sense_Data sense = { 0 };
+#if defined(DEBUG)
     UInt8 *sense_data = (UInt8 *) &sense;
+#endif
     
     cmd_context *cmd;
     mraid_frame_header *hdr;
@@ -1477,9 +1479,11 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
     
     mraid_ccbCommand *ccb;
     UInt8 mbox[MRAID_MBOX_SIZE];
-    
+
+#if defined(SLEEP)
     if (EnteredSleep)
         return kSCSIServiceResponse_SERVICE_DELIVERY_OR_TARGET_FAILURE;
+#endif
     
     GetCommandDescriptorBlock(parallelRequest, &cdbData);
 
