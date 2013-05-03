@@ -9,14 +9,13 @@ Here's rough list of cards which should be supported (if yours doesn't get recog
 - Intel RAID SRCSAS18E, SRCSAS144E
 
 **Except for / definitely unsupported**:
-- Fusion I/II-based controllers
+- Fusion I/II-based controllers with non-MegaRAID firmware
 - Cards based on SAS2208 (Thunderbolt) chip
 - Dell SAS cards (not RAIDs)
 
 Note, that probably almost every card from this family requires x86 host to get access to device firmware's management utility (maybe such card will work on PPC machine but without booting capatibility and you'll not be able to do initial setup of things outside of OS, i.e. you'll need to insert card inside of PC to create virtual disks and so on).
 
 Postponed features:
-- ~~Sleep/resume handling~~
 - ~~Management of RAID functional~~
 
 Post-postponed features:
