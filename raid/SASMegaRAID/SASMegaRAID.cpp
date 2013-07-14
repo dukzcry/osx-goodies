@@ -16,13 +16,22 @@ bool SASMegaRAID::init (OSDictionary* dict)
     map = NULL;
     MyWorkLoop = NULL; fInterruptSrc = NULL;
     InterruptsActivated = FirmwareInitialized = fMSIEnabled = ccb_inited = EnteredSleep = false;
+    
     conf = OSDynamicCast(OSDictionary, getProperty("Settings"));
     OSBoolean *osbool = conf ? OSDynamicCast(OSBoolean, conf->getObject("PreferMSI")) : NULL;
     PreferMSI = (osbool && osbool->isTrue()) ? true : false;
     osbool = conf ? OSDynamicCast(OSBoolean, conf->getObject("NoCacheFlush")) : NULL;
     NoCacheFlush = (osbool && osbool->isTrue()) ? true : false;
-    addr_mask = IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : MASK_32BIT;
     
+    conf = OSDynamicCast(OSDictionary, getProperty("DangerZone"));
+    OSNumber *onum = conf ? OSDynamicCast(OSNumber, conf->getObject("MaxSGL")) : NULL;
+    MaxSGL = onum ? onum->unsigned32BitValue() : 0;
+    onum = conf ? OSDynamicCast(OSNumber, conf->getObject("MaxTransferSize")) : NULL;
+    MaxXferSize = onum ? onum->unsigned32BitValue() : 0;
+    onum = conf ? OSDynamicCast(OSNumber, conf->getObject("MaxTransferSizePerSegment")) : NULL;
+    MaxXferSizePerSeg = onum ? onum->unsigned32BitValue() : 0;
+    
+    addr_mask = IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : MASK_32BIT;
 	/* Create an instance of PCI class from Helper Library */
 	PCIHelperP = new PCIHelper<SASMegaRAID>;
     
@@ -338,8 +347,9 @@ bool SASMegaRAID::Attach()
     sc.sc_max_cmds = status & MRAID_STATE_MAXCMD_MASK;
     sc.sc_max_sgl = (status & MRAID_STATE_MAXSGL_MASK) >> 16;
     
-    /* XXX: Can't bump this: probably problem of my LSI-flashed PERC 5 */
-    sc.sc_max_sgl = min(sc.sc_max_sgl, FREEBSD_MAXFER / PAGE_SIZE + 1);
+    sc.sc_max_sgl = MaxSGL ? min(sc.sc_max_sgl, MaxSGL) :
+                        /* XXX: Can't bump this: probably problem of my LSI-flashed PERC 5 */
+                        min(sc.sc_max_sgl, FREEBSD_MAXFER / PAGE_SIZE + 1);
     
     /* FW can accept 64-bit SGLs */
     if(IOPhysSize == 64) {
@@ -483,7 +493,7 @@ bool SASMegaRAID::Attach()
     getProvider()->joinPMtree(this);
     registerPowerDriver(this, PowerStates, 2);
 
-#if 0
+    if (MaxXferSize) {
 #if defined DEBUG || defined io_debug
     IOPrint("Formed constraints of: Max Stripe Size: %d, "
             "Max Strips PerIO %d, Max Data Transfer Size: %d sectors\n",
@@ -491,19 +501,18 @@ bool SASMegaRAID::Attach()
             sc.sc_info.info->mci_max_strips_per_io,
             sc.sc_info.info->mci_max_request_size);
 #endif
-#endif
-    val = OSNumber::withNumber(MaxXferSize = MaxXferSizePerSeg =
-#if 0
+    }
+    val = OSNumber::withNumber(MaxXferSize =
+                               MaxXferSize ?
                                min(min((1 << sc.sc_info.info->mci_stripe_sz_ops.max) *
                                     sc.sc_info.info->mci_max_strips_per_io,
                                     sc.sc_info.info->mci_max_request_size) * SECTOR_LEN,
-#else
-                               (
-#endif
-                               (sc.sc_max_sgl - 1) * PAGE_SIZE), 64);
+                                   MaxXferSize) :
+                               (sc.sc_max_sgl - 1) * PAGE_SIZE, 64);
     setProperty(kIOMaximumByteCountReadKey, val);
     setProperty(kIOMaximumByteCountWriteKey, val);
     val->release();
+    MaxXferSizePerSeg = MaxXferSizePerSeg ? min(MaxXferSize, MaxXferSizePerSeg) : MaxXferSize;
                                
     RAIDP = new RAID;
     if (RAIDP) if (!RAIDP->init(this, GetSCSIDomainIdentifier())) RAIDP = NULL;
