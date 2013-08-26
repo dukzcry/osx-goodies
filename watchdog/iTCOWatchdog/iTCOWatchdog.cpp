@@ -28,9 +28,7 @@ bool iTCOWatchdog::init (OSDictionary* dict)
         WorkaroundBug = bkey->isTrue();
     
     first_run = true;
-    is_active = false;
-    SMIWereEnabled = false;
-    //entered_sleep = false;
+    is_active = SMIWereEnabled = false;
     
     GCSMem.range = NULL; GCSMem.map = NULL;
     
@@ -94,20 +92,24 @@ void iTCOWatchdog::systemWillShutdown(IOOptionBits spec)
 }
 
 #ifdef sleepfixed
+unsigned long iTCOWatchdog::initialPowerStateForDomainState(IOPMPowerFlags flags __unused)
+{
+    DbgPrint("%s\n", __FUNCTION__);
+    return ITCO_POWER_ACTIVE;
+}
 IOReturn iTCOWatchdog::setPowerState(unsigned long state, IOService *dev __unused)
 {
     DbgPrint(drvid, "%s: spec = %lu\n", __FUNCTION__, state);
     
     switch (state) {
-        case 0:
+        case ITCO_POWER_SLEEP:
             tcoWdDisableTimer();
-            entered_sleep = true;
         break;
-        case 1:
-            if (entered_sleep) tcoWdEnableTimer();
+        case ITCO_POWER_ACTIVE:
+            tcoWdEnableTimer();
         break;
-	default:
-		return IOPMNoSuchState;
+        default:
+            return IOPMNoSuchState;
     }
     
     return kIOPMAckImplied;
@@ -169,7 +171,7 @@ IOService *iTCOWatchdog::probe (IOService* provider, SInt32* score)
 
     IOPrint(drvid, "Attached %s (%#x) iTCO v%d. Base: 0x%04llx\n", LPCNub->lpc->name,
             LPCNub->DeviceId,
-            LPCNub->lpc->itco_version,
+            (unsigned int)LPCNub->lpc->itco_version,
             (UInt64) ITCO_BASE);
     
     return super::probe(provider, score);
@@ -332,7 +334,7 @@ UInt32 iTCOWatchdog::readTimeleft()
 
 void iTCOWatchdog::tcoWdSetTimer(UInt32 time)
 {
-    IOPrint(drvid, "Setting timeout to: %d\n", time);
+    IOPrint(drvid, "Setting timeout to: %d\n", (unsigned int)time);
     
     /* 1 tick = 0.6 sec */
     time = (time * 5) / 3;
@@ -408,7 +410,6 @@ void iTCOWatchdog::tcoWdDisableTimer()
 #endif
     
     is_active = false;
-    
     IOSimpleLockUnlock(lock);
     
     if (!first_run) IOPrint(drvid, "Disabled\n");

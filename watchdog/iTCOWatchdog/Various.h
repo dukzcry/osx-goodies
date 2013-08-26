@@ -150,9 +150,12 @@ namespace lpc_structs {
     };
 }
 
+#define sleepfixed
+#define ITCO_POWER_SLEEP 0
+#define ITCO_POWER_ACTIVE 1
 static IOPMPowerState PowerStates[] = {
     {1, kIOPMSleep, kIOPMSleep, kIOPMSleep, 0, 0, 0, 0, 0, 0, 0, 0},
-    {1, kIOPMPowerOn, kIOPMPowerOn, kIOPMPowerOn, 0, 0, 0, 0, 0, 0, 0, 0}
+    {1, (kIOPMPowerOn | kIOPMInitialDeviceState), kIOPMPowerOn, kIOPMPowerOn, 0, 0, 0, 0, 0, 0, 0, 0}
 };
 
 typedef struct {
@@ -166,14 +169,12 @@ private:
     //SInt32 AcpiReg;
 #ifdef sleepfixed
     struct {
-        /* Check sizes */
+        /* TO-DO: check sizes */
         UInt32 PIRQ[2];
         UInt16 pmcon1;
         /* */
         UInt32 fwh_ich5;
         UInt32 rcba;
-        
-        bool entered_sleep;
     } store;
     
     void Sleep();
@@ -200,7 +201,9 @@ protected:
     virtual void stop(IOService *provider) { super::stop(provider); }
     
     virtual void systemWillShutdown(IOOptionBits);
-    //virtual IOReturn setPowerState(unsigned long, IOService *);
+    
+    virtual unsigned long initialPowerStateForDomainState(IOPMPowerFlags);
+    virtual IOReturn setPowerState(unsigned long, IOService *);
 };
 
 bool MyLPC::init (OSDictionary* dict)
@@ -210,7 +213,6 @@ bool MyLPC::init (OSDictionary* dict)
 
     //AcpiReg = -1;
     lpc = NULL;
-    //store.entered_sleep = false;
     
     return res;
 }
@@ -261,18 +263,24 @@ void MyLPC::free_common()
 #endif
 
 #ifdef sleepfixed
+unsigned long MyLPC::initialPowerStateForDomainState(IOPMPowerFlags flags __unused)
+{
+    DbgPrint("%s\n", __FUNCTION__);
+    return ITCO_POWER_ACTIVE;
+}
 IOReturn MyLPC::setPowerState(unsigned long state, IOService *dev __unused)
 {
     DbgPrint(lpcid, "%s: spec = %lu\n", __FUNCTION__, state);
     
     switch (state) {
-        case 0:
+        case ITCO_POWER_SLEEP:
             Sleep();
-            store.entered_sleep = true;
+        break;
+        case ITCO_POWER_ACTIVE:
+            WakeUp();
         break;
         default:
-            if (store.entered_sleep) WakeUp();
-        break;
+            return IOPMNoSuchState;
     }
     
     return kIOPMAckImplied;
