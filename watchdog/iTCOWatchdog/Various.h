@@ -265,7 +265,7 @@ void MyLPC::free_common()
 #ifdef sleepfixed
 unsigned long MyLPC::initialPowerStateForDomainState(IOPMPowerFlags flags __unused)
 {
-    DbgPrint("%s\n", __FUNCTION__);
+    DbgPrint(lpcid, "%s\n", __FUNCTION__);
     return ITCO_POWER_ACTIVE;
 }
 IOReturn MyLPC::setPowerState(unsigned long state, IOService *dev __unused)

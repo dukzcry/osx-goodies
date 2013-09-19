@@ -221,7 +221,7 @@ void Andigilog::GetConf()
             
         if (!ASC7621_ALTBG(val) && (val == 7 || (val == 3 &&
             /* PWM: 255 -> 0 */
-            (conf |= 1 << ASC7621_PWM3B) && ((conf &= ~(1 << ASC7621_PWM2B) & ~(1 << ASC7621_PWM1B)) != -1) &&
+            (conf |= 1 << ASC7621_PWM3B) && ((conf &= ~(1 << ASC7621_PWM2B) & ~(1 << ASC7621_PWM1B)) != 0xff) &&
             (i2cNub->WriteI2CBus(Asc7621_addr, &Pwm[i].reg[0], sizeof Pwm[i].reg[0], &conf, sizeof conf) != -1)
             /* */
             )))

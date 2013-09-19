@@ -94,7 +94,7 @@ void iTCOWatchdog::systemWillShutdown(IOOptionBits spec)
 #ifdef sleepfixed
 unsigned long iTCOWatchdog::initialPowerStateForDomainState(IOPMPowerFlags flags __unused)
 {
-    DbgPrint("%s\n", __FUNCTION__);
+    DbgPrint(drvid, "%s\n", __FUNCTION__);
     return ITCO_POWER_ACTIVE;
 }
 IOReturn iTCOWatchdog::setPowerState(unsigned long state, IOService *dev __unused)
