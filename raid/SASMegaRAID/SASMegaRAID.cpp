@@ -360,7 +360,7 @@ bool SASMegaRAID::Attach()
         sc.sc_sgl_size = sizeof(mraid_sg32);
         sc.sc_sgl_flags = MRAID_FRAME_SGL32;
     }
-    IOPrint("DMA: %d-bit, max commands: %u, Max SGE Count: %u\n", IOPhysSize, (unsigned int)sc.sc_max_cmds, (unsigned int)sc.sc_max_sgl);
+    IOPrint("DMA: %d-bit, max commands: %u, max SGE count: %u\n", IOPhysSize, (unsigned int)sc.sc_max_cmds, (unsigned int)sc.sc_max_sgl);
     
     /* Allocate united mem for reply queue & producer-consumer */
     if (!(sc.sc_pcq = AllocMem(sizeof(UInt32) /* Context size */

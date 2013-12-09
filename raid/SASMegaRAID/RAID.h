@@ -1,11 +1,5 @@
 /* Written by Artem Falcon <lomka@gero.in> */
 
-#if 0
-#if __cplusplus < 201103L
-#error "I need C++11 for functional jokery ;)"
-#endif
-#endif
-
 #include <sys/systm.h>
 #include <sys/conf.h>
 #include <miscfs/devfs/devfs.h>
@@ -32,15 +26,15 @@ public:
 };
 
 static struct cdevsw mraid_cdevsw = {
-    (d_open_t *) &nulldev, // lambda(dev_t, int x, int, struct proc *) { return x; }
-    (d_close_t *) &nulldev, // lambda(dev_t, int x, int, struct proc *) { return x; }
-    (d_read_t *) &nulldev, // lambda(dev_t, struct uio *, int x) { return x; }
-    (d_write_t *) &nulldev, // lambda(dev_t, struct uio *, int x) { return x; }
-    RAID::Ioctl, // lambda(dev_t, u_long, caddr_t, int x, struct proc *) { return x; }
-    (d_stop_t *) &nulldev, // lambda(struct tty*, int x) { return x; }
-    (d_reset_t *) &nulldev, // lambda(int x) { return x; }
+    (d_open_t *) &nulldev,
+    (d_close_t *) &nulldev,
+    (d_read_t *) &nulldev,
+    (d_write_t *) &nulldev,
+    RAID::Ioctl,
+    (d_stop_t *) &nulldev,
+    (d_reset_t *) &nulldev,
     0,               // struct tty      **d_ttys;
-    (d_select_t *) &nulldev, // lambda(dev_t, int x, void *, struct proc *) { return x; }
+    (d_select_t *) &nulldev,
     eno_mmap,        // mmap_fcn_t       *d_mmap;
     eno_strat,       // strategy_fcn_t   *d_strategy;
     eno_getc,        // getc_fcn_t       *d_getc;
