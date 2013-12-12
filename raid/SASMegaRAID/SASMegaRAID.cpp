@@ -60,7 +60,7 @@ bool SASMegaRAID::InitializeController(void)
     UInt32 barval;
     
     //BaseClass::start(provider);
-    DbgPrint("super->InitializeController\n");
+    DbgPrint("%s\n", __FUNCTION__);
     
     if (!(fPCIDevice = OSDynamicCast(IOPCIDevice, provider))) {
         IOPrint("Failed to cast provider\n");
@@ -160,7 +160,7 @@ bool SASMegaRAID::InitializeController(void)
 //void SASMegaRAID::stop(IOService *provider)
 void SASMegaRAID::TerminateController(void)
 {
-    DbgPrint("super->TerminateController\n");
+    DbgPrint("%s\n", __FUNCTION__);
  
     MRAID_Shutdown();
     if (InterruptsActivated) {
@@ -1060,8 +1060,6 @@ bool SASMegaRAID::CreateSGL(mraid_ccbCommand *ccb)
 void SASMegaRAID::MRAID_Shutdown()
 {
     UInt8 mbox[MRAID_MBOX_SIZE];
-    
-    DbgPrint("%s\n", __FUNCTION__);
     
     if (FirmwareInitialized) {
         mbox[0] = MRAID_FLUSH_CTRL_CACHE | MRAID_FLUSH_DISK_CACHE;
