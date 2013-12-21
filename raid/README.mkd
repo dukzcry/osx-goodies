@@ -18,9 +18,6 @@ Note, that probably almost every card from this family requires x86 host to get 
 Postponed features:
 - ~~Management of RAID functional~~
 
-Post-postponed features:
-- Monitoring with HWSensors
-
 Notes for coder:
 - Templates are used for interaction with project-independend helper library
 - Structures, enumerations and unions are typedefined to raise 'pointer to incomplete type' invisible errors
