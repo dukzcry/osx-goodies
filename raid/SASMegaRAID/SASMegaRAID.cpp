@@ -1126,6 +1126,8 @@ void SASMegaRAID::MRAID_WakeUp()
     if (PreferMSI) fInterruptSrc->enable();
     mraid_intr_enable();
     InterruptsActivated = true;
+    
+    IOPrint("Resumed after sleep\n");
 }
 
 unsigned long SASMegaRAID::initialPowerStateForDomainState(IOPMPowerFlags flags __unused)
@@ -1153,7 +1155,6 @@ IOReturn SASMegaRAID::setPowerState(unsigned long state, IOService *dev __unused
             MRAID_Sleep();
         break;
         case MRAID_POWER_ACTIVE:
-            DbgPrint("Resuming after sleep\n");
             MRAID_WakeUp();
             EnteredSleep = false;
         break;
