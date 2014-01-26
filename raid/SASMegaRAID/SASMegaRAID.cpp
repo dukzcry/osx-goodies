@@ -422,15 +422,15 @@ bool SASMegaRAID::Attach()
         return false;
     }
     if (sc.sc_info.info->mci_pd_present)
-        IOPrint("%d physical drive(s) present\n", sc.sc_info.info->mci_pd_disks_present);
+        IOPrint("%d of PDs present\n", sc.sc_info.info->mci_pd_disks_present);
     if (sc.sc_info.info->mci_pd_disks_pred_failure)
-        IOPrint("Predicated failure of %d physical drive(s)\n", sc.sc_info.info->mci_pd_disks_pred_failure);
+        IOPrint("Predicated failure of %d PDs\n", sc.sc_info.info->mci_pd_disks_pred_failure);
     if (sc.sc_info.info->mci_pd_disks_failed)
-        IOPrint("%d of physical drives failed\n", sc.sc_info.info->mci_pd_disks_failed);
+        IOPrint("%d of PDs failed\n", sc.sc_info.info->mci_pd_disks_failed);
     if (sc.sc_info.info->mci_lds_degraded)
-        IOPrint("%d of virtual drives degraded\n", sc.sc_info.info->mci_lds_degraded);
+        IOPrint("%d of VDs degraded\n", sc.sc_info.info->mci_lds_degraded);
     if (sc.sc_info.info->mci_lds_offline)
-        IOPrint("%d of virtual drives offline\n", sc.sc_info.info->mci_lds_offline);
+        IOPrint("%d of VDs offline\n", sc.sc_info.info->mci_lds_offline);
     if (sc.sc_info.info->mci_properties.mcp_coercion_mode || sc.sc_info.info->mci_properties.mcp_alarm_enable ||
         !sc.sc_info.info->mci_properties.mcp_disable_auto_rebuild || !sc.sc_info.info->mci_properties.mcp_disable_battery_warn) {
         IOPrint("Enabled options: ");
@@ -494,6 +494,7 @@ bool SASMegaRAID::Attach()
         IOPrint("BBU not present/read error");
     IOLog("\n");
     
+    /* XXX: we don't support uncontiguous enums, that's FW issue then */
     for (int i = 0; i < sc.sc_info.info->mci_lds_present; i++) {
         sc.sc_ld_present[i] = true;
     }
