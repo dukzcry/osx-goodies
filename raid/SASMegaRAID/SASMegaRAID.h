@@ -84,18 +84,6 @@ typedef struct {
     bool        event;
 } lock;
 
-static IOPMPowerState PowerStates[] = {
-#define MRAID_POWER_SLEEP 0
-#define MRAID_POWER_ACTIVE 1
-    {1, kIOPMSleep, kIOPMSleep, kIOPMSleep, 0, 0, 0, 0, 0, 0, 0, 0},
-    {1, (IOPMPowerOn | kIOPMInitialDeviceState
-#ifndef SLEEP
-         /* XXX: Prevent sleep as it corrupts booting volume */
-         | kIOPMPreventIdleSleep | kIOPMPreventSystemSleep
-#endif
-         ), kIOPMPowerOn, kIOPMPowerOn, 0, 0, 0, 0, 0, 0, 0, 0}
-};
-
 class SASMegaRAID;
 typedef struct {
 #if defined DEBUG /*|| defined io_debug*/

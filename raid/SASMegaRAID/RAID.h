@@ -130,10 +130,8 @@ int RAID::MRAID_Ioctl(__unused dev_t dev, u_long cmd, caddr_t data,
         case MFIIO_PASSTHRU: {
             struct mfi_ioc_passthru *iop = (struct mfi_ioc_passthru *) data;
             
-#if defined(SLEEP)
             if (obj->EnteredSleep)
                 return EIO;
-#endif
             
             return MRAID_UserCommand(iop);
         }

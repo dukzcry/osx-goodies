@@ -15,13 +15,13 @@ bool SASMegaRAID::init (OSDictionary* dict)
     fPCIDevice = NULL;
     map = NULL;
     MyWorkLoop = NULL; fInterruptSrc = NULL;
-    InterruptsActivated = FirmwareInitialized = fMSIEnabled = ccb_inited = EnteredSleep = false;
+    InterruptsActivated = FirmwareInitialized = fMSIEnabled = ccb_inited;
     
     conf = OSDynamicCast(OSDictionary, getProperty("Settings"));
     OSBoolean *osbool = conf ? OSDynamicCast(OSBoolean, conf->getObject("PreferMSI")) : NULL;
-    PreferMSI = (osbool && osbool->isTrue()) ? true : false;
+    PreferMSI = osbool && osbool->isTrue();
     osbool = conf ? OSDynamicCast(OSBoolean, conf->getObject("NoCacheFlush")) : NULL;
-    NoCacheFlush = (osbool && osbool->isTrue()) ? true : false;
+    NoCacheFlush = osbool && osbool->isTrue();
     
     conf = OSDynamicCast(OSDictionary, getProperty("DangerZone"));
     OSNumber *onum = conf ? OSDynamicCast(OSNumber, conf->getObject("MaxSGL")) : NULL;
@@ -30,6 +30,8 @@ bool SASMegaRAID::init (OSDictionary* dict)
     MaxXferSize = onum ? onum->unsigned32BitValue() : 0;
     onum = conf ? OSDynamicCast(OSNumber, conf->getObject("MaxTransferSizePerSegment")) : NULL;
     MaxXferSizePerSeg = onum ? onum->unsigned32BitValue() : 0;
+    osbool = conf ? OSDynamicCast(OSBoolean, conf->getObject("AllowSleep")) : NULL;
+    EnteredSleep = osbool && osbool->isTrue();
     
     addr_mask = IOPhysSize == 64 ? 0xFFFFFFFFFFFFFFFFULL : MASK_32BIT;
 	/* Create an instance of PCI class from Helper Library */
@@ -318,6 +320,12 @@ bool SASMegaRAID::Attach()
 {
     OSNumber *val;
     UInt32 status, frames;
+    IOPMPowerState PowerStates[] = {
+#define MRAID_POWER_SLEEP 0
+#define MRAID_POWER_ACTIVE 1
+        {1, kIOPMSleep, kIOPMSleep, kIOPMSleep, 0, 0, 0, 0, 0, 0, 0, 0},
+        {1, IOPMPowerOn | kIOPMInitialDeviceState, kIOPMPowerOn, kIOPMPowerOn, 0, 0, 0, 0, 0, 0, 0, 0}
+    };
     
     DbgPrint("%s\n", __FUNCTION__);
     
@@ -492,6 +500,11 @@ bool SASMegaRAID::Attach()
     
     PMinit();
     getProvider()->joinPMtree(this);
+    if (EnteredSleep)
+        EnteredSleep = false;
+    else
+        /* XXX: Prevent sleep as it corrupts booting volume */
+        PowerStates[1].capabilityFlags |= kIOPMPreventIdleSleep | kIOPMPreventSystemSleep;
     registerPowerDriver(this, PowerStates, 2);
 
     if (MaxXferSize) {
@@ -1489,10 +1502,8 @@ SCSIServiceResponse SASMegaRAID::ProcessParallelTask(SCSIParallelTaskIdentifier 
     mraid_ccbCommand *ccb;
     UInt8 mbox[MRAID_MBOX_SIZE];
 
-#if defined(SLEEP)
     if (EnteredSleep)
         return kSCSIServiceResponse_SERVICE_DELIVERY_OR_TARGET_FAILURE;
-#endif
     
     GetCommandDescriptorBlock(parallelRequest, &cdbData);
 
