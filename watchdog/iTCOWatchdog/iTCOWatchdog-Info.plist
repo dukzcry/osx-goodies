@@ -110,13 +110,13 @@
 	<key>OSBundleLibraries</key>
 	<dict>
 		<key>com.apple.kpi.mach</key>
-		<string>8.0.0b2</string>
+		<string>9.0.0</string>
 		<key>com.apple.iokit.IOPCIFamily</key>
 		<string>2.6</string>
 		<key>com.apple.kpi.libkern</key>
-		<string>10.0.0</string>
+		<string>9.0.0</string>
 		<key>com.apple.kpi.iokit</key>
-		<string>10.0.0</string>
+		<string>9.0.0</string>
 	</dict>
 	<key>OSBundleRequired</key>
 	<string>Root</string>

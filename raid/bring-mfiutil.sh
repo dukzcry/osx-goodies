@@ -1,4 +1,5 @@
 #!/bin/sh
+# $dukzcry$
 
 #brew install bsdmake
 

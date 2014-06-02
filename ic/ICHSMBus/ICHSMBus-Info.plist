@@ -31,7 +31,7 @@
 		<key>ICHSMBus</key>
 		<dict>
 			<key>IOProbeScore</key>
-			<string>2000</string>
+			<integer>2000</integer>
 			<key>IOPCIMatch</key>
 			<string>0x24d38086 0x266a8086 0x27da8086 0x283e8086 0x29308086 0x3a208086&amp;0xff2fffff 0x269b8086 0x3b308086 0x1c228086 0x1e228086 0x1d228086</string>
 			<key>IOPCIMatchComment</key>
@@ -49,13 +49,13 @@
 	<key>OSBundleLibraries</key>
 	<dict>
 		<key>com.apple.kpi.mach</key>
-		<string>8.0.0b2</string>
+		<string>9.0.0</string>
 		<key>com.apple.iokit.IOPCIFamily</key>
 		<string>2.6</string>
 		<key>com.apple.kpi.iokit</key>
-		<string>10.0.0</string>
+		<string>9.0.0</string>
 		<key>com.apple.kpi.libkern</key>
-		<string>10.0.0</string>
+		<string>9.0.0</string>
 	</dict>
 </dict>
 </plist>

@@ -104,7 +104,6 @@ bool SASMegaRAID::InitializeController(void)
                 return false;
             }
             
-            if(MemDesc != NULL) {
                 map = MemDesc->map();
                 MemDesc->release();
                 if(map != NULL) {
@@ -117,7 +116,6 @@ bool SASMegaRAID::InitializeController(void)
                     IOPrint("Can't map controller PCI space\n");
                     return false;
                 }
-            }
         break;
         case PCI_MAPREG_MEM_TYPE_64BIT:
             MappingType = 64;
@@ -422,7 +420,7 @@ bool SASMegaRAID::Attach()
         return false;
     }
     if (sc.sc_info.info->mci_pd_present)
-        IOPrint("%d of PDs present\n", sc.sc_info.info->mci_pd_disks_present);
+        IOPrint("%d PDs present\n", sc.sc_info.info->mci_pd_disks_present);
     if (sc.sc_info.info->mci_pd_disks_pred_failure)
         IOPrint("Predicated failure of %d PDs\n", sc.sc_info.info->mci_pd_disks_pred_failure);
     if (sc.sc_info.info->mci_pd_disks_failed)
@@ -1323,11 +1321,12 @@ void mraid_cmd_done(mraid_ccbCommand *ccb)
     if (cmd->ts != kSCSITaskStatus_GOOD) {
         IOPrint("Warning: cmd failed on tg %d with ts 0x%x and opc 0x%x\n", hdr->mrh_target_id,
                 cmd->ts, cmd->opcode);
-        IOPrint("Sense data: ");
-        if (cmd->ts == kSCSITaskStatus_CHECK_CONDITION)
+        if (cmd->ts == kSCSITaskStatus_CHECK_CONDITION) {
+            IOPrint("Sense data: ");
             for (int i = 0; i < sizeof(sense); i++)
                 IOLog("%#x ", sense_data[i]);
-        IOPrint("\n");
+            IOPrint("\n");
+        }
     }
 #endif
     

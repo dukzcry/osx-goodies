@@ -1,25 +1,21 @@
-I/O Kit driver for LSI MegaRAID SAS family of hardware RAID controllers, which isn't supported by proprietary MegaRAID.kext (PPC) and AppleLSIFusionMPT.kext or AppleRAIDCard.kext (Intel). This driver is Xcode project, for OS X.
+I/O Kit driver for LSI MegaRAID SAS family of hardware RAID controllers, which isn't supported by proprietary MegaRAID.kext (PPC) and AppleLSIFusionMPT.kext or AppleRAIDCard.kext (x86). This driver is Xcode project, for OS X.
 
 This family of controllers uses SCSI protocol for data passing, so your device will be presented as parallel SCSI controller to the system.
 
-Here's rough list of cards which should be supported (if yours doesn't get recognized, try adding PCI DevID of the card into Info.plist):
+Here's rough list of cards which should be supported:
 - LSI MegaRAID SAS 8xxx, 92xx
-- Dell PERC 5, 6, Hxx
-- IBM ServeRAID M1015, M5014
+- Dell PERC 5, PERC/CERC 6, H310, H700, H800
+- IBM ServeRAID M1015, M1115, M5014
 - Intel RAID SRCSAS18E, SRCSAS144E
 
 **Except for / definitely unsupported**:
-- Fusion I/II-based controllers with non-MegaRAID firmware
-- Cards based on SAS2208 (Thunderbolt) chip
-- Dell SAS cards (not RAIDs)
+- controllers with non-MegaRAID firmware
+- cards based on SAS2208 (Thunderbolt) chip
 
-Note, that probably almost every card from this family requires x86 host to get access to device firmware's management utility (maybe such card will work on PPC machine but without booting capatibility and you'll not be able to do initial setup of things outside of OS, i.e. you'll need to insert card inside of PC to create virtual disks and so on).
-
-Postponed features:
-- ~~Management of RAID functional~~
+Note, that probably almost every card from this family requires x86 host w BIOS/EFI to get access to device firmware's management utility (maybe such card will work on PPC machine but without booting capatibility and you'll not be able to do initial setup of things outside of OS, i.e. you'll need to insert card inside of PC to create virtual disks and so on).
 
 Notes for coder:
 - Templates are used for interaction with project-independend helper library
 - Structures, enumerations and unions are typedefined to raise 'pointer to incomplete type' invisible errors
 - Incapsulation ignored
-- Checks for DMA buffers bouncing aren't required on OS X, and hence, you'll see no synchronize() in code
+- Checks for DMA buffers bouncing aren't required on OS X, and hence, you'll see no synchronization primitives in code

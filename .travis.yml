@@ -1,0 +1,7 @@
+language: objective-c
+before_script:
+        - brew update >/dev/null && brew install bsdmake >/dev/null
+script:
+        - cd ./raid && sh ./bring-mfiutil.sh >/dev/null && (./mfiutil/mfiutil show adapter || true) && rm -rf mfiutil
+        - cd .. && sh ./.travis.sh
+        - ./watchdog/Watchdog\ Feeder/build/Release/Watchdog\ Feeder -h; ./watchdog/Watchdog\ Feeder/build/Debug/Watchdog\ Feeder -h
