@@ -541,7 +541,8 @@ mraid_mem *SASMegaRAID::AllocMem(vm_size_t size)
         return NULL;
     
     /* Hardware requirement: Page size aligned */
-    if (!(mm->bmd = IOBufferMemoryDescriptor::inTaskWithOptions(kernel_task, kIOMemoryPhysicallyContiguous, size, PAGE_SIZE))) {
+    if (!(mm->bmd = IOBufferMemoryDescriptor::inTaskWithPhysicalMask
+          (kernel_task, kIOMemoryPhysicallyContiguous, size, addr_mask & ~PAGE_MASK))) {
         goto free;
     }
     mm->bmd->prepare();
