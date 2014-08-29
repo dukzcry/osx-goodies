@@ -11,6 +11,7 @@ Here's rough list of cards which should be supported:
 **Except for / definitely unsupported**:
 - controllers with non-MegaRAID firmware
 - cards based on SAS2208 (Thunderbolt) chip
+- Fusion-MPT 3 cards
 
 Note, that probably almost every card from this family requires x86 host w BIOS/EFI to get access to device firmware's management utility (maybe such card will work on PPC machine but without booting capatibility and you'll not be able to do initial setup of things outside of OS, i.e. you'll need to insert card inside of PC to create virtual disks and so on).
 

@@ -356,7 +356,7 @@ bool SASMegaRAID::Attach()
     sc.sc_max_sgl = min(sc.sc_max_sgl,
                         MaxSGL ? MaxSGL :
                         /* XXX: Can't bump this: probably problem of my LSI-flashed PERC 5 */
-                        FREEBSD_MAXFER / PAGE_SIZE + 1);
+                        MFI_MAXFER / PAGE_SIZE + 1);
     
     /* FW can accept 64-bit SGLs */
     if(IOPhysSize == 64) {
