@@ -4,7 +4,7 @@
 - ICHSMBus - Intel ICH SMBus controller
 
 ##Childs
-- Andigilog - Andigilog aSC7621(A) temperature, voltage, and fan sensor
+- Andigilog - Andigilog aSC7621(A) temperature, voltage, and fan sensor. Also EMC6D103 and ADT7490 should work after you'll add their ids here and there.
 
 ###Notes
 
