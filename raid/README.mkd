@@ -5,7 +5,7 @@ This family of controllers uses SCSI protocol for data passing, so your device w
 Here's rough list of cards which should be supported:
 - LSI MegaRAID SAS 8xxx, 92xx
 - Dell PERC 5, PERC/CERC 6, H310, H700, H800
-- IBM ServeRAID M1015, M1115, M5014
+- IBM ServeRAID ~~M1015~~, M1115, M5014
 - Intel RAID SRCSAS18E, SRCSAS144E
 
 **Except for / definitely unsupported**:
