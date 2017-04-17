@@ -1,12 +1,12 @@
-#Intel ICH WDT driver
+# Intel ICH WDT driver
 
-###Notes
+### Notes
 
 It's an analog of binary-only [AppleTCOWatchdog](http://wiki.awkwardtv.org/wiki/Watchdog#What_is_Watchdog) (seen in 1st gen of AppleTV) to be used on computers with modern OS X.
 The device is present (but may be unusable) on motherboards with ICH southbridge. If you have watchdog-related option in BIOS, don't forget to enable it.
 If such feature is providen by WDT implementation, kext will note booting after watchdog device workout by printing "Recovered after system failure".
 
-###Info.plist options
+### Info.plist options
 
 These are located in Settings dictionary.
 
@@ -16,7 +16,7 @@ These are located in Settings dictionary.
 - UnsafeWorkaroundBIOSBug - **Fat warning**: This option will disable SMI globally, and thus required to be avoided if possible. Must be avoided on laptops. 
 	Option is intended for those whose products have certain Intel boards (>= ICH7) with broken BIOS implementation, where watchdog doesn't reboot the system when it should.
 
-###Problems
+### Problems
 
 Watchdog is an integrated function of ICH LPC interface bridge, so iTCOWatchdog will supplant proprietary AppleLPC. This means that you may loose working sleep and/or handling of some C-states. If your CPU heat going high and you can't cool your processor, give up on this kext :-) **I was all ok with AppleLPC unloaded on MacBookAir6,2 though**.
 
