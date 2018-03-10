@@ -21,9 +21,9 @@ svn co svn://svn.freebsd.org/base/release/9.1.0/sys/sys ${TMP}/sys
 svn co svn://svn.freebsd.org/base/release/9.1.0/sys/dev/mfi ${TMP}/mfi
 svn co svn://svn.freebsd.org/base/release/9.1.0/sys/cam/scsi ${TMP}/scsi
 [ ! -e ${TMP}/${LU}.tgz ] && \
-	curl http://www.opensource.apple.com/tarballs/libutil/${LU}.tar.gz -o ${TMP}/${LU}.tgz
+	curl -L https://opensource.apple.com/tarballs/libutil/${LU}.tar.gz -o ${TMP}/${LU}.tgz
 [ ! -e ${TMP}/${XNU}.tgz ] && \
-	curl http://www.opensource.apple.com/tarballs/xnu/${XNU}.tar.gz -o ${TMP}/${XNU}.tgz
+	curl -L https://opensource.apple.com/tarballs/xnu/${XNU}.tar.gz -o ${TMP}/${XNU}.tgz
 
 cd ./mfiutil
 tar xzf ${TMP}/${LU}.tgz -C .
