@@ -1,6 +1,6 @@
 I/O Kit driver for LSI MegaRAID SAS family of hardware RAID controllers, which isn't supported by proprietary MegaRAID.kext (PPC) and AppleLSIFusionMPT.kext or AppleRAIDCard.kext (x86). This driver is Xcode project, for OS X.
 
-This family of controllers uses SCSI protocol for data passing, so your device will be presented as parallel SCSI controller to the system.
+~~This family of controllers uses SCSI protocol for data passing, so your device will be presented as parallel SCSI controller to the system.~~
 
 Here's rough list of cards which should be supported:
 - LSI MegaRAID SAS 8xxx, 92xx
