@@ -18,6 +18,6 @@ These are located in Settings dictionary.
 
 ### Problems
 
-Watchdog is an integrated function of ICH LPC interface bridge, so iTCOWatchdog will supplant proprietary AppleLPC. This means that you may loose working sleep and/or handling of some C-states. If your CPU heat going high and you can't cool your processor, give up on this kext :-) **I was all ok with AppleLPC unloaded on MacBookAir6,2 though**.
+Watchdog is an integrated function of ICH LPC interface bridge, so iTCOWatchdog will supplant proprietary AppleLPC. This means that you may loose working sleep and/or handling of some C-states. **It worked for me on MacBookAir6,2**, but anyway beware of reduced CPU life.
 
-Current implementation of communication of kext with userland is highly unsecure: it allows *any user* to control the hardware.
+Current implementation of communication of kext with userland is unsecure: it allows *any user* to control the hardware.
