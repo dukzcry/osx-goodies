@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/dukzcry/osx-goodies.svg?branch=master)](https://travis-ci.org/dukzcry/osx-goodies)
+
 I/O Kit driver for LSI MegaRAID SAS family of hardware RAID controllers, which isn't supported by proprietary MegaRAID.kext (PPC) and AppleLSIFusionMPT.kext or AppleRAIDCard.kext (x86). This driver is Xcode project, for macOS.
 
 Here's rough list of cards which should be supported:
