@@ -22,6 +22,8 @@ bool SASMegaRAID::init (OSDictionary* dict)
     PreferMSI = osbool && osbool->isTrue();
     osbool = conf ? OSDynamicCast(OSBoolean, conf->getObject("NoCacheFlush")) : NULL;
     NoCacheFlush = osbool && osbool->isTrue();
+    osbool = conf ? OSDynamicCast(OSBoolean, conf->getObject("DiscontinuousEnumeration")) : NULL;
+    DiscontinuousEnumeration = osbool && osbool->isTrue();
     
     conf = OSDynamicCast(OSDictionary, getProperty("DangerZone"));
     OSNumber *onum = conf ? OSDynamicCast(OSNumber, conf->getObject("MaxSGL")) : NULL;
@@ -492,8 +494,7 @@ bool SASMegaRAID::Attach()
         IOPrint("BBU not present/read error");
     IOLog("\n");
     
-    /* XXX: we don't support uncontiguous enums, that's FW issue then */
-    for (int i = 0; i < sc.sc_info.info->mci_lds_present; i++) {
+    for (int i = 0; i < (DiscontinuousEnumeration ? sc.sc_info.info->mci_max_lds : sc.sc_info.info->mci_lds_present); i++) {
         sc.sc_ld_present[i] = true;
     }
     

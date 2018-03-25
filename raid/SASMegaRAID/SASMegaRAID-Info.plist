@@ -32,10 +32,14 @@
 				<false/>
 				<key>PreferMSI</key>
 				<true/>
+				<key>DiscontinuousEnumeration</key>
+				<false/>
 				<key>NoCacheFlushComment</key>
 				<string>Forcefully disable controller and disk cache flushing</string>
 				<key>PreferMSIComment</key>
 				<string>Use Message Signaled Interrupts instead of legacy interrupts</string>
+				<key>DiscontinuousEnumerationComment</key>
+				<string>Allow gaps in disk numeration</string>
 			</dict>
 			<key>DangerZone</key>
 			<dict>
