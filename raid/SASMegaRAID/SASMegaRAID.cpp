@@ -494,7 +494,7 @@ bool SASMegaRAID::Attach()
         IOPrint("BBU not present/read error");
     IOLog("\n");
     
-    for (int i = 0; i < (DiscontinuousEnumeration ? sc.sc_info.info->mci_max_lds : sc.sc_info.info->mci_lds_present); i++) {
+    for (int i = 0; i < (DiscontinuousEnumeration ? MRAID_MAX_LD : sc.sc_info.info->mci_lds_present); i++) {
         sc.sc_ld_present[i] = true;
     }
     
