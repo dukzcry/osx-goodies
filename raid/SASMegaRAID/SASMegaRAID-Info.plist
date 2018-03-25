@@ -32,6 +32,29 @@
 				<false/>
 				<key>PreferMSI</key>
 				<true/>
+				<key>NoCacheFlushComment</key>
+				<string>Forcefully disable controller and disk cache flushing</string>
+				<key>PreferMSIComment</key>
+				<string>Use Message Signaled Interrupts instead of legacy interrupts</string>
+			</dict>
+			<key>DangerZone</key>
+			<dict>
+				<key>MaxTransferSize</key>
+				<integer>0</integer>
+				<key>MaxTransferSizePerSegment</key>
+				<integer>0</integer>
+				<key>MaxSGL</key>
+				<integer>0</integer>
+				<key>AllowSleep</key>
+				<false/>
+				<key>MaxTransferSizeComment</key>
+				<string>e.g. 131072. Determines the maximum size of data transfer (in bytes) per request your controller can catch</string>
+				<key>MaxTransferSizePerSegmentComment</key>
+				<string>e.g. 131072. Does the same that MaxTransferSize but for a single SGL entry</string>
+				<key>MaxSGLComment</key>
+				<string>e.g. 33. Number of scatter gather list entries you controller can handle</string>
+				<key>AllowSleepComment</key>
+				<string>Allows your system go to sleep, but shouldn't be used if your boot volume is on controller</string>
 			</dict>
 			<key>IOResourceMatch</key>
 			<string>IOKit</string>
