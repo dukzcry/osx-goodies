@@ -205,11 +205,11 @@ protected:
     virtual IOReturn setPowerState(unsigned long, IOService *);
     
     virtual SCSILogicalUnitNumber	ReportHBAHighestLogicalUnitNumber ( void ) {return 1;};
-    virtual SCSIDeviceIdentifier	ReportHighestSupportedDeviceID ( void ) {return min(MRAID_MAX_LD, sc.sc_info.info->mci_max_lds);};
+    virtual SCSIDeviceIdentifier	ReportHighestSupportedDeviceID ( void ) {return DiscontinuousEnumeration ? MRAID_MAX_LD : min(MRAID_MAX_LD, sc.sc_info.info->mci_max_lds);};
     virtual bool                    DoesHBAPerformDeviceManagement ( void ) {return false;};
     virtual UInt32                  ReportMaximumTaskCount ( void ) {/* Save few for management */ return sc.sc_max_cmds-3;};
     /* We're not a real SCSI controller */
-    virtual SCSIInitiatorIdentifier	ReportInitiatorIdentifier ( void ) {return min(MRAID_MAX_LD, sc.sc_info.info->mci_max_lds)+1;};
+    virtual SCSIInitiatorIdentifier	ReportInitiatorIdentifier ( void ) {return (DiscontinuousEnumeration ? MRAID_MAX_LD : min(MRAID_MAX_LD, sc.sc_info.info->mci_max_lds))+1;};
     virtual bool                    InitializeTargetForID ( SCSITargetIdentifier targetID );
     virtual SCSIServiceResponse     ProcessParallelTask ( SCSIParallelTaskIdentifier parallelRequest );
     //virtual void                    HandleTimeout ( SCSIParallelTaskIdentifier parallelRequest );
