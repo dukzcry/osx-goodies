@@ -1,4 +1,4 @@
-/* Written by Artem Falcon <lomka@gero.in> */
+/* Written by Artem Lukyanov <dukzcry@ya.ru> */
 
 /* Andigilog aSC7621(A) sensor driver */
 

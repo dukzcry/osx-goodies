@@ -1,4 +1,4 @@
-/* Written by Artem Falcon <lomka@gero.in> */
+/* Written by Artem Lukyanov <dukzcry@ya.ru> */
 
 //#define io_debug
 

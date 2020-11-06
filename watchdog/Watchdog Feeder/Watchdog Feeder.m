@@ -1,4 +1,4 @@
-/* Written by Artem Falcon <lomka@gero.in> */
+/* Written by Artem Lukyanov <dukzcry@ya.ru> */
 
 /* TO-DO: Core Foundation -> Foundation: get rid of manual reference counting */
 

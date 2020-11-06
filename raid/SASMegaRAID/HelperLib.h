@@ -1,4 +1,4 @@
-/* Written by Artem Falcon <lomka@gero.in> */
+/* Written by Artem Lukyanov <dukzcry@ya.ru> */
 
 #define PCI_MAPREG_MEM_ADDR_MASK        0xfffffff0
 
